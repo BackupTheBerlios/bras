@@ -34,13 +34,6 @@ PatternNewer {.*\.o} .c {
   $CC -o $target -c $CFLAGS [lindex $deps 0]
 }
 
-##
-## How to make an executable from a .o-file
-##
-PatternNewer {[^.]*} .o {
-  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
-}
-
 ########################################################################
 ##### Local Variables: #
 ##### mode:tcl #
