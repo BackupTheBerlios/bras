@@ -1,5 +1,8 @@
+
+!!!! This is not currently maintained and is probably incomplete
+
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.12 $, $Date: 2001/09/09 16:36:06 $
+## version I am shipping from cvs. (kir) $Revision: 1.13 $, $Date: 2001/12/30 09:08:53 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -9,7 +12,7 @@ Release: 0
 Copyright: GPL
 Group: Development/Building
 Source: somewhere/bras-%{VERSION}.tar.gz
-URL: http://wsd.iitb.fhg.de/~kir/brashome
+URL: http://bras.berlios.de/
 Packager: Harald Kirsch (kirschh@lionbioscience.com)
 
 Requires: tcl
