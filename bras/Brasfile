@@ -11,10 +11,12 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.21 $, $Date: 2000/06/22 11:38:03 $
+# $Revision: 1.22 $, $Date: 2000/09/16 16:10:50 $
 #
 ########################################################################
+rename package X; proc package args {}
 source .version
+rename package {}; rename X package
 
 include [file join $::bras::base cvsknown.tcl]
 namespace import ::bras::cvsknown
