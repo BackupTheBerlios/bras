@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 2000/06/28 19:27:59 $
+# $Revision: 1.6 $, $Date: 2000/12/30 12:13:31 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -163,6 +163,13 @@ proc ::bras::concatUnique {_list newElems} {
   foreach elem $newElems {
     if {-1!=[lsearch -exact $list $elem]} continue
     lappend list $elem
+  }
+}
+########################################################################
+proc ::bras::trimErrorInfo {} {
+  if {[set r [string last ---SNIP--- $::errorInfo]]>0} {
+    incr r -1
+    set ::errorInfo [string range $::errorInfo 0 $r]
   }
 }
 ########################################################################

@@ -53,10 +53,10 @@ proc ::bras::unknown args {
     return -code error $res
   }
 
-  if {[catch {eval exec <@stdin 2>@stderr >@stdout $args} msg] } {
+  if {[catch {eval exec <@stdin >@stdout $args} msg] } {
     return -code error $msg
   }
-
+  #eval exec <@stdin 2>@stderr >@stdout $args
 }
 ########################################################################
 proc ::bras::invokeCmd {rid Target nspace} {
@@ -116,8 +116,7 @@ proc ::bras::invokeCmd {rid Target nspace} {
  
   if {!$Opts(-n)} {
 
-    if {!$Opts(-v) && !$Opts(-ve) &&
-	!$Opts(-d) && !$Opts(-s)} {
+    if {!$Opts(-v) && !$Opts(-d) && !$Opts(-s)} {
       report norm "\# making `$Target'"
     }
 
@@ -130,13 +129,12 @@ proc ::bras::invokeCmd {rid Target nspace} {
     namespace eval $nspace [list variable c $cmd]
     uplevel \#0 namespace eval $nspace {{
       if {[catch "unset c; $c" msg]} {
-	global errorInfo
-	append errorInfo \
+	::bras::trimErrorInfo
+	append ::errorInfo \
 	    "\n    while making target `$target' in `[pwd]'---SNIP---"
-	return -code error -errorinfo $errorInfo
+	return -code error -errorinfo $::errorInfo
       }
     }}
-	
     cd $wearehere
   }
 

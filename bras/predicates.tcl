@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 2000/09/16 16:12:06 $
+# $Revision: 1.10 $, $Date: 2000/12/30 12:13:31 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -64,7 +64,7 @@ proc ::bras::p::installPredicate { names {depvars {}} } {
   }
   uplevel 1 upvar \#0 $::bras::nspace\::reason reason
 
-  if {$Opts(-d)} {::bras::dmsg "testing `[info level -1]'"}
+  if {$Opts(-d)} {::bras::dmsg "testing \[[info level -1]\]"}
 
   ## Expand dependencies stored in any of the varialbles noted in
   ## depvars along the searchpath. The result is put into these
@@ -274,7 +274,7 @@ proc ::bras::p::varchanged {varnames oldResults} {
   ## changed.
   if {![file exist $oldResults]} {
     if {![llength $varnames]} {return 0}
-    append reason "\nresult file `$oldResults' does not exist"
+    append reason "\ncache file `$oldResults' does not exist"
     return 1
   }
 

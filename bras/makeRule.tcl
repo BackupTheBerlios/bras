@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 2000/05/28 11:54:03 $
+# $Revision: 1.6 $, $Date: 2000/12/30 12:13:31 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -84,15 +84,12 @@ proc ::bras::checkMake {rid theTarget _reason} {
     ## $b contains user's code, so care must be taken when
     ## running it.
     if {[catch $cmd r]} {
-      global errorInfo;
-      set ei [split $errorInfo "\n"]
-      set l [llength $ei]
-      set ei [lrange $ei 0 [expr {$l-8}]]
-      lappend ei "checking test `$b' for target `$theTarget'---SNIP---"
-      return -code error -errorinfo [join $ei "\n"]
+      trimErrorInfo
+      append ::errorInfo \
+	  "\n    while checking test `$b' for " \
+	  "target `$theTarget'---SNIP---"
+      return -code error -errorinfo $::errorInfo
     }
-    #set r [uplevel \#0 namespace eval $nspace [list expr $b]]
-    #set r [::bras::p::evaluate $b]
     set res [expr {$res || $r}]
   }
 

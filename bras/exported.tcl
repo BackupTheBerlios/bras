@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.8 $, $Date: 2000/05/28 11:54:03 $
+# $Revision: 1.9 $, $Date: 2000/12/30 12:13:31 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -37,6 +37,7 @@ namespace eval ::bras {
 #
 # Set or reset some flags controlling bras's operation
 #
+
 proc ::bras::configure {option {on {1}} } {
   variable Opts
 
@@ -52,6 +53,7 @@ proc ::bras::configure {option {on {1}} } {
       set Opts(-v) $on
     }
     -ve {
+      if {$Opts($option)==$on} return
       set Opts($option) $on
       if {$on} {
 	rename ::exec ::bras::exec_orig
@@ -79,6 +81,12 @@ proc ::bras::configure {option {on {1}} } {
 proc ::bras::getenv {_var {default {}} } {
   upvar $_var var
   global env
+
+  ## special handling of global vars which are explicitely qualified
+  ## with ::
+  if {""==[namespace qualifiers $_var]} {
+    set _var [namespace tail $_var]
+  }
   if {[info exist env($_var)]} {
     set var $env($_var)
   } else {
@@ -220,7 +228,7 @@ proc ::bras::consider {targets} {
   if {"$err"!=""} {
     set err [string trim $err "\n"]
     append err "---SNIP---"
-    return -code error -errorinfo $err
+    return -code error -errorinfo $err $err
   } else {
     return $res
   }
