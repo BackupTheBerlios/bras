@@ -91,9 +91,12 @@ proc clink {dst args} {
     set srcdir [pwd]
     cd $dst
     set srcname [file tail $src]
-    if [file exist $srcname] {
+    if {[file exist $srcname]} {
       if { "link"!=[file type $srcname] } continue
-      exec rm -f $srcname
+      _exec rm -f $srcname
+    } else {
+      ## this removes dangling links
+      _exec rm -f $srcname
     }
     puts "creating convenience link:\n   [pwd]/$srcname -> $src"
     _exec >&@stdout ln -s $src .
