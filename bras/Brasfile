@@ -11,16 +11,13 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.25 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.26 $, $Date: 2001/10/21 17:28:10 $
 #
 ########################################################################
-rename package X; proc package args {}
-source .version
-rename package {}; rename X package
-
-include [file join $::bras::base cvsknown.tcl]
-namespace import ::bras::cvsknown
-
+if {$::bras::base!="."} {
+  puts stderr "run ./bras to make sure the correct version is packed"
+  exit 1
+}
 ## The destination for publishing
 getenv PUBDIR [file join wsd.iitb.fhg.de:.public_html brashome]
 
@@ -50,8 +47,8 @@ Make $TGZ {
 		      @doc/bras.ps @doc/bras.pdf pkgIndex.tcl]]
 } {
   ship -F -d $TGZDIR -I doc/bras.ps doc/bras.pdf pkgIndex.tcl \
-      -X dotest [glob Test1/* Test2/*] \
-      -e bras.spec .version
+      -e bras.spec pkgIndex.tcl \
+      -ver pkgIndex.tcl
 }
 
 

@@ -62,7 +62,7 @@ PatternMake [file join .* .* {0[0-9][0-9][0-9]}] install {
 ## In a 2nd version, the local file is expected to have suffix .fixed
 ## supposedly because it results from a late fix just before it is
 ## installed. A typical fix is some string editing in documentation
-## for script files reflecting the actual installation directory.
+## or script files reflecting the actual installation directory.
 #
 ## The proc to derive the dependency
 proc ::bras::gendep::install.fixed {target} {
