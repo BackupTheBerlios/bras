@@ -1,0 +1,28 @@
+
+PREREQUISITES
+
+If you don't have tcl, you are out of luck. Until now, I tested it
+with tcl7.4/tk4.0, but it might work with other versions.
+
+The whole installation script is probably less portable than the
+program it installs. Therefore, if the installation script fails, you
+can do it the stone-age way:
+
+o copy bras, all .tcl-files and all rules.*-files to the installation
+  directory  
+o edit bras so that it finds
+  - tclsh
+  - the other files you just copied around.
+  This is achieved by entering the path to tclsh in the first line of
+  bras and replacing |SRCBASE| in the second line with the absolute
+  path of the installation directory.
+
+
+
+HOW TO INSTALL
+
+o read README
+o run `install.wish'
+
+				That easy?
+					I hope so!

@@ -1,0 +1,187 @@
+#!/bin/sh
+# tclsh and wish treat the following line as comment \
+exec wish $0
+
+##### find tclsh-executable
+set TCLSH ?
+foreach x [split $env(PATH) :] {
+  if {[string match .* $x]} continue
+  if {[file executable $x/tclsh]} {
+    set TCLSH $x/tclsh
+    break
+  }
+}
+
+rename exec _exec
+########################################################################
+proc exec {args} {
+  puts $args
+  eval _exec $args
+}
+########################################################################
+proc apply {w} {
+  .paths configure -text [getCurrentSetting]
+}
+########################################################################
+proc lentry {w label labelwidth applyfunction} {
+  
+  frame $w
+  label $w.l -text $label -width $labelwidth  -anchor e
+  entry $w.e -width 40
+
+  pack $w.l -side left
+  pack $w.e -side left -fill x -expand 1
+
+  bind $w.e <Return> "apply %W"
+  bind $w.e <Leave> "apply %W"
+  bind $w.e <FocusOut> "apply %W"
+  return $w
+}
+########################################################################
+proc installPath {prefix dir} {
+  if ![string match /* $dir] {
+    set dir [string trimright $prefix /]/$dir
+  } 
+
+  return [string trimright $dir /]
+}
+########################################################################
+proc getCurrentSetting {} {
+  set prefix [string trim [.a.e get]]
+  set exe [installPath $prefix [string trim [.b.e get]]]
+  set lib [installPath $prefix [string trim [.c.e get]]]
+  set doc [installPath $prefix [string trim [.d.e get]]]
+  set lroot [string trim [.e.e get]]
+  
+  set res "currently selected destination dirs:\n"
+  append res \
+      "   executable: `$exe'\n" \
+      "library files: `$lib'\n" \
+      "         docu: `$doc'\n" \
+      "    link-root: `$lroot'\n"
+  return $res
+}
+########################################################################
+proc mkdirP {dir} {
+  if [file isdir $dir] return
+
+  set parent [file dir $dir]
+  if {![file exist $dir] && "$parent"!="$dir"} {
+    mkdirP $parent
+  }
+  if ![file isdir $parent] {
+    puts stderr \
+	"cannot make directory `$dir' because `$parent' is no dir"
+    exit 1
+  }
+  if [catch "exec mkdir $dir" msg] {
+    puts stderr $msg
+    exit 1
+  }
+}
+########################################################################
+proc clink {dst args} {
+  if ![file isdir $dst] return
+
+  set pwd [pwd]
+  foreach src $args {
+    cd [file dir $src]
+    set srcdir [pwd]
+    cd $dst
+    set srcname [file tail $src]
+    if [file exist $srcname] {
+      if { "link"!=[file type $srcname] } continue
+      exec rm -f $srcname
+    }
+    puts "creating convenience link:\n   [pwd]/$srcname -> $src"
+    _exec >&@stdout ln -s $src .
+  }
+}
+########################################################################
+proc Install {} {
+  global TCLSH
+  set prefix [string trim [.a.e get]]
+  set exe [installPath $prefix [string trim [.b.e get]]]
+  set lib [installPath $prefix [string trim [.c.e get]]]
+  set doc [installPath $prefix [string trim [.d.e get]]]
+  set lroot [string trim [.e.e get]]
+  mkdirP $exe
+  mkdirP $lib
+  mkdirP $doc
+
+  exec sed -e "1s,^.\*\$,#!$TCLSH," \
+      -e "s, |SRCBASE|, $lib," bras >$exe/bras
+  exec chmod +x $exe/bras
+  exec cp buildCmds.tcl evalCmds.tcl sourceDeps.tcl $lib
+  set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
+  eval exec cp $ruleFiles $lib
+  exec cp CHANGES doc/Bras.ps doc/Bras.tex $doc
+  clink $lroot/bin $exe/bras
+
+  puts "\nThank you for joining us"
+  puts "\n\n                   (C) 1996 kir@iitb.fhg.de"
+  exit 0
+}
+########################################################################
+
+set version [_exec sed -n -e {/^set  *brasVersion/s/[^-0-9]*//p} bras]
+
+if [info exist env(HOME)] {
+  set home $env(HOME)
+} else {
+  set home .
+}
+
+#####
+label .intro -justify left -text "
+Please specify the directories where the installation shall put
+the files. Since there are only a few files, you may want to put them
+all into one directory.
+
+However, if you choose `installation prefix' to be /usr or /usr/local,
+you may want to specify bin, lib/bras and doc/bras for the executable,
+library files and documentation.
+
+If `link root' contains subdirectory bin, a soft-link to the
+executable will be created there, so that nobody has to change the
+PATH environment variable. Good candidates for `link root' are
+/usr/local or /usr, if you don't use them as installation prefix.
+"
+pack .intro -side top -expand 1
+
+#####
+label .warn -justify left -foreground salmon -text "
+o Directories are created if necessary.
+o Installation will fail, if directories cannot be created.
+"
+pack .warn -side top -expand 1
+
+#####
+lentry .x "tclsh-executable" 30 apply
+.x.e insert 0 $TCLSH
+lentry .a "installation prefix" 30 apply
+.a.e insert 0 $home/tools/bras-$version
+lentry .b "where to put the executable" 30 apply
+lentry .c "where to put files need by bras" 30 apply
+lentry .d "where to put documentation" 30 apply
+.d.e insert 0 doc
+lentry .e "link root" 30 apply
+.e.e insert 0 $home/tools
+
+#####
+label .paths \
+    -text [getCurrentSetting] \
+    -anchor w -justify left \
+    -font fixed \
+    -relief sunken \
+    -padx 10 -pady 4
+pack .x .a .b .c .d .e -side top -fill x
+pack .paths -fill x
+
+
+frame .buttons
+button .install -text "Install" -command Install
+button .cancel -text "Cancel" -command exit
+pack .install .cancel -side left -expand 1
+pack .buttons -fill x
+

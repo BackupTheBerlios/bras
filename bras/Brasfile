@@ -1,0 +1,13 @@
+
+##### default target
+Always all @Test1/all {
+}
+
+##### This one is called from within Test1
+Always Test2 @Test2/all {
+}
+
+Always clean {@Test1/clean @Test2/clean} {
+}
+
+  
