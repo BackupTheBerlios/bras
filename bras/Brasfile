@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.11 $, $Date: 1998/08/11 10:26:14 $
+# $Revision: 1.12 $, $Date: 1999/01/23 19:27:24 $
 #
 ########################################################################
 
@@ -26,7 +26,7 @@ set BRASHOME /home1/kir/work/WWWkir/brashome
 set BRASTARGZ [exec ship -n].tar.gz
 
 ## Similarly for the binary rpm
-set BRASRPM [exec ship -n]-0.i386.rpm
+set BRASRPM [exec ship -n]-0.noarch.rpm
 
 ## Within $BRASHOME I want several files. I collect their names here
 ## in the variable TARGETS
@@ -81,7 +81,7 @@ Exist $BRASHOME {} {
 ## The notation @doc/bras.ps tells bras that it can find the rules to
 ## make doc/bras.ps in directory doc.
 Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
-  ship -d $BRASHOME -I doc/bras.ps -e bras bras.spec
+  ship -F -d $BRASHOME -I doc/bras.ps -e bras bras.spec
 }
 
 ## This rule works along the same lines as the one above.
@@ -93,8 +93,8 @@ Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
 
 Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
   cd [glob ~/tmp]
-  rpm -tb $BRASHOME/$BRASTARGZ
-  cp [glob ~/tmp/RPMS/i386/$BRASRPM] $target
+  rpm -tb --buildarch noarch $BRASHOME/$BRASTARGZ
+  cp [glob ~/tmp/RPMS/noarch/$BRASRPM] $target
 }
 
 Always rpm $BRASHOME/$BRASRPM {

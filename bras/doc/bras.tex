@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.15 $, $Date: 1998/08/06 18:09:16 $
+% $Revision: 1.16 $, $Date: 1999/01/23 19:27:33 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -707,38 +707,70 @@ Hint: If the included script needs to know its own name, use the
 standard Tcl-command \texttt{info script}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Use of automatically generated Dependencies}
+
+Most C-compilers are able to generate makefile-dependencies for
+source files by determining which files are included with
+\texttt{\#include} directives. For example \texttt{gcc} can be
+instructed to do so with option \texttt{-M} while SUN's Solaris
+C-compiler uses \texttt{-xM}. Because this is a valuable feature,
+\bras\ has the ability to read and understand a restricted type of
+\make-dependencies. The command
+\begin{quote}
+  \texttt{sourceDeps} \textit{file}
+\end{quote}
+reads a dependency file created by the C-compiler and creates the
+appropriate \texttt{Newer}-rules. The command prints a warning if
+the given file does not exist.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Using environment variables}
+One of the nicer features of \make\ is its ability to override
+variable values in the makefile with values from the command line or
+from the environment with \texttt{var=value} or \texttt{-e}
+on the command line respectively. 
+
+A similar feature exists in \bras. To set a variable in a way that it
+can be overridden by the environment or on the command line, use
+\texttt{getenv} instead of \texttt{set} in your brasfiles. Example:
+\begin{verbatim}
+  getenv prefix /usr/local
+\end{verbatim}
+This will set \texttt{prefix} to \texttt{\$env(prefix)} or, if it does
+not exits, to \texttt{/usr/local}. If you require an environment
+variable to be set, leave out the default as in
+\begin{verbatim}
+  getenv BLA
+\end{verbatim}
+This will result in a Tcl-error, if there is no variable with name
+\texttt{BLA} in the environment.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Execution of \Bras}
 
 There are the following major phases of operation performed strictly in
 sequence.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Set \texttt{env}-entries from the Command Line}
+All definitions like \texttt{var=value} found on the command
+line are entered into the global array \texttt{env} thereby
+overriding the respective values from the environment.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Read Default Rule Files}
 If not suppressed with option \texttt{-r}, a default rule file is read
 to create default pattern rules and to set reasonable defaults to some
-global variables like \texttt{CC}, etc.
+global variables like \texttt{CC}, etc. Of course these defaults do
+not override any values found in the environment or on the command line.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Set Global Variables from the Environment}
+\subsection{Read \texttt{brasfile}}
 
-Before any \texttt{brasfile} is read, all elements of the global array
-\texttt{env}, which is equivalent to the program's environment
-variables, are made into global variables. That way, a definition like
-\texttt{CC=mycc} in your environment can override any settings in the
-default rule files.
-
-If however option \texttt{-e} was given on the command line, this step
-is postponed to occur right after reading \texttt{brasfile}, to have
-the environment even override settings made therein.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Reading \texttt{brasfile}}
-
-After that, reading and executing the \texttt{brasfile} is performed.
-Here \textit{executing} denotes execution in the sense of Tcl. Every
-rule is actually a Tcl-\texttt{proc} which \textbf{only records} the
-rule in an internal database. In particular, no commands specified in
-a rule are executed.
+After that the \texttt{brasfile} is read and executed. Here
+\textit{execution} denotes execution in the sense of Tcl. Every rule
+is actually a Tcl-\texttt{proc} which \textbf{only records} the rule
+in an internal database. In particular, no commands specified in a
+rule are executed.
 
 But rules are not always totally passive in the first phase. 
 If called with option \texttt{-es} (for \textbf{e}arly
@@ -760,20 +792,6 @@ Beside rules, any Tcl-command can be used in a \texttt{brasfile}. They
 are executed as in every other Tcl-script. Useful examples are setting
 of global variables or \texttt{if}-statements including or excluding
 system-specific rules.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Set Global Variables from the Command Line}
-After the \texttt{brasfile} and included files have been read,
-global variables are set from the command line.
-
-All definitions like \texttt{var=value} found on the command
-line are interpreted to make \texttt{var} a global variable with the
-given \texttt{value}.
-
-\textbf{Please note}, however, that the setting may still be
-overridden in a \texttt{brasfile} which is included on demand when
-\bras{} considers an \texttt{@}-target. But you should not have any
-\texttt{brasfile} which does such nasty things anyway.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning Process}
@@ -1043,23 +1061,6 @@ some commands --- which contradicts the intention of \texttt{-d}.
 {\large\bfseries --- end old stuff ---}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Use of automatically generated Dependencies}
-
-Most C-compilers are able to generate makefile-dependencies for
-source files by determining which files are included with
-\texttt{\#include} directives. For example \texttt{gcc} can be
-instructed to do so with option \texttt{-M} while SUN's Solaris
-C-compiler uses \texttt{-xM}. Because this is a valuable feature,
-\bras\ has the ability to read and understand a restricted type of
-\make-dependencies. The command
-\begin{quote}
-  \texttt{sourceDeps} \textit{file}
-\end{quote}
-reads a dependency file created by the C-compiler and creates the
-appropriate \texttt{Newer}-rules. The command prints a warning, if
-the given file does not exist.
-   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
 

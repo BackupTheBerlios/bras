@@ -25,40 +25,52 @@
 ########################################################################
 
 proc bras.unknown args {
-  global brasOpts
+  global brasOpts auto_noexec
 
   #puts "unknown: `$args'"
+
+  set args [eval concat $args]
+  #puts "would exec $args"
+
+  ## First let the original `unknown' try to do something useful, but
+  ## don't let it execute external commands.
+  set auto_noexec 1
+  if {![catch "unknown.orig $args" res]} {
+    unset auto_noexec
+    return $res
+  }
+  unset auto_noexec
 
   ## There seems to be a change in the return value of auto_execok
   ## somewhere between 7.4 and 7.6. I try to exploit both versions.
   set name [lindex $args 0]
   set tmp [auto_execok $name]
   if {""=="$tmp" || "0"=="$tmp"} {
-    unknown.orig $args
-  } else {
-    #puts "would exec $args"
-    set args [eval concat $args]
-
-    if {$brasOpts(-N)} {
-      puts stdout $args
-      return {}
-    }
-
-    if {!$brasOpts(-ss)} {
-      ## not super-silent
-      if {!$brasOpts(-s)} {
-	puts stdout $args
-      } else {
-	puts -nonewline stdout .
-      }
-    }
-
-    return [uplevel exec <@stdin 2>@stderr >@stdout $args]
+    return -code error \
+	"command not found when executing `$args'"
   }
+
+  if {$brasOpts(-N)} {
+    puts stdout $args
+    return {}
+  }
+  
+  if {!$brasOpts(-ss)} {
+    ## not super-silent
+    if {!$brasOpts(-s)} {
+      puts stdout $args
+    } else {
+      puts -nonewline stdout .
+    }
+  }
+  
+  #    return [uplevel exec <@stdin 2>@stderr >@stdout $args]
+  return [eval exec <@stdin 2>@stderr >@stdout $args]
+
 }
 ########################################################################
 proc bras.evalCmds {cmds} {
-  global brasOpts
+  global brasOpts errorInfo
 
   rename unknown unknown.orig
   rename bras.unknown unknown
@@ -87,7 +99,9 @@ proc bras.evalCmds {cmds} {
 
     ## The command is finally executed with uplevel.
     if [catch "uplevel #0 {$cmd}" msg] {
-      puts stderr $msg
+      puts stderr \
+	  "\nbras: a rule-command failed to execute and said:\n"
+      puts stderr $errorInfo
       exit 1
     }
   }

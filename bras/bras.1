@@ -27,7 +27,7 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-f brasfile] [-d] [-e] [-es] [-h] [-n] [-N] [-r] [-s] [-ss] [-v] [var=value] [--] [target ...]
+bras [-f brasfile] [-d] [-es] [-h] [-n] [-N] [-r] [-s] [-ss] [-v] [var=value] [--] [target ...]
 
 .SH OPTIONS
 .IP "-f brasfile"
@@ -43,7 +43,14 @@ show reasoning, don't execute any commands. This option requests a
 detailed description of the reasoning performed by bras and is useful
 for debugging.
 
-.IP -e
+.IP -e 
+.B This option no longer exists. 
+Please use the new 
+.IR getenv -command
+in your brasfiles to set global variables in a way which can be
+overridden by the environment.
+
+.B old:
 Normally, all variables from the environment are transfered into
 global variables within bras before any brasfiles are read. With 
 .IR -e
@@ -52,7 +59,11 @@ allowing the environment to override any variable settings in the
 brasfiles. 
 
 .IP -es
-requests early sourcing. With this option, 
+requests early sourcing.
+.B (Deprecated. Please use the @path
+.B feature in brasfiles of subdirectories.)
+
+With this option, 
 .I bras
 reads rule-files in foreign directories immediately when it encounters
 an @-dependency while reading rule-files. Without this option,
@@ -104,19 +115,20 @@ external commands are listed before they are executed. With
 the whole command list is listed before it is executed.
 
 .IP var=value
-Your last chance to set global variables within bras before it starts
-evaluating rules. These settings override all settings in environment
-variables or in any of the brasfiles already read before rule
-execution starts. 
-.BR HOWEVER ,
-brasfiles which are read on demand due to consideration of @-targets
-can still override those settings. But it is generally a bad idea
-anyway to set global variables in sub-brasfiles.
+Your last chance to set environment variables, i.e. to set elements of
+Tcl's global array-variable
+.IR env .
+Typical use of 
+.I env
+in brasfiles is to use the bras-specific command
+.I getenv
+to set a (global) variable in way that it can be overridden by the
+environment. 
 
 .SH DESCRIPTION
 The utility 
 .I bras
-is written in Tcl and is inteded to be used similar to the (in)famous
+is written in Tcl and is intended to be used similar to the (in)famous
 .I make
 utility. A rule file, usually called
 .I brasfile

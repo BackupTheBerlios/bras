@@ -37,18 +37,11 @@
 
 ## default settings for variables used
 
-set CC cc
-set CFLAGS {}
-set LDFLAGS {}
-set LDLIBS {}
-set AR ar
-
-##
-## How to make an executable directly from a .c-file
-##
-#PatternNewer {[^.]*} .c {
-#  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
-#}
+getenv CC cc
+getenv CFLAGS {}
+getenv LDFLAGS {}
+getenv LDLIBS {}
+getenv AR ar
 
 ##
 ## How to make an object file from a .c-file
