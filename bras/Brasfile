@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.5 $, $Date: 1997/11/22 19:57:25 $
+# $Revision: 1.6 $, $Date: 1997/11/22 20:17:22 $
 #
 ########################################################################
 
@@ -23,7 +23,7 @@
 set BRASHOME brashome
 
 ## My most recent shipment program knows the .tar.gz it will create
-set BRASTARGZ [exec ship -f -n]
+set BRASTARGZ [exec ship -n].tar.gz
 
 ## Within $BRASHOME I want several files. I collect their names here
 ## in the variable TARGETS
@@ -87,7 +87,7 @@ Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
 Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
   cd $BRASHOME
   set x [file root [file root $BRASTARGZ]]
-  tar xvzfO $BRASTARGZ $x/CHANGES >CHANGES
+  tar xzfO $BRASTARGZ $x/CHANGES >CHANGES
 }
 
 
@@ -96,7 +96,6 @@ Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
 Newer $BRASHOME/brasfile.exa "Brasfile // $BRASHOME" {
   cp $trigger $target
 }
-Exist Brasfile {} { }
 
 Newer $BRASHOME/index.html \
     "index.html $BRASHOME/$BRASTARGZ // $BRASHOME" {
