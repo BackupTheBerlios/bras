@@ -1,0 +1,66 @@
+<HTML>
+<HEAD>
+<TITLE>bras --- Rule Based Command Execution ( 5-Nov-1997)</TITLE>
+<!-- Created by: Harald Kirsch,  5-Nov-1997 -->
+<!-- Changed by: Harald Kirsch,  5-Nov-1997 -->
+
+
+</HEAD>
+<BODY>
+<H1>bras --- Rule Based Command Execution</H1>
+
+Executing commands according to rules instead of in the order in which
+they appear is the great idea which gave us famous
+<tt>make</tt>. 
+<p>
+
+Although I am quite happy with <tt>make</tt> most of the time, it has
+some rough edges which I really dislike. There fore I decided the
+other day that I want to have my own little tool without the rough
+edges. The result is <tt>bras</tt>.  <p>
+
+Its main features are:
+<ul>
+<li> rule-controlled command execution, similar to <tt>make</tt>;
+<li> written in Tcl, no compilation required;
+<li> Tcl-syntax so that commands associated with rules may contain
+  control structures;
+<li> dependencies in foreign directories can trigger sourcing rule files
+  in that directory, recursive execution of <tt>bras</tt> is not
+necessary; 
+<li> more than one type of rule: Newer, Exist, Always;
+<li> new types of rules can be easily added;
+<li> distinction between dependencies and mere prerequisites;
+<li> multiple targets in one rule;
+<li> multiple rules for a target;
+<li> pattern rules which deserve the name;
+</ul>
+
+Of course not all of those are unique to <tt>bras</tt> compared to
+<tt>make</tt>. My favorites are Tcl-syntax and the ability to reason
+over several directories without the necessity to execute <tt>bras</tt>
+recursively. You may want to study a trivial <A HREF="brasfile.exa">
+example</A> to find out if <tt>bras</tt> is for you.
+<p>
+
+
+You can now download the 
+<a href="ftp:bras.ps.gz">gzipped PostScript documentation</a> or
+the latest release <a href="ftp:|BRASTARGZ|">|BRASTARGZ|</a>, which
+includes the documentation.
+<p>
+
+For a start you can also read the <a href="manual/bras.html">online
+documentation</a>. If you know <tt>bras</tt> already, you may be
+interested in the <a href="CHANGES">changes</a> since the last
+release.
+<p>
+
+<HR>
+Please send comments and suggestions to 
+<a href="mailto:kir@iitb.fhg.de">Harald Kirsch</a>. Flames expressing
+the opinion that <tt>bras</tt> is heresy against holy <tt>make</tt> are
+redirected to <tt>/dev/null</tt>.
+
+</BODY>
+</HTML>

@@ -26,7 +26,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.13 $, $Date: 1997/07/19 17:39:44 $
+# $Revision: 1.14 $, $Date: 1997/11/05 21:36:46 $
 ########################################################################
 
 ########################################################################
@@ -349,7 +349,7 @@ proc bras.showCmds {cmds} {
 proc usage {} {
   global argv0 VERDATE
   puts stderr \
-      "usage: $argv0 \[-f brasfile\] \[-d\] \[-f\] \[-h\] \[-n\] \[-r\]\
+      "usage: $argv0 \[-f brasfile\] \[-d\] \[-h\] \[-n\] \[-r\]\
  \[-v\] \[-es\] \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)

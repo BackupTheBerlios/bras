@@ -1,0 +1,130 @@
+########################################################################
+#
+# This is a real-world example of a brasfile. I use it to collect the
+# parts to go into the subdirectory published on the WWW.
+#
+# If you consider only those brasfiles typical which compile some
+# code, this one is not typical. Nevertheless some of the features of
+# bras are highlighted.
+#
+# At first this may look like any other Tcl-script. However in the
+# second half of this script, there are commands like `Newer' or
+# `Always' which define rules to be followed by bras.
+#
+# $Revision: 1.3 $, $Date: 1997/11/05 21:36:46 $
+#
+########################################################################
+
+## When running bras on this file, I assume the current working
+## directory is my development directory of bras. I am going to
+## collect some of the files in there and want to put them in another
+## directory which I can then transfer one-to-one onto our
+## WWW-server. The directory I want to prepare is set here.
+set BRASHOME brashome
+
+## My favorite versioning of whole packages uses the current date. It
+## is guaranteed to be always fresh and does not collide with the
+## versions of individual files managed by cvs. The distribution I am
+## going to publish will have the version $VERDATE. It looks like
+## 1997-01-31. 
+set VERDATE [clock format [clock seconds] -format %Y-%m-%d]
+
+
+## The directory published on the web shall contain a .tar.gz-file
+## with the bras-distribution for downloading.
+set BRASTARGZ bras.$VERDATE.tar.gz
+
+## Within $BRASHOME I want several files. I collect there names here
+## in the variable TARGETS
+foreach x "$BRASTARGZ CHANGES brasfile.exa index.html 
+           bras.ps.gz manual/bras.html" {
+  lappend TARGETS $BRASHOME/$x
+}
+
+## Don't ask why, but I maintain more than one CVS repository. However
+## I know, that this module is here:
+set env(CVSROOT) [glob ~/CVS]
+
+
+## Since I don't know how to ask cvs directly which files it knows
+## something about, we must do it the hard way. These files are the
+## files which go into the distribution. The following lines set the
+## variable DISTFILES from the lines of the files CVS/Entries found in
+## all subdirectories managed by CVS.
+foreach x [exec find . -name Entries -print] {
+  set subdir {}
+  regexp {\.(.*)/CVS.*} $x dummy subdir
+  foreach name [exec awk {BEGIN {FS="/";} {print $2}} $x] {
+    lappend DISTFILES .$subdir/$name
+  }
+}
+## a slight correction
+regsub {\./doc/bras.ps} $DISTFILES @doc/bras.ps DISTFILES  
+
+########################################################################
+# 
+# So much for now. Here come the rules.
+#                                        (Hier kommt die Maus.)
+########################################################################
+
+## This rule is easy. It make sure, all targets are made.
+Always all $TARGETS {
+  puts "Done."
+}
+
+## This rule make sure that the destination directory exists. Its
+## command is only executed if $BRASHOME does not exist. The rule is
+## invoked by must of the rules which follow. 
+Exist $BRASHOME {} {
+  mkdir -p $target
+}
+
+## The distribution's .tar.gz-file is made here. It depends on
+## $DISTFILES, i.e. it is constructed, if one of those is newer than
+## the .tar.gz. The notatation `// $BRASHOME' tells bras that
+## $BRASHOME is needed to execute the command `pack ...', but that its
+## last modification time can never be a reason to let the
+## .tar.gz-file be out-of-date. (The pack-command is my personal
+## distribution packer. If you are interested in it, I can send it to
+## you.)
+Newer $BRASHOME/$BRASTARGZ "$DISTFILES // $BRASHOME" {
+  pack -f -d $BRASHOME bras
+}
+
+## This rule works along the same lines as the one above. (The program
+## `digestLog' is again a little script which formats and sorts cvs
+## log-information.)
+Newer $BRASHOME/CHANGES "$DISTFILES // $BRASHOME" {
+  digestLog >$target
+}
+
+## The following three rules are all similar to the two above.
+
+Newer $BRASHOME/brasfile.exa "Brasfile // $BRASHOME" {
+  cp $trigger $target
+}
+
+Newer $BRASHOME/index.html \
+    "index.html $BRASHOME/$BRASTARGZ // $BRASHOME" {
+  sed -e "s/|BRASTARGZ|/$BRASTARGZ/g" index.html >$target
+}
+
+Newer $BRASHOME/bras.ps.gz "@doc/bras.ps // $BRASHOME" {
+  gzip <$trigger >$target
+}
+
+## Here we meet something special. This rule's command is executed, if
+## doc/tex is newer than $BRASHOME/manual/bras.html. But latex2html
+## not only needs doc/bras.tex, but also doc/bras.aux. On the other
+## hand would it be wrong to run latex2html only because the .aux-file
+## is newer than our target. This is why doc/bras.aux is mentioned
+## behind the double-slash (//). It is not a dependency, but only a
+## prerequisite. 
+## In addition, doc/bras.aux has an `@'-sign in front. This tells bras
+## that it should read doc/Brasfile to find out how to build
+## doc/bras.aux, if it thinks this is necessary.
+##
+Newer $BRASHOME/manual/bras.html \
+    "doc/bras.tex // $BRASHOME @doc/bras.aux" {
+  latex2html -split 0 -dir ../$BRASHOME/manual $trigger 
+}

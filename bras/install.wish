@@ -120,7 +120,7 @@ proc Install {} {
   ## copy executable
   exec sed -e "1s,^.\*\$,#!$TCLSH," \
       -e "s, |SRCBASE|, $lib," bras >$exe/bras
-  exec chmod +x $exe/bras
+  exec chmod a+rx $exe/bras
 
   ## copy library files
   eval exec cp [glob *.tcl] $lib
@@ -128,11 +128,14 @@ proc Install {} {
   eval exec cp $ruleFiles $lib
 
   ## copy manual page
-  exec sed -e "s/|VERDATE|/$verdate/" -e "s,|SRCBASE|,$lib," \
+  exec sed \
+      -e "s/|VERDATE|/$verdate/g" \
+      -e "s,|SRCBASE|,$lib,g" \
+      -e "s,|DOC|,$doc,g" \
       bras.1 >$man/bras.1
 
   ## copy documentation
-  exec cp doc/Bras.ps doc/Bras.tex $doc
+  exec cp doc/bras.ps doc/bras.tex $doc
 
   ## create convenience links
   clink $lroot/bin $exe/bras
