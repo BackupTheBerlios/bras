@@ -5,7 +5,7 @@
 #
 #
 # (C) 2000 Harald Kirsch (kirschh@lionbioscience.com)
-# $Id: brasfile,v 1.1 2000/12/30 11:01:38 kir Exp $
+# $Id: brasfile,v 1.2 2000/12/30 16:51:38 kir Exp $
 ########################################################################
 
 ## We initialize ::CFLAGS from either the environment or the command
@@ -76,5 +76,8 @@ Exist hello.c {
   
 ## A rule to delete all the stuff we generate.
 Always clean {} {
-  eval file delete -force [glob -nocomplain hello*]
+  set l [glob -nocomplain hello*]
+  if {[llength $l]} {
+    eval file delete -force $l
+  }
 }
