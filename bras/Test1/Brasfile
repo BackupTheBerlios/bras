@@ -9,11 +9,11 @@ foreach x {cSuffixNewer.y cSuffixExist.s firstFile} {
 
 
 ##### simple suffix rules
-SuffixExist .x .y {
+PatternExist .*\.x .y {
   cp $newer $target
 }
 
-SuffixNewer .r .s {
+PatternNewer .*\.r .s {
   ls -l $newer >$target
 }
 

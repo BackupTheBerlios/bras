@@ -1,4 +1,4 @@
-cd /home1/kir/tcl/bras/Test1
+cd /home1/kir/work/bras/Test1
 touch cNewer
 touch somefile
 touch cExist
@@ -9,6 +9,6 @@ touch otherfile
 touch cNewerBad
 sleep 1
 touch otherfile
-cd /home1/kir/tcl/bras/Test2
+cd /home1/kir/work/bras/Test2
 echo Test2 >/dev/null
-cd /home1/kir/tcl/bras/Test1
+cd /home1/kir/work/bras/Test1
