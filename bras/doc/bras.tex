@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.39 $, $Date: 2002/02/24 11:37:36 $
+% $Revision: 1.40 $, $Date: 2002/03/04 19:12:38 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1811,20 +1811,19 @@ For \Indextt{C++} use \Indextt{c++deps} instead.
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base
     install.rule]}
-\item[Description] The rule creates a relation between a
-  file to be installed somewhere in the system and a file in the local 
-  directory or search path (see \ref{sec:searchpath}). If the local
-  file is older than the target, it is copied over the target and the
-  target's access permissions are set. The access permissions are
-  extracted from the target name, which is why it must look like
+\item[Description] The rule creates a relation between a file to be
+  installed somewhere in the system and a file in the local directory
+  or search path (see \ref{sec:searchpath}). If the local file is
+  older than the target, the function
+  \Indextt{::bras::install}\indextt{install} (see
+  section~\ref{proc:install}) is used to install the file. To identify
+  a target as a file to be installed, it must look like
   \begin{quote}\ttfamily
     /some/installation/dir/theFile/0755
   \end{quote}
-  For this target, the pattern rule will try to find \texttt{theFile}
-  in the local directory. If it is found, it will be installed with
-  \texttt{::bras::install}\indextt{install} (see section
-  \ref{proc:install}) over \texttt{/some/installation/dir/theFile} and
-  the permissions of the latter are set to \texttt{0755}.
+  On UNIX, the trailing octal number will be used to set the access
+  permissions of the installed file. On other platforms, it is simply
+  ignored. 
 
   In addition to the behaviour described above, \bras{} also looks for
   a local file \texttt{theFile.fixed}. Sometimes a path must be edited 
@@ -2083,10 +2082,9 @@ overridden by calling \bras{} like
 \item[Description] Installs a file \textit{source} as a file
   \textit{target}. Before file \textit{source} is copied onto the
   \textit{target}, the targets directory is made with with the command 
-  \texttt{[file mkdir]}. After copying, the targets access permissions 
-  are set to \textit{perm}, except if \textit{perm} is left to its
-  default, which is the empty string.
-
+  \texttt{[file mkdir]}. On UNIX, the target's access permissions are
+  set as requested by \textit{perm}. On other platforms, \textit{perm}
+  is ignored.
   This command is used by the pattern rule defined in
   \Indextt{install.rule} (see \ref{sec:install}).
 \end{Describe}
@@ -2098,9 +2096,9 @@ overridden by calling \bras{} like
 \indextt{::bras::linkvar}\indextt{linkvar}
 \label{proc:linkvar}
 \begin{Describe}
-\item[Synopsis] \Tt{linkvar} \It{varname} \It{dir}
-\item[Description] Make the variable with name \textit{varname} an
-  alias for the variable of the same name in the namespace associated
+\item[Synopsis] \Tt{linkvar} \It{varname} \It{?varname? \ldots} \It{dir}
+\item[Description] Make the variables given into
+  aliases for variables of the same name in the namespace associated
   with the \brasfile\ in directory \textit{dir}. For this to work, the
   \brasfile\ in \textit{dir} must have been sourced already either
   implicitly by following an \texttt{@}-target or explicitly by
