@@ -18,7 +18,7 @@
 #
 # (C) 2000 Harald Kirsch (kirschh@lionbioscience.com)
 #
-# $Id: brasfile,v 1.2 2000/12/30 16:54:33 kir Exp $
+# $Id: brasfile,v 1.3 2001/07/29 11:16:59 kir Exp $
 ########################################################################
 
 ## If you set F=file on the command line, F can be found in the
@@ -35,6 +35,8 @@ proc usage {} {
   puts stderr "  Actually I just created a.xx and b.xx for you to"
   puts stderr "  delete now. Just run:"
   puts stderr "    $argv0 -d clean F='a.xx b.xx notthere.xx'"
+  puts stderr "\n  Note: the point is not to run this example but to"
+  puts stderr "  read the code in brasfile and see how it works.-)"
   exit 1
 }
 if {![info exist env(F)] } usage
