@@ -52,7 +52,7 @@ proc sourceDeps {file args} {
 
   if {![file readable $file]} {
     puts stderr \
-	"bras (warning from `sourceDeps'): cannot read `$file'"
+	"bras (warning from `sourceDeps'): cannot read [pwd]`$file'"
     return
   }
   set in [open $file]
