@@ -1,0 +1,8 @@
+puts "msg: Checking error `two types of rules for one target'"
+puts "expect: target `check' has already rule of type Newer"
+
+## The following two rules should emit an error
+Newer check {} {
+}
+
+Always check {} {}

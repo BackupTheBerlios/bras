@@ -1,0 +1,18 @@
+puts "msg: checking Exist rule"
+puts "expect: creating XxXxXx"
+ 
+## make a file which exists once rule evalutation starts
+exec touch bla
+
+## an Exist-rule which must be executed
+Exist XxXxXx bla {
+  puts "creating $target"
+  exec rm -f bla
+}
+
+## This rule should not be executed, although its dependency does not
+## exist.  
+Exist bla {piiiiiiop} {
+  puts "this should not happen"
+}
+

@@ -1,0 +1,15 @@
+puts "msg: checking Always rule"
+puts "expect: bli"
+puts "expect: bla"
+
+## need a target which is perfectly ok 
+exec touch bla
+
+Always bla bli {
+  puts $target
+  rm $target
+}
+
+Always bli {} {
+  puts $target
+}

@@ -1,0 +1,5 @@
+puts "msg: checking dependency loop detection"
+puts "expect: bras: dependency loop detected for target `t2'"
+
+Always t1 t2 {}
+Always t2 t2 {}

@@ -1,0 +1,23 @@
+puts "msg: checking rule generation from pattern rule"
+puts "expect: aaXxXaa <- aaYyYaa"
+puts "expect: all <- aaXxXaa"
+
+## We need a file to trigger the pattern rule
+exec touch aaYyYaa
+
+## This is the proc that is called to make a dependency from the
+## target.
+proc DepYyY {target} {
+  regsub XxX $target YyY res
+  return $res
+}
+
+
+PatternAlways .*XxX.* YyY {
+  puts "$target <- $deps"
+}
+
+Always all aaXxXaa {
+  puts "$target <- $deps"
+  exec rm aaYyYaa
+}

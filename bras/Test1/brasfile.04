@@ -1,0 +1,9 @@
+puts "msg: checking default command generation from pattern rule"
+puts "expect: a.y"
+
+PatternNewer .*\.x .y {
+  puts $deps
+}
+
+Newer a.x a.y {}
+Exist a.y {} {}

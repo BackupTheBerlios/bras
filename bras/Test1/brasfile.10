@@ -1,0 +1,24 @@
+puts "msg: checking Newer rule (dependency created)"
+puts "expect: creating bla"
+puts "expect: bli <- bla"
+
+
+
+## need some existing files with defined modified dates
+exec touch blu; after 1000
+exec touch bli
+
+
+## This rule should be executed because one dependency is newer
+Newer bli {bla blu} {
+  puts "$target <- $newer"
+  rm -f bli blu
+}
+
+Newer bla {} {
+ puts "creating bla"
+}
+
+Exist blu {} {
+  puts "this cannot happen"
+}

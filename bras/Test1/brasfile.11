@@ -1,0 +1,20 @@
+puts "msg: checking Newer rule (target does not exist)"
+puts "expect: creating bla"
+puts "expect: bli <- bla blu"
+
+## need an existing file, must also be recorded as newer
+exec touch blu
+
+## This rule should be executed because target does not exist
+Newer bli {bla blu} {
+  puts "$target <- $newer"
+  rm -f blu
+}
+
+Newer bla {} {
+ puts "creating bla"
+}
+
+Exist blu {} {
+  puts "this cannot happen"
+}

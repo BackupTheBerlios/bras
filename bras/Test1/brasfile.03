@@ -1,0 +1,13 @@
+puts "msg: Checking merge of dependencies for targets with more than one rule"
+puts "expect: A B C"
+
+
+Always check {A} {}
+Always check {B} {
+  puts $deps
+}
+Always check {C} {}
+
+Always {A} {} {}
+Always {B} {} {}
+Always {C} {} {}
