@@ -12,20 +12,22 @@ exec wish8.0 $0 "$@"
 #   wish brexa
 #
 # (C) 2000 Harald Kirsch (kirschh@lionbioscience.com)
-# $Id: brexa,v 1.1 2000/12/30 11:01:38 kir Exp $
+# $Id: brexa,v 1.2 2001/12/30 08:55:41 pifpafpuf Exp $
 ########################################################################
 ##
 ## If this seems to be run from the uninstalled sources, try to fetch
 ## bras from the source tree two levels above.
 ##
 if {[file exist [file join .. .. bras.tcl]]} {
-  set auto_path [concat [file join .. .. ..] $auto_path]
+  set auto_path [concat [file join .. ..] $auto_path]
 }
 
 package require bras
 namespace import ::bras::*
 
-source brasfile
+## This is how we read the brasfile. We use include because this sets
+## up a namespace for that file
+include @.
 ########################################################################
 ##
 ## By reimplementing ::bras::report, bras' messages are directed into
