@@ -1,0 +1,36 @@
+puts "msg: Chaining of pattern rules with no intermediate file"
+puts "expect: making Cxxxx"
+puts "expect: making Cxxxx -> Bxxxx"
+puts "expect: making Bxxxx -> Axxxx"
+puts "expect: done"
+
+## Pattern rules are set up to create the following build-chain:
+## A* --> B* --> C*
+
+proc DepC {target} {
+  return C[string range $target 1 end]
+}
+PatternNewer B.* C {
+  puts "making $trigger -> $target"
+}
+
+
+proc DepB {target} {
+  return B[string range $target 1 end]
+}
+PatternNewer A.* B {
+  puts "making $trigger -> $target"
+}
+
+
+
+
+## Now request to make a file starting with A
+Always all Axxxx {
+  puts done
+}
+
+## Terminate the chaining with an existing rule
+Exist Cxxxx {} {
+  puts "making Cxxxx"
+}

@@ -1,0 +1,35 @@
+puts "msg: nothing to do for CDepend"
+puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
+
+## We create a situation were CDepend and the accompanying Newer have
+## nothing to do. Watch the order in which files are created.
+
+
+## create dummy includes
+exec touch bla.h pup.h
+
+## Create a .c-file for testing
+set out [open xxx.c w]
+puts $out "\#include \"bla.h\""
+puts $out "\#include \"pup.h\""
+close $out
+
+## fake the .D-file
+set f [open xxx.D w]
+puts $f "bla.h pup.h"
+close $f
+
+## fake the .o-file
+exec touch xxx.o
+
+Always all {xxx.o} {
+  rm -f xxx.D xxx.o xxx.c pup.h bla.h
+}
+
+Newer xxx.o xxx.D {
+  puts "Would create xxx.o"
+}
+
+CDepend xxx.D xxx.c {
+  puts "This is wrong"
+}

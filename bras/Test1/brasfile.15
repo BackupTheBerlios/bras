@@ -7,6 +7,7 @@ puts "expect: file1 <- ../Test2/file1"
 puts "expect: rm file1"
 
 exec touch file1
+exec rm -f file2
 Newer file1 @../Test2/file1 {
   puts "$target <- $trigger"
   rm file1

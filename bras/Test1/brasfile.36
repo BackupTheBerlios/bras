@@ -1,0 +1,31 @@
+puts "msg: CDepend, basic functionality test"
+puts "expect: would make xxx.D now"
+puts "expect: xxx.c"
+puts "expect: xxx.D"
+puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
+
+## Test the extreme case that xxx.D does not exist
+
+
+## Create a .c-file for testing
+set out [open xxx.c w]
+puts $out "\#include \"bla.h\""
+puts $out "\#include \"pup.h\""
+close $out
+
+## create the include-files so that cc -M does not complain
+exec touch bla.h pup.h
+
+## make sure there is no left-over xxx.D
+exec rm -f xxx.D
+
+
+Newer xxx.o xxx.D {
+  puts "$trigger"
+  rm -f xxx.D xxx.o xxx.c pup.h bla.h
+}
+
+CDepend xxx.D xxx.c {
+  puts "would make $target now"
+  puts $trigger
+}

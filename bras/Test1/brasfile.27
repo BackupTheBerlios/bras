@@ -1,11 +1,11 @@
 puts "msg: Error message, if dependency in Newer rule cannot be made"
 puts "expect: bras: cannot make all because"
-puts "expect: don't know how to make `C' in `/home1/kir/work/bras/Test1'"
+puts "expect: don't know how to make `C.c' in `/home1/kir/work/bras/Test1'"
 puts "expect:       try to use -d to find out more"
 
-## The third dependency, C,  cannot be made. The Always-rule must
+## The third dependency, C,  cannot be made. The Rule must
 ## immediately return an error.
-Exist all {A B C D} {
+Newer all {A B C D} {
 }
 
 Exist A {}

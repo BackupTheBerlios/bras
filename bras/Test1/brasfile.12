@@ -1,9 +1,9 @@
 puts "msg: Deep nesting with nothing to do"
-puts "expect: rm file5 file4 file3 file2 file1"
+puts "expect: rm file5 file4 file3 file2 file1 file0"
 
-exec touch file5 file4 file3 file2 file1
+exec touch file5 file4 file3 file2 file1 file0
 Always file0 file1 {
-  rm file5 file4 file3 file2 file1
+  rm file5 file4 file3 file2 file1 file0
 }
 
 Newer file1 file2 {
@@ -21,3 +21,5 @@ Newer file3 file4 {
 Newer file4 file5 {
   puts wrong
 }
+
+Exist file5 {} { }

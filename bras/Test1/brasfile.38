@@ -1,0 +1,41 @@
+puts "msg: CDepend needs to remake xxx.D"
+puts "expect: Would create xxx.D"
+puts "expect: Would create xxx.o"
+puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
+
+## We create a situation were xxx.D contains the right things, but
+## is older than one of the files mentioned in it
+
+
+## create dummy includes
+exec touch bla.h pup.h
+
+## Create a .c-file for testing
+set out [open xxx.c w]
+puts $out "\#include \"bla.h\""
+puts $out "\#include \"pup.h\""
+close $out
+
+## fake the .D-file
+set f [open xxx.D w]
+puts -nonewline $f "bla.h pup.h"
+close $f
+
+## fake the .o-file
+exec touch xxx.o
+
+## now make one of the .h-files newer
+after 1000
+exec touch bla.h
+
+Always all {xxx.o} {
+  rm -f xxx.D xxx.o xxx.c pup.h bla.h
+}
+
+Newer xxx.o xxx.D {
+  puts "Would create $target"
+}
+
+CDepend xxx.D xxx.c {
+  puts "Would create $target"
+}

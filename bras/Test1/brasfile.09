@@ -19,3 +19,6 @@ Exist bla {} {
   puts "*** this cannot happen"
 }
 
+Exist blu {} {
+  puts "*** this cannot happen"
+}

@@ -12,7 +12,6 @@ proc DepYyY {target} {
   return $res
 }
 
-
 PatternAlways .*XxX.* YyY {
   puts "$target <- $deps"
 }
@@ -20,4 +19,8 @@ PatternAlways .*XxX.* YyY {
 Always all aaXxXaa {
   puts "$target <- $deps"
   exec rm aaYyYaa
+}
+
+Exist aaYyYaa {} {
+  puts "this cannot happen"
 }
