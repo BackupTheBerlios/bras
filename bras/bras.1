@@ -27,7 +27,7 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-d] [-f brasfile] [-h] [-n] [-r] [-v] [target] ...
+bras [-d] [-f brasfile] [-h] [-n] [-N] [-r] [-v] [-s] [-ss] [target ...]
 
 .SH OPTIONS
 .IP -d
@@ -66,9 +66,12 @@ in that order.
 .IP -h
 show usage message and exit.
 
-.IP -n
+.IP -N
 don't execute external commands. External commands are those which are
 not built into Tcl, like rm, cat, cp and the like.
+
+.IP -n
+don't execute anything.
 
 .IP -r
 don't read system's standard rule files. Standard rule files are
@@ -77,6 +80,14 @@ where
 .I system
 is the result of a call to 
 .IR "uname -s" .
+
+.IP -s
+silent operation. Instead of printing all commands executed, only
+one dot is printed for every command.
+
+.IP -ss
+super silent operation. Not even the dots are printed. Only error
+messages are shown.
 
 .IP -v
 show all command lists (not only external commands). Usually only

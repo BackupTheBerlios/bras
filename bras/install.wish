@@ -147,7 +147,8 @@ proc Install {} {
 }
 ########################################################################
 
-set verdate [_exec sed -n -e {/^set  *VERDATE/s/[^-0-9]*//gp} bras]
+set in [open .version r]
+set verdate [lindex [read $in] 1]
 
 if [info exist env(HOME)] {
   set home $env(HOME)
@@ -183,7 +184,7 @@ pack .warn -side top -expand 1
 lentry .x "tclsh-executable" 30 apply
 .x.e insert 0 $TCLSH
 lentry .a "installation prefix" 30 apply
-.a.e insert 0 $home/tools/bras.$verdate
+.a.e insert 0 $home/tools/bras-$verdate
 lentry .b "where to put the executable" 30 apply
 lentry .c "where to put files need by bras" 30 apply
 lentry .man "where to put the manual page" 30 apply
