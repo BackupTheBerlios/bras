@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 2000/03/05 12:37:26 $
+# $Revision: 1.2 $, $Date: 2000/03/08 22:32:48 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -122,6 +122,14 @@ namespace eval ::bras {
   ## is an array indexed by [pwd],<name> . If a certain index exists,
   ## <name> is the result of an expansion along brasSearchPath and it
   ## will not be expanded again.
+
+  ## nspace
+  ##   internal variable holding the name of the namespace used for
+  ##   the next set of predicates and commands. A namespace of this
+  ##   name is set up in checkMake, just before the condition of a
+  ##   rule is evaluated. All variables a predicate set for the
+  ##   command to find later must be set in this namespace.
+  variable nspace {}
 }
 
 ########################################################################
