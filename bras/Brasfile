@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.3 $, $Date: 1997/11/05 21:36:46 $
+# $Revision: 1.4 $, $Date: 1997/11/09 19:43:16 $
 #
 ########################################################################
 
@@ -103,6 +103,7 @@ Newer $BRASHOME/CHANGES "$DISTFILES // $BRASHOME" {
 Newer $BRASHOME/brasfile.exa "Brasfile // $BRASHOME" {
   cp $trigger $target
 }
+Exist Brasfile {} { }
 
 Newer $BRASHOME/index.html \
     "index.html $BRASHOME/$BRASTARGZ // $BRASHOME" {

@@ -26,7 +26,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.15 $, $Date: 1997/11/08 21:59:19 $
+# $Revision: 1.16 $, $Date: 1997/11/09 19:43:17 $
 ########################################################################
 
 ########################################################################
@@ -138,6 +138,8 @@ source $brasBase/defrule.tcl
 source $brasBase/alwaysRule.tcl
 source $brasBase/existRule.tcl
 source $brasBase/newerRule.tcl
+#source $brasBase/uptodateOCRule.tcl
+source $brasBase/cDependRule.tcl
 
 ########################################################################
 #
@@ -237,7 +239,7 @@ proc bras.followTarget {target} {
 ## bras.PatternRule
 ##   Declare a pattern-rule.
 ##
-proc bras.PatternRule {type target deps cmd} {
+proc bras.PatternRule {type target dep cmd} {
   global brasPrule argv0
 
   ## Emtpy commands are rather useless here
@@ -246,26 +248,17 @@ proc bras.PatternRule {type target deps cmd} {
 	-error "empty commands are not allowed in pattern rules"
   }
 
-  ## make sure, no dependency is equal to the target
-  foreach dep $deps {
-    if { "$target"=="$dep" } {
-      return -code error \
-	  -errorinfo "target `$target' should not be equal to dependency"
-    }
-  }
-
   ## enter the rule
   set id $brasPrule(nextID)
   incr brasPrule(nextID)
   set brasPrule($id,target) $target
-  set brasPrule($id,dep)    $deps
+  set brasPrule($id,dep)    $dep
   set brasPrule($id,cmd)    $cmd
   set brasPrule($id,type)   $type
 
-  ## create pattern replacement commands for all dependencies
-  foreach d $deps {
-    if { [llength [info commands Dep$d]] } continue
-    proc Dep$d {target} "return \[file root \$target\]$d"
+  ## create pattern replacement commands for the dependency
+  if { 0==[llength [info commands Dep$dep]] } {
+    proc Dep$dep {target} "return \[file root \$target\]$dep"
   }
 }
 ########################################################################

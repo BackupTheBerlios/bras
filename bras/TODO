@@ -1,15 +1,6 @@
 o Update doc
   (This probably never goes away)
 
-o BUG: defaultCmd considers pattern rules in the order in which they
-were entered. This way it is not possible to override a "standard"
-pattern rule with you own one. (Check doc regarding this.)
-(Corrected 1997-11-08).
-
-o Do I have the same problem for pattern rules?
-
-o BUG: SuffixNewer is mentioned in the html-files. (Should be
-Pattern...)
 
 o Find out how to give every brasfile its own scope so that a variable
   like SRC is not messed up, if it is used in several brasfiles.
@@ -22,4 +13,36 @@ o Option to switch between the following modes:
      - Might be complicated in connection with targets which cannot be
      made with their first rule.   
      - Might conflict with option -d
+
+o A check to test if there is a rule for a target.
+
+o Catch all-rules as pattern-rules
+>- This doesn't work either:
+>PatternNewer (.*\.a} {} {echo a}
+>
+>The idea would be a match anything rule for building libraries.. 
+
+
+o Selective rule dumping for debugging purposes.
+
+o Silent operation, very silent operation.
+
+o More intelligent abseiling along a chain of pattern rule so that
+there is no need for intermediate targets to exist.
+
+
+This is done already (read from bottom to top):
+===============================================
+o Do I have the same problem for pattern rules?
+(Yes, corrected 1997-11-09)
+
+
+o BUG: defaultCmd considers pattern rules in the order in which they
+were entered. This way it is not possible to override a "standard"
+pattern rule with you own one. (Check doc regarding this.)
+(Corrected 1997-11-08).
+
+o BUG: SuffixNewer is mentioned in the html-files. (Should be
+Pattern...)
+(Corrected 1997-11-08).
 

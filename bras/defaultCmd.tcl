@@ -44,24 +44,21 @@ proc bras.defaultCmd {target deps _reason} {
     ## Is this one a candidate?
     if { ![bras.isCandidate $target $i] } continue
 
-    ## Generate the derived depencencies
-    foreach d $brasPrule($i,dep) {
-      lappend l [Dep$d $target]
-    }
+    ## Generate the derived depencency
+    set d $brasPrule($i,dep)
+    set derivedDep [Dep$d $target]
     
-    ## Cross check list l with list deps
+    ## Check if derivedDep shows up in $deps
     foreach d $deps {
-      foreach x $l {
-	if { "$x"!="$d" } continue
+      if { "$derivedDep"!="$d" } continue
 
-	## ok, return the command
-	if $brasOpts(-d) {
-	  append reason \
-	      "\nusing command from pattern rule "
-	  append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
-	}
-	return $brasPrule($i,cmd)
+      ## ok, return the command
+      if $brasOpts(-d) {
+	append reason \
+	    "\nusing command from pattern rule "
+	append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
       }
+      return $brasPrule($i,cmd)
     }
   }
 }    

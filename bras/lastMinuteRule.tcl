@@ -35,37 +35,61 @@ proc bras.isCandidate {target i} {
 }
 ########################################################################
 ##
+## Find the first pattern-rule with an id larger than the
+## given one the target of which matches the given target. If none is
+## found, $brasPrule(nextID) is returned. 
+##
+proc bras.nextCandidate {target id} {
+  global brasPrule
+  set nextID $brasPrule(nextID)
+
+  for {} {$id<$nextID} {incr id} {
+    ## This rule might have been deleted.
+    if { ![info exist brasPrule($id,target)] } continue
+    
+    if [regexp "^$brasPrule($id,target)\$" $target] {
+      return $id
+    }
+  }
+  return $id
+}
+########################################################################
+##
 ## bras.lastMinuteRule
 ##   tries to create a rule from brasPrule for targets that don't
 ##   have any explicit rule.
+##
+## Since we don't have any dependencies available here, only the
+## target can be used to select an appropriate rule. To prevent
+## infinite recursion due to pattern-rule chaining, a rule is only
+## returned, if the resulting target will not match a pattern-rule
+## with a the same or a larger ID.
 ##
 proc bras.lastMinuteRule {target dind} {
   global brasPrule brasOpts brasRule brasTinfo
   set nextID $brasPrule(nextID)
 
-  ## try all pattern rules
-  for {set i 0} {$i<$nextID} {incr i} {
-    ## This one might have been deleted.
-    if { ![info exist brasPrule($i,target)] } continue
+  ## try all pattern rules in the opposite order in which they were
+  ## entered.
+  for {set id [expr $nextID-1]} {$id>=0} {incr id -1} {
 
-    ## Is this one a candidate?
-    if { ![bras.isCandidate $target $i] } continue
+    if ![bras.isCandidate $target $id] continue
 
-    ## Check if a derived dependency exists as file
-    foreach d $brasPrule($i,dep) {
-      set depfile [Dep$d $target]
-      if { [file exists $depfile] } {
-	break
-      }
-      unset depfile 
+    ## Get the derived dependency and check that it can not trigger a
+    ## pattern-rule with an ID greater than or equal to id.
+    set depProc Dep$brasPrule($id,dep) 
+    set dep [$depProc $target]
+    if {[bras.nextCandidate $dep $id]!=$nextID} {
+      #puts "not using $id for $target because $dep"
+      continue
     }
-    if { ![info exist depfile] } continue
     
     ## Ok, enter the new rule
-    $brasPrule($i,type) $target $depfile $brasPrule($i,cmd)
+    $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
     if $brasOpts(-d) {
-      set msg "creating $brasPrule($i,type)-rule from pattern "
-      append msg "($brasPrule($i,dep) -> $brasPrule($i,target))"
+      set msg "creating $brasPrule($id,type)-rule "
+      append msg "`$target' <- `$dep' from pattern "
+      append msg "($brasPrule($id,target) <- $brasPrule($id,dep))"
       bras.dmsg $dind $msg
     }
     #parray brasRules

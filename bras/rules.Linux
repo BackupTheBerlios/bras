@@ -29,6 +29,12 @@
 #
 ########################################################################
 
+########################################################################
+##
+## REMEMBER: Pattern-rules entered last are considered first!!
+##
+########################################################################
+
 ## default settings for variables used
 
 set CC cc
@@ -36,6 +42,15 @@ set CFLAGS {}
 set LDFLAGS {}
 set LDLIBS {}
 set AR ar
+
+
+##
+## How to make an executable directly from a .c-file
+##
+#PatternNewer {[^.]*} .c {
+#  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
+#}
+
 
 ##
 ## How to make an object file from a .c-file
@@ -48,13 +63,6 @@ PatternNewer {.*\.o} .c {
 ## How to make an executable from an .o-file
 ##
 PatternNewer {[^.]*} .o {
-  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
-}
-
-##
-## How to make an executable directly from a .c-file
-##
-PatternNewer {[^.]*} .c {
   $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
 }
 
