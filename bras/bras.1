@@ -2,10 +2,7 @@
 .\" This file is part of bras, a program similar to the (in)famous
 .\" `make'-utitlity, written in Tcl.
 .\"
-.\" Copyright (C) 1996 Harald Kirsch, (kir@iitb.fhg.de)
-.\"                    Fraunhofer Institut IITB
-.\"                    Fraunhoferstr. 1
-.\"                    76131 Karlsruhe
+.\" Copyright (C) 1996-2000 Harald Kirsch
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -27,7 +24,7 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-f brasfile] [-d] [-es] [-h] [-n] [-s] [-v] [-ve] [var=value] [--] [target ...]
+bras [-f brasfile] [-d] [-h] [-n] [-p] [-s] [-v] [-ve] [var=value] [--] [target ...]
 
 .SH OPTIONS
 .IP "-f brasfile"
@@ -46,45 +43,6 @@ commands. Since then the reasoning process was changed in a way that
 non-execution of commands changes the results. To return exact
 results, -d can no longer suppress execution of commands.)
 
-.IP -e 
-.B This option no longer exists. 
-Please use the new 
-.IR getenv -command
-in your brasfiles to set global variables in a way which can be
-overridden by the environment.
-
-.B old:
-Normally, all variables from the environment are transfered into
-global variables within bras before any brasfiles are read. With 
-.IR -e
-you request that this happens after all brasfiles have read thereby
-allowing the environment to override any variable settings in the
-brasfiles. 
-
-.IP -es
-requests early sourcing.
-.B (Deprecated. Please use the `include @path'
-.B feature in brasfiles of subdirectories.)
-
-With this option, 
-.I bras
-reads rule-files in foreign directories immediately when it encounters
-an @-dependency while reading rule-files. Without this option,
-rule-files in foreign directories are only read, if the @-dependency
-is actually considered as a target.
-
-In a toplevel directory, where the Brasfile contains all the necessary
-definitions, e.g. for CFLAGS, you can usually do without
-.IR -es ,
-and it is particularly faster, if only targets from a certain
-subdirectory are requested to be built. If however
-.I bras
-is started in a subdirectory, it may be helpful to give
-.I -es
-to trigger inclusion of the toplevel Brasfile. This of course only
-works if your Brasfiles contain the necessary logic.
-
-
 .IP -h
 show usage message and exit.
 
@@ -93,6 +51,13 @@ don't execute anything. This option implies -v, but the commands shown
 are only an approximation of what would happen, if -n were not given.
 This is because the results of reasoning can only be complete, if
 commands are executed.
+
+.IP -p
+print database of rules and exit. This is not yet really useful
+because in fact it exits too early. In the meantime you may want to
+try 
+.BR "parray ::bras::Rule"
+at any place in your script to have a look at all the rules.
 
 .IP -s
 silent operation. Don't print anything except warnings and error
@@ -152,5 +117,6 @@ shows its reasoning or merely shows what it would do.
 .nf
 |DOC|/bras.tex
 |DOC|/bras.ps
+|DOC|/bras.pdf
 Tcl(n)
 .fi
