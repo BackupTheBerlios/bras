@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 2000/03/08 22:35:37 $
+# $Revision: 1.3 $, $Date: 2000/03/14 18:08:09 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -32,35 +32,7 @@ source [file join [file dir [info script]] .version]
 #
 ########################################################################
 namespace eval ::bras::p {
-  ## During the evaluation of predicates, those predicates explain
-  ## their findings by appending to this variable.
-  variable reason {}
-  
-  ## Predicates may append targets which turn out to trigger them to
-  ## true to the following variable.
-  variable trigger {}
-
-  ## Predicates may also append targets which they consider to the
-  ## following variable.
-  variable deps {}
-}
-########################################################################
-#
-# runs a given (boolean) expression in a context where only the
-# variables t and d are directly accessible.
-#
-proc ::bras::p::evaluate {bexp} {
-  upvar target target
-  upvar targets targets
-  upvar d d
-  if {[catch [concat unset bexp ";" expr $bexp] r]} {
-    if {![info exist ::bras::lastError]} {
-      global errorInfo
-      set ::bras::lastError $errorInfo
-    }
-    return -code error $r
-  }
-  return $r
+  namespace export older missing true dcold oldcache
 }
 ########################################################################
 #
