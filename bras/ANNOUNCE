@@ -3,15 +3,18 @@
 			     --- bras ---
 		     Rule Based Command Execution
 
-I am pleased to announce version 2.2.
+I am pleased to announce version 2.3.
 
 WHAT'S NEW?
 
-The error reporting was redesigned and reimplemented due to buggy
-behaviour in some circumstances.
+Handling of rules with multiple targets now always assumes that
+the rule's predicate tests all of the targets in parallel. Previously
+this was only assumed when one of the rule's targets was out-of-date.
 
-A new rule was added to the default rule set. It translates .lex to .c. 
+Pattern rules for C++.
 
+Some support to compile Java source. See example in the distribution
+as well as keyword "Java" in the doc's index.
 
 
 WHERE CAN I GET IT?
@@ -45,4 +48,4 @@ Send comments and requests for enhancements to
 pifpafpuf@gmx.de .
  
 # CVS:
-# $Revision: 1.19 $, $Date: 2002/01/20 21:44:38 $
+# $Revision: 1.20 $, $Date: 2002/02/24 11:36:23 $
