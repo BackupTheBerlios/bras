@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.9 $, $Date: 1997/11/08 18:55:28 $
+% $Revision: 1.10 $, $Date: 1997/11/08 21:56:29 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -402,8 +402,8 @@ The details about \textit{regexp} and \textit{depprocs} are described
 in sections~\ref{secSuffixToReal} and~\ref{secSuffixAsDefCmd}.
 An example pattern rule to make an object file from a C source file is:
 \begin{verbatim}
-  SuffixNewer .*\.o .c {
-    $CC -c $CFLAGS [file rootname $target].c
+  PatternNewer .*\.o .c {
+    $CC -c $CFLAGS $trigger
   }
 \end{verbatim}
 
@@ -495,7 +495,7 @@ Suppose the real rule with the empty command is
 \end{verbatim}
 and that
 \begin{verbatim}
-  SuffixNewer .*\.o .s {
+  PatternNewer .*\.o .s {
     cc -o $target $trigger
   }
 \end{verbatim}
