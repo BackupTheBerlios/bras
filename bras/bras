@@ -1,6 +1,7 @@
 #!/usr/local/bin/tclsh
 set brasBase |SRCBASE|
 set VERDATE 1111-11-11
+set VERSION 0.0.0
 
 ########################################################################
 #
@@ -26,7 +27,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.17 $, $Date: 1997/11/19 07:01:25 $
+# $Revision: 1.18 $, $Date: 1997/11/24 05:59:07 $
 ########################################################################
 
 ########################################################################
@@ -473,7 +474,7 @@ proc bras.showCmds {cmds} {
 }
 ########################################################################
 proc usage {} {
-  global argv0 VERDATE
+  global argv0 VERDATE VERSION
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
 \[-N\] \[-r\] \[-s\] \[-ss\] \[-v\] \[--\] \[target ...\]
@@ -493,7 +494,7 @@ construct files based on a rule-file
     target - target to be rebuilt (default: the target of the first
              rule in brasfile)
 
-This version was packed from an up-to-date cvs-repository on $VERDATE.
+This is version $VERSION, packed from on $VERDATE.
 "
   exit 1
 }
