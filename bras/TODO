@@ -4,3 +4,12 @@ o Update doc
 o Find out how to give every brasfile its own scope so that a variable
   like SRC is not messed up, if it is used in several brasfiles.
 
+o Parallel execution (like make's -j)
+
+o Option to switch between the following modes:
+  a) Collect *all* commands first, then start executing
+  b) Start executing as soon as a command shows up. 
+     - Might be complicated in connection with targets which cannot be
+     made with their first rule.   
+     - Might conflict with option -d
+

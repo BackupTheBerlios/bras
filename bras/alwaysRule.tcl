@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 1997/04/30 17:35:27 $
+# $Revision: 1.4 $, $Date: 1997/05/01 14:52:42 $
 ########################################################################
 
 ########################################################################
@@ -35,14 +35,7 @@ Defrule Always {target deps _trigger _reason} {
   ## _trigger is not used here, but must appear to have the same
   ## interface than other rules.
   
-  set res 1
-  foreach dep $deps {
-    set x [bras.Consider $dep]
-    if {$x==-1} {
-      return -1
-    }
-  }
   append reason "\nmust always be made"
-  return $res
+  return 1
 }
 ########################################################################

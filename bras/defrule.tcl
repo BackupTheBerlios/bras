@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1997/04/30 17:35:28 $
+# $Revision: 1.3 $, $Date: 1997/05/01 14:52:43 $
 ########################################################################
 
 ########################################################################
@@ -37,7 +37,7 @@ proc Defrule {Name params body} {
   "
 
   ## define the rule-command itself
-  proc $Name {target deps {cmd {}}} "
+  proc $Name {target {deps {}} {cmd {}}} "
     bras.enterRule $Name \$target \$deps \$cmd
   "
 

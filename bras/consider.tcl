@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 1997/04/30 17:35:28 $
+# $Revision: 1.4 $, $Date: 1997/05/01 14:52:42 $
 ########################################################################
 
 ########################################################################
@@ -48,6 +48,33 @@ proc bras.pureDeps {deps} {
 }
 ########################################################################
 ##
+## Consider prerequisites of given rule
+## RETURN:
+##  -1, if one of them cannot be made
+##   1 if all can be made or are ok already
+##
+proc bras.ConsiderPreqs {rid} {
+  global brasIndent brasRule
+
+  ## If this was already checked before, return immediately
+  if {$brasRule($rid,run)!=0} {
+    return $brasRule($rid,run)
+  }
+
+  append brasIndent "  "
+  foreach preq $brasRule($rid,preq) {
+    set r [bras.Consider $preq]
+    if {$r==-1} {
+      ## move out of here
+      set brasIndent [string range $brasIndent 2 end]
+      return -1
+    }
+  }
+  set brasIndent "[string range $brasIndent 2 end]"
+  return 1
+}
+########################################################################
+##
 ## Check whether the target needs to be rebuilt.
 ##
 ## RETURN
@@ -58,31 +85,28 @@ proc bras.pureDeps {deps} {
 ## How a target is considered:
 ## Suppose target t in directory d is considered. The the following
 ## steps are performed:
-## o Run the predicates listed in brasTinfo($t,$d,pred) one after
-##   another. Three cases are possible:
-##   1) All predicates return 0, i.e. the target is ok. The 0 is
-##      returned.
-##   2) Some predicates return -1, but none returns 1, i.e. the
-##      targets should be made, but some of its dependencies are not
-##      available or cannot be made. In this case, -1 is returned.
-##   3) At least one predicate returns 1. Then, the following
-##      predicates on the list are ignored, and instead the steps
+## o Run the predicates of all rules listed in brasTinfo($t,$d,rule)
+## one after another. The loop stops as soon as a predicate returns 0
+## or 1 (i.e not -1). Three cases are possible:
+##   1) All predicates return -1, i.e. the target should be made, but
+##      some of its dependencies are not available or cannot be
+##      made. In this case, -1 is returned.
+##   2) The loop stops with 0, i.e. one predicate decided that the
+##      target is up-to-date. Then 0 is returned.
+##   3) The loop stops with 1. Then, the the steps
 ##      described below are executed.
-## o The command-index ci is looked up in brasTinfo($t,$d,cmd)
-## o The dependencies of the predicate which returned 1 are
-##   (temporarily added to the prerequisites of the command.
-## o All prerequisites of the command are all considered. Two cases
-##   are then possible:
-##   1) One prerequisite must be made, but cannot, i.e. we receive
+## o All prerequisites and all dependencies of the rule are all
+##   considered. Two cases are then possible:
+##   1) One of them must be made, but cannot, i.e. we receive
 ##      -1. Then -1 is immediately returned.
-##   2) All prerequisites are ok or can be made. Then the command is
+##   2) All of them are ok or can be made. Then the command is
 ##      added to the list of commands to be executed and all targets
 ##      stored for the command are marked in their done-field with 1. 
 ##      Finally 1 is returned.
 ##
 ##
 proc bras.Consider {target} {
-  global brasCmd brasTinfo argv0 brasOpts brasConsidering
+  global brasRule brasTinfo argv0 brasOpts brasConsidering
   global brasIndent brasLastError
 
   #parray brasCmd
@@ -129,12 +153,12 @@ proc bras.Consider {target} {
   }
 
 
-  ## handle targets without predicate
-  if { ![info exist brasTinfo($target,[pwd],pred)] } {
+  ## handle targets without rule
+  if { ![info exist brasTinfo($target,[pwd],rule)] } {
     bras.lastMinuteRule $target $brasIndent
 
-    ## Check if there is still no predicate available
-    if {![info exist brasTinfo($target,[pwd],pred)] } {
+    ## Check if there is still no rule available
+    if {![info exist brasTinfo($target,[pwd],rule)] } {
       if [file exist $target] {
 	## The target exists as a file, this is ok.
 	if $brasOpts(-d) {
@@ -162,20 +186,22 @@ proc bras.Consider {target} {
   }
 
   ## Call all predicates for the target in turn
-  set res 0
   append brasIndent "  "
-  foreach P $brasTinfo($target,[pwd],pred) {
-    set pred [lindex $P 0]
-    set deps [lrange $P 1 end]
+  foreach rid $brasTinfo($target,[pwd],rule) {
+    set pred $brasRule($rid,type)
+    set deps $brasRule($rid,deps)
     set newer {}
     set brasCmdlist {}
     set reason ""
     #puts ">>$P<<, >>$deps<<"
-    set r [Check.$pred $target $deps newer reason]	;###<<<- HERE
-    if {$r==-1} {
-      set res -1
-    } elseif {$r==1} {
-      set res 1
+    set res [Check.$pred $target $deps newer reason]	;###<<<- HERE
+    if {$res==-1} continue
+    if {$res==0} break
+
+    ## target must be made, but we have to check, if all prerequisites
+    ## are ok.
+    set res [bras.ConsiderPreqs $rid]
+    if {$res==1} {
       set brasLastError ""
       break
     }
@@ -200,7 +226,6 @@ proc bras.Consider {target} {
     ## This target cannot be made
     if { $brasOpts(-d) } {
       set msg "should make `$target' in `[pwd]', but can't"
-      append msg " because\n    one or more dependencies cannot be made"
       bras.dmsg $brasIndent $msg
     }
     set brasTinfo($target,[pwd],done) $res
@@ -212,47 +237,8 @@ proc bras.Consider {target} {
   }
 
   #####
-  ##### Target needs to be made
+  ##### Target must be made
   #####
-  
-  ## Get the command for the target. If none exists, try to make one up
-  set pureDeps [bras.pureDeps $deps]
-  if {![info exist brasTinfo($target,[pwd],cmd)]} {
-    set _reason {}
-    set cmd [bras.defaultCmd $target $pureDeps _reason]
-    append reason $_reason
-    set preqs {}
-    set cmdTargets $target
-  } else {
-    set ci $brasTinfo($target,[pwd],cmd)
-    set cmd $brasCmd($ci,cmd)
-    set preqs $brasCmd($ci,preq)
-    set cmdTargets $brasCmd($ci,targ)
-    unset ci
-  }
-  
-  ## Make sure, all relevant prerequisites have been considered and
-  ## are ok or can be made.
-  append brasIndent "  "
-  foreach preq "$preqs $deps" {
-    set r [bras.Consider $preq]
-    if {$r==-1} {
-      ## move out of here
-      set brasIndent [string range $brasIndent 2 end]
-      if {$brasOpts(-d)} {
-	set msg "should make `$target' in `[pwd]', but can't"
-	append msg " because\n    prerequisite $preq cannot be made"
-	bras.dmsg $brasIndent $msg
-      }
-      set brasTinfo($target,[pwd],done) -1
-
-      ## cleanup and return
-      unset brasConsidering($target,[pwd])
-      cd $keepPWD
-      return -1
-    }
-  }
-  set brasIndent "[string range $brasIndent 2 end]"
 
   ## copy local command-list to the command list of the (indirectly)
   ## calling consider-proc. This requires searching up the stack for
@@ -267,32 +253,37 @@ proc bras.Consider {target} {
   }
   eval lappend cmdlist $brasCmdlist
   
-  ## Add the command for this target to the list of commands. We go
-  ## right through cmdlist here, which is somewhere up the stack,
-  ## since it does not make sense to set the local brasCmdlist first.
-  if { ""=="$cmd" } {
-    ## try to find a suitable suffix command
-    set _reason {}
-    set cmd [bras.defaultCmd $target $pureDeps _reason]
-    append reason $_reason
-  }
-  if {[llength $cmd]} {
-    lappend cmdlist "@cd [pwd]"
-    lappend cmdlist "@set target \"$cmdTargets\""
-    lappend cmdlist "@set newer \"$newer\""
-    lappend cmdlist "@set trigger \"$newer\""
-    lappend cmdlist "@set deps \"$pureDeps\""
-    lappend cmdlist $cmd 
-  }
-  #puts $cmdlist
-
-  ## Mark all targets of the command as done
-  set also {}
-  foreach t $cmdTargets {
-    set brasTinfo($t,[pwd],done) 1
-    if {"$t"!="$target"} {
-      lappend also $t
+  ## If this command was already executed, not much more has to be done
+  if {1==$brasRule($rid,run)} {
+    append reason "\nbut command was already executed previously"
+    set cmd { }
+  } else {
+    ## Get the command for the target. If none exists, try to make one
+    ## up.
+    set pureDeps [bras.pureDeps $deps]
+    if {""=="$brasRule($rid,cmd)"} {
+      set _reason {}
+      set cmd [bras.defaultCmd $target $pureDeps _reason]
+      append reason $_reason
+    } else {
+      set cmd $brasRule($rid,cmd)
+      set brasRule($rid,run) 1
     }
+
+    ## Add the command for this target to the list of commands. We go
+    ## right through cmdlist here, which is somewhere up the stack,
+    ## since it does not make sense to set the local brasCmdlist first.
+    if {[llength $cmd]} {
+      lappend cmdlist "@cd [pwd]"
+      lappend cmdlist "@set target \"$target\""
+      lappend cmdlist "@set targets \"$brasRule($rid,targ)\""
+      lappend cmdlist "@set newer \"$newer\""
+      lappend cmdlist "@set trigger \"$newer\""
+      lappend cmdlist "@set deps \"$pureDeps\""
+      lappend cmdlist "@set preq \"$brasRule($rid,preq)\""
+      lappend cmdlist $cmd 
+    }
+    #puts $cmdlist
   }
 
   if { $brasOpts(-d) } {
@@ -303,14 +294,21 @@ proc bras.Consider {target} {
       bras.dmsg $brasIndent \
 	  "    warning: nothing to execute"
     }
+    ## Filter this target from target list of the rule
+    set also ""
+    foreach t $brasRule($rid,targ) {
+      if {"$target"!="$t"} {
+	lappend also $t
+      }
+    }
     if {"$also"!=""} {
       bras.dmsg $brasIndent \
 	  "same command makes: $also"
     }
   }
 
-
   ## finish up and return
+  set brasTinfo($target,[pwd],done) 1
   unset brasConsidering($target,[pwd])
   cd $keepPWD
   return 1
