@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.21 $, $Date: 2002/01/20 21:44:38 $
+# $Revision: 1.22 $, $Date: 2002/02/24 10:15:07 $
 ########################################################################
 
 ########################################################################
@@ -121,6 +121,19 @@ proc ::bras::leaveDir {newDir} {
     report norm "cd $newDir"
   }
   cd $newDir
+}
+########################################################################
+proc ::bras::touchOtherTargets {rid target res} {
+  variable Rule
+  variable Tinfo
+  set also ""
+  foreach t $Rule($rid,targ) {
+    if {"$target"!="$t"} {
+      lappend also "'$t'"
+      set Tinfo($t,[pwd],done) $res
+    }
+  }
+  return $also
 }
 ########################################################################
 ##
@@ -248,7 +261,7 @@ proc ::bras::considerOne {target} {
 
 
   ## Set up a namespace in which predicates, by means of
-  ## installPredicate will leave values (like trigger, deps) later
+  ## installPredicate, will leave values (like trigger, deps) later
   ## made available to the command to be run. 
   set keptPstack $Pstack
   set Pstack ::bras::ns[nextID]
@@ -268,11 +281,14 @@ proc ::bras::considerOne {target} {
   
   ## If target was up-to-date already, return (almost) immediately
   if {$res==0} {
+    set also [touchOtherTargets $rid $target 0]
     if {$Opts(-d)} {
       dmsg "`$target' in `[pwd]' is up-to-date"
+      if {[llength $also]} {
+	dmsg "same holds for: [join $also {, }]"
+      }
     }
     namespace delete $Pstack; set Pstack $keptPstack
-    #returnFromConsider $target $keepPWD 0
     cleanupForConsider $target $keepPWD 0
     return 0
   }
@@ -305,15 +321,9 @@ proc ::bras::considerOne {target} {
   
   ## All other targets of this rule are assumed to be made now. Mark
   ## them accordingly and filter them out for a message
-  set also ""
-  foreach t $Rule($rid,targ) {
-    if {"$target"!="$t"} {
-      lappend also $t
-      set Tinfo($t,[pwd],done) 1
-    }
-  }
+  set also [touchOtherTargets $rid $target 1]
   if {"$also"!="" && $Opts(-d)} {
-    dmsg "same command makes: $also"
+    dmsg "same command makes: [join $also {, }]"
   }
 
   ## finish up and return
