@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 2000/03/05 12:37:28 $
+# $Revision: 1.2 $, $Date: 2000/03/08 22:38:13 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -44,15 +44,18 @@ proc ::bras::PatternMake {trexp gendep bexp cmd} {
 ########################################################################
 proc ::bras::checkMake {rid theTarget _reason} {
   variable Rule
+  variable nspace
+
   upvar $_reason reason
   #puts "Make: bexp=`$bexp'"
 
-  ## current contents of ::bras::p::{reason,trigger,deps} must be
-  ## saved. 
-  foreach name {reason trigger deps} {
-    set saved($name) [set ::bras::p::$name]
-    set ::bras::p::$name {}
-  }
+  ## Set up a new namespace for predicates and commands. Whenever a
+  ## predicate calls installPredicate, it can install variables within 
+  ## this new namespace and set them. That namespace is then used to
+  ## execute the rule's command.
+  set keptNspace $nspace
+  set nspace ::ns[::bras::nextID]
+  namespace eval $nspace {}
 
   set res 0
   ##
@@ -65,26 +68,23 @@ proc ::bras::checkMake {rid theTarget _reason} {
 					# expression to avoid
 					# interference 
     set r [::bras::p::evaluate $b]
-#     if {[catch {expr {[::bras::p::evaluate $b]}} r]} {
-#       puts stderr $r
-#       puts stderr "    while evaluating expression\n[string trim $b]"
-#       exit 1
-#     }
     set res [expr {$res || $r}]
   }
-  if {$res} {
-    set res [::bras::invokeCmd $rid \
-		 $theTarget \
-		 $::bras::p::deps \
-		 $::bras::p::trigger]
+
+  ## If we got some reasoning, keep it
+  if {[info exist ::[set nspace]::reason]} {
+    set reason [set ::[set nspace]::reason]
+  } else {
+    set reason "\n(condition gives no reason)"
   }
 
-  ## restore globals in ::bras::p
-  append reason $::bras::p::reason
-  foreach name {reason trigger deps} {
-    set ::bras::p::$name $saved($name)
+  ## Now run the command.
+  if {$res} {
+    set res [::bras::invokeCmd $rid $theTarget $nspace]
   }
-  
+  namespace delete $nspace
+  set nspace $keptNspace
+
   return $res
 }
 ########################################################################

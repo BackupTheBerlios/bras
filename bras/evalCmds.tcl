@@ -67,7 +67,8 @@ proc ::bras::unknown args {
 
 }
 ########################################################################
-proc ::bras::invokeCmd {rid Target Deps Trigger} {
+proc ::bras::invokeCmd {rid Target nspace} {
+
   variable Rule
   variable Opts
 
@@ -93,15 +94,22 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
   
   ## Set up a namespace within which the command will be executed. The 
   ## main reason for this is that we want to have the variables
-  ## targets, target, trigger and deps to be unique for this
+  ## targets, target, and those from $values to be unique for this
   ## command. They cannot be global because the command may call
   ## `consider', thereby invoking another command which also wants to
   ## have these variables.
-  set nspace "::bras::s[nextID]"
+  #set nspace "::bras::s[nextID]"
   namespace eval $nspace [list variable target $Target]
   namespace eval $nspace [list variable targets $Rule($rid,targ)]
-  namespace eval $nspace [list variable trigger $Trigger]
-  namespace eval $nspace [list variable deps $Deps]
+#   foreach name [array names values] {
+#     if {![info exist $name]} continue
+#     if {$isary($name)} {
+#       namespace eval $nspace [list variable $name]
+#       namespace eval $nspace [list array set $name $values($name)]
+#     } else {
+#       namespace eval $nspace [list variable $name $values($name)]
+#     }
+#   }
 
   if {$Opts(-v)} {
     namespace eval $nspace {
@@ -138,7 +146,6 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
     }}
 	
     cd $wearehere
-    namespace delete $nspace
   }
 
   if {!$haveUnknown} {
