@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.16 $, $Date: 2002/01/20 21:44:38 $
+# $Revision: 1.17 $, $Date: 2002/02/11 19:53:00 $
 ########################################################################
 
 ##
@@ -276,12 +276,23 @@ proc ::bras::consider {targets} {
   set err {}
   foreach t $targets {
     if {[catch {::bras::considerOne $t} r]} {
-      return -code error -errorinfo [fixErrorInfo 2 ""]
-    }
-    if {$r<0} {
+      if {$Opts(-k)} {
+	## User requested to keep going anyway
+	set emsg {}
+	append emsg \
+	    [fixErrorInfo 2 ""] \
+	    "\nbras warning: ignoring error while making `$t' in `[pwd]'"
+	report warn $emsg
+	set r 1
+      } else {
+	return -code error -errorinfo [fixErrorInfo 2 ""]
+      }
+    } elseif {$r<0} {
       ## Failed to find a way to make the target
       if {$Opts(-k)} {
 	## User requested to assume that it was made and keep going
+	report warn \
+	    "bras warning: don't know how to make `$t' in `[pwd]'"
 	set r 1
       } else {
 	append err "don't know how to make `$t' in `[pwd]'"
