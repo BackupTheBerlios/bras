@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 1997/04/20 07:05:13 $
+# $Revision: 1.2 $, $Date: 1997/04/26 19:57:32 $
 ########################################################################
 
 ########################################################################
@@ -37,11 +37,13 @@
 ## non-existing dependency, i.e. this dependency is no reason to
 ## remake the target.
 ##
-Defrule Newer {target deps _newer} {
+Defrule Newer {target deps _newer _reason} {
+  upvar $_reason reason
   upvar $_newer newer
-
+  
   set reason ""
-
+  set res 0
+  
   ## check if target exist, get its mtime
   if {[file exist $target]} {
     file stat $target stat
@@ -49,8 +51,9 @@ Defrule Newer {target deps _newer} {
   } else {
     append reason "\ndoes not exist"
     set ttime 0
+    set res 1
   }
-
+  
   ## check against every dependency
   foreach dep $deps {
     if {[string index $dep 0]=="@"} {
@@ -58,8 +61,12 @@ Defrule Newer {target deps _newer} {
     } else {
       set pdep $dep
     }
-    ## first consider the dependency as a target
-    if {[bras.Consider $dep]} {
+    ## consider the dependency as a target
+    set x [bras.Consider $dep]
+    if {$x==-1} {
+      set res -1
+    } elseif {$x} {
+      if {$res>=0} {set res 1}
       append reason "\ndependency $pdep rebuilt"
       lappend newer $pdep
       continue
@@ -70,10 +77,13 @@ Defrule Newer {target deps _newer} {
 
     ## The dependency is not remade, but maybe its newer already
     file stat $pdep stat
+    #puts ">>>$target<-$pdep"
+    #puts "$ttime <> $stat(mtime)"
     if {$ttime<$stat(mtime)} {
+      if {$res>=0} {set res 1}
       append reason "\nolder than `$pdep'"
       lappend newer $pdep
     }
   }
-  return $reason
+  return $res
 }

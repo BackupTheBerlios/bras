@@ -101,7 +101,7 @@ proc clink {dst args} {
 }
 ########################################################################
 proc Install {} {
-  global TCLSH version
+  global TCLSH verdate
 
   set prefix [string trim [.a.e get]]
   set exe [installPath $prefix [string trim [.b.e get]]]
@@ -125,7 +125,7 @@ proc Install {} {
   eval exec cp $ruleFiles $lib
 
   ## copy manual page
-  exec sed -e "s/|VERSION|/$version/" -e "s,|SRCBASE|,$lib," \
+  exec sed -e "s/|VERDATE|/$verdate/" -e "s,|SRCBASE|,$lib," \
       bras.1 >$man/bras.1
 
   ## copy documentation
@@ -141,7 +141,7 @@ proc Install {} {
 }
 ########################################################################
 
-set version [_exec sed -n -e {/^set  *VERDATE/s/[^-0-9]*//gp} bras]
+set verdate [_exec sed -n -e {/^set  *VERDATE/s/[^-0-9]*//gp} bras]
 
 if [info exist env(HOME)] {
   set home $env(HOME)

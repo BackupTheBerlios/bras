@@ -1,7 +1,6 @@
 #!/usr/local/bin/tclsh
 set brasBase |SRCBASE|
-set VERSION 0.2.0
-set VERDATE 1997-04-11
+set VERDATE 1111-11-11
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
@@ -26,20 +25,18 @@ set VERDATE 1997-04-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
+# $Revision: 1.9 $, $Date: 1997/04/26 19:57:30 $
 ########################################################################
-
-set brasVersion $VERSION
-set brasVerdate $VERDATE
 
 ########################################################################
 ##
 ## ---- global vars -----
 ##
-## brasVersion
-##   version string 
-##
-## brasVerdate
-##   date of the version, usually more reliable than the version itself
+## VERDATE
+##   date of the version. This is not maintained by cvs, but is edited
+##   into this file whenever I run my pack-script, so that it refers
+##   to the whole package and not only to this particular file. Does
+##   anybody know how this can be done with cvs?
 ##
 ## brasBase
 ##   Directory holding files sourced in by this script
@@ -47,15 +44,24 @@ set brasVerdate $VERDATE
 ## brasFile
 ##   Name of the rule file. Used also for rule-files in other dirs.
 ##
-## brasRules 
-##   array holding explicit rules. The indices are used as follows:
-##   <target>,<dir> -- Exist, Always or Newer to indicate type of rule
-##   <target>,<dir>,cmd -- command to execute
-##                         if {}, default command may be substituted
-##                         if { }, no default will be substituted
-##   <target>,<dir>,deps -- dependencies
-##   <target>,<dir>,done -- set, if target already considered
-##                          1: needs rebuild, 0: no rebuild needed
+## brasRule
+##     array holding explicit rules. With an integer <i> denoting the
+##     rule number the indices are used as follows: 
+##   <i>,type -- Exist, Always or Newer to indicate type of rule
+##   <i>,targ -- targets of this rule. Used to mark targets as done,
+##               once it is decided that the command is executed.
+##   <i>,cmd  -- command to execute, if rule fires
+##   nextID   -- next unique index to use
+set brasRule(nextID) 0
+##
+## brasTinfo
+##     array holding information about targets. Indices used are:
+##   <target>,<dir>,rule -- index of the rule to use.
+##   <target>,<dir>,deps -- dependencies of target
+##   <target>,<dir>,done -- set, if target was already considered.
+##                          0: no need to make target
+##                          1: target will be made
+##                         -1: target needs to be made, but don't know how
 ##
 ## brasPrule
 ##   database of pattern-rules. Pattern rules are stored and accessed in
@@ -105,9 +111,10 @@ set argv0 [file tail $argv0]
 if { "$brasBase"=="|SRCBASE|" } {
   set brasBase /home1/kir/work/bras
 }
-source $brasBase/buildCmds.tcl
 source $brasBase/evalCmds.tcl
 source $brasBase/sourceDeps.tcl
+source $brasBase/lastMinuteRule.tcl
+source $brasBase/defaultCmd.tcl
 source $brasBase/consider.tcl
 source $brasBase/defrule.tcl
 source $brasBase/existRule.tcl
@@ -120,7 +127,7 @@ source $brasBase/alwaysRule.tcl
 ##   a wrapper around `source $file' to handle errors gracefully
 ##
 proc bras.gobble {file} {
-  global errorInfo brasKnown
+  global errorInfo
 
   if [catch "uplevel #0 source $file" msg] {
     ## strip the last 5 lines off the error stack
@@ -185,74 +192,26 @@ proc bras.PatternRule {type target deps cmd} {
   }
 }
 ########################################################################
-if 0 {
-proc PatternNewer {target deps cmd} {
-  bras.PatternRule Newer $target $deps $cmd
-}
-########################################################################
-proc PatternExist {target deps cmd} {
-  bras.PatternRule Exist $target $deps $cmd
-}
-proc PatternAlways {target deps cmd} {
-  bras.PatternRule Always $target $deps $cmd
-}
-}
-########################################################################
 ##
-## bras.enterRule
-##    declare a rule
+## User command to add (more) dependencies to a target
 ##
-proc bras.enterRule {type target deps cmd} {
-  global brasRules brasFile brasTargets brasKnown argv0
+proc Dependencies {target deps} {
+  global brasTinfo brasFile brasKnown
 
-  ## newline characters and semicolons are poisonous for `eval' so
-  ## they have no business being in `deps'. The foreach-loop was
-  ## choosen to normalise list of dependencies by squeezing out
-  ## unwanted whitespace.
-  regsub -all ";" $deps {\\;} d
-  set deps {}
-  foreach x $d {lappend deps $x}
-
-  ## if the target has already a rule, this is usually an error,
-  ## except, if the old rule is of the same type and only one, the
-  ## old one or this one, has a non-empty command
-  if [info exists brasRules($target,[pwd])] {
-    if { "$brasRules($target,[pwd])"!="$type" } {
-      set err "target `$target' has already rule of type "
-      append err "$brasRules($target,[pwd])"
-      return -code error -errorinfo $err
-    }
-    if { ""!="$brasRules($target,[pwd],cmd)" && ""!="$cmd" } {
-      set err "target `$target' has already command\n"
-      append err ">>>>>$brasRules($target,[pwd],cmd)<<<<<"
-      return -code error -errorinfo $err
-    }
-    ## add new deps and enter cmd if necessary
-    set brasRules($target,[pwd],deps) \
-	[concat $brasRules($target,[pwd],deps) $deps]
-    if { ""!="$cmd" } {
-      set brasRules($target,[pwd],cmd) $cmd
-    }
+  ## I wonder if it were better to squeeze out multiply mentioned
+  ## dependencies.
+  if {![info exist brasTinfo($target,[pwd],deps)]} {
+    set brasTinfo($target,[pwd],deps) $deps
   } else {
-    ## enter rule into database
-    set brasRules($target,[pwd]) $type
-    set brasRules($target,[pwd],cmd) $cmd
-    set brasRules($target,[pwd],deps) $deps
-  }  
-
-
-  ## if this is the very first explicit rule seen, and no target was
-  ## specified on the command line, this is the default-target.
-  if { ![info exist brasTargets] } {
-    set brasTargets $target
+    eval lappend brasTinfo($target,[pwd],deps) $deps
   }
-
 
   ## source rule-files for dependencies, if necessary. This is
   ## necessary only for dependencies starting with `@'. Most of the
   ## code below is error-checking.
   foreach x $deps {
     if ![string match @* $x] continue
+
     set dir [file dir [string range $x 1 end]]
 
     ## change to dir of that dependency
@@ -262,13 +221,13 @@ proc bras.enterRule {type target deps cmd} {
       append err "non-existing directory `$dir'"
       return -code error -errorinfo $err
     }
+    #puts "+++ Just switched to [pwd]"
 
     ## source only, if we have not seen this directory's brasfile before
-    if { [info exist brasKnown([pwd])] } {
+    if {[info exist brasKnown([pwd])]} {
       cd $pwd
       continue
     }
-    set brasKnown([pwd]) 1
 
     if { ![file exists ${brasFile}]} {
       set err "dependency `$x' leads to"
@@ -276,25 +235,63 @@ proc bras.enterRule {type target deps cmd} {
       cd $pwd
       return -code error -errorinfo $err
     }
+    set brasKnown([pwd]) 1
     bras.gobble ${brasFile}
     cd $pwd
   }
 }
 ########################################################################
-if 0 {
-proc Newer {target deps cmd} {
-  bras.enterRule Newer $target $deps $cmd
+##
+## bras.enterRule
+##    declare a rule
+##
+proc bras.enterRule {type targets deps cmd} {
+  global brasRule brasTinfo brasFile brasTargets brasKnown argv0
+
+  ## newline characters and semicolons are poisonous for `eval' so
+  ## they have no business being in `deps'. The foreach-loop was
+  ## choosen to normalise list of dependencies by squeezing out
+  ## unwanted whitespace.
+  regsub -all ";" $deps {\\;} d
+  set deps {}
+  foreach x $d {lappend deps $x}
+
+  ## it is wrong for any of the targets to have already a rule
+  ## associated with it.
+
+  foreach t $targets {
+    if {[info exist brasTinfo($t,[pwd],rule)]} {
+      set ri $brasTinfo($t,[pwd],rule)
+      set err "target `$t' has already rule of type $brasRule($ri,type)\n"
+      append err "with command >>>>>$brasRule($ri,cmd)<<<<<"
+      return -code error -errorinfo $err
+    }
+  }
+
+  ## enter the new rule
+  set ri $brasRule(nextID)
+  incr brasRule(nextID)
+  set brasRule($ri,type) $type
+  set brasRule($ri,targ) $targets
+  set brasRule($ri,cmd) $cmd
+
+  ## Store rule-index and add dependencies for every target
+  foreach t $targets {
+    set brasTinfo($t,[pwd],rule) $ri
+    Dependencies $t $deps
+  }
+
+  ## if this is the very first explicit rule seen, and if no target was
+  ## specified on the command line, this is the default target-list.
+  if { ![info exist brasTargets] } {
+    set brasTargets $targets
+  }
+
 }
 ########################################################################
-proc Exist {target deps cmd} {
-  bras.enterRule Exist $target $deps $cmd
-}
-########################################################################
-proc Always {target deps cmd} {
-  bras.enterRule Always $target $deps $cmd
-}
-}
-########################################################################
+##
+## debugging only!
+##
 proc bras.showCmds {cmds} {
   foreach x $cmds {
     puts "$x"
@@ -302,19 +299,22 @@ proc bras.showCmds {cmds} {
 }
 ########################################################################
 proc usage {} {
-  global argv0 brasVersion brasVerdate
+  global argv0 VERDATE
   puts stderr \
-      "usage: $argv0 \[-f brasfile\] \[-d\] \[-f\] \[-h\] \[-n\] \[-r\]
-             \[-v\]
+      "usage: $argv0 \[-f brasfile\] \[-d\] \[-f\] \[-h\] \[-n\] \[-r\]\
+ \[-v\] \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - execute nothing, show reasoning
         -n - don't execute external commands
-        -h - show this message
         -r - don't read system standard rule file
         -v - show all command lists before they are executed
+        -- - use the rest of the command-line as target list
+             (necessary, if a target starts with `-')
+    target - target to be rebuilt (default: the target of the first
+             rule in brasfile)
 
-                                     version $brasVersion ($brasVerdate)
+This version was packed from an up-to-date cvs-repository on $VERDATE.
 "
   exit 1
 }
@@ -331,7 +331,7 @@ proc bras.main {argc args} {
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
     incr i
-    switch -exact -- $opt {
+    switch -glob -- $opt {
       -d {set brasOpts(-d) 1}
       -f {
 	if {$i>=$argc } {
@@ -341,10 +341,15 @@ proc bras.main {argc args} {
 	set brasFile [lindex $args $i]
 	incr i
       }
-      -h usage
       -n {set brasOpts(-n) 1}
       -r {set brasOpts(-r) 1}
       -v {set brasOpts(-v) 1}
+      -- {
+	for {} {$i<$argc} {incr i} {
+	  lappend brasTargets [lindex $args $i]
+	}
+      }
+      -* usage
       default {
 	lappend brasTargets $opt
       }
@@ -390,20 +395,15 @@ proc bras.main {argc args} {
   #parray brasRules
   #parray brasPrule
   foreach target $brasTargets {
-    if 0 {
-      set cmds [bras.buildCmds $target ""]
-    } else {
-      set brasIndent ""
-      set brasCmdlist {}
-      bras.Consider $target
-      set cmds $brasCmdlist
-    }
+    set brasIndent ""
+    set brasCmdlist {}
+    bras.Consider $target
     if $brasOpts(-d) continue
     #bras.showCmds $cmds
-    if ![llength $cmds] {
+    if {![llength $brasCmdlist]} {
       puts "$argv0: nothing to be done for `$target'"
     } else {
-      bras.evalCmds $cmds
+      bras.evalCmds $brasCmdlist
     }
   } 
   

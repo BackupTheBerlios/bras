@@ -22,34 +22,47 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1997/04/26 19:57:31 $
 ########################################################################
-
 
 ########################################################################
 ##
-## The exist-rule checks if the target exists or not. The target is
-## only rebuild, if it does not exist. And only if it does not exist,
-## this rule considers the dependencies, since they may be needed to
-## create the target.
+## Try to find a pattern rule that matches target and one of deps in
+## order to use its command as a default command.
 ##
-Defrule Exist {target deps _trigger _reason} {
+## _reason gets appended information, if brasOpts(-d) is set
+##
+proc bras.defaultCmd {target deps _reason} {
   upvar $_reason reason
-  ## _trigger is not used here, but must appear to have the same
-  ## interface than other rules.
+  global brasPrule brasOpts
 
-  if {![file exist $target]} {
-    set res 1
-    foreach dep $deps {
-      set x [bras.Consider $dep]
-      if {$x==-1} {
-	set res -1
+  ## need to check all pattern rules
+  set nextID $brasPrule(nextID)
+  for {set i 0} {$i<$nextID} {incr i} {
+    ## This one might have been deleted.
+    if { ![info exist brasPrule($i,target)] } continue
+
+    ## Is this one a candidate?
+    if { ![bras.isCandidate $target $i] } continue
+
+    ## Generate the derived depencencies
+    foreach d $brasPrule($i,dep) {
+      lappend l [Dep$d $target]
+    }
+    
+    ## Cross check list l with list deps
+    foreach d $deps {
+      foreach x $l {
+	if { "$x"!="$d" } continue
+
+	## ok, return the command
+	if $brasOpts(-d) {
+	  append reason \
+	      "\nusing command from pattern rule "
+	  append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
+	}
+	return $brasPrule($i,cmd)
       }
     }
-    append reason "\ndoes not exist"
-    return $res
-  } else {
-    return 0
   }
-}
-########################################################################
+}    
+

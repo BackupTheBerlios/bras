@@ -10,7 +10,7 @@ exec tclsh "$0" "$@"
 ## are compared.
 ##
 cd Test1
-foreach test [lsort [glob brasfile.\[0-9\]\[0-9\]]] {
+foreach test [lsort -decreasing [glob brasfile.\[0-9\]\[0-9\]]] {
   puts -nonewline "[string trim $test brasfile.]: "
   catch "exec ../bras -f $test" output
   set expect {}
