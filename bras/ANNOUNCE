@@ -4,46 +4,61 @@
 		     Rule Base Command Execution
 			       with Tcl
 
-I am pleased to announce a new version of bras. 
+I am pleased to announce version 0.99.2 of bras. This is supposed to
+be a beta version in preparation of 1.0.0.
 
-(If you don't know bras: go to the end of this message for more info.)
-at the end of this message.)
-
-
-MAJOR CHANGES SINCE THE LAST PUBLISHED VERSION
-
-1) Dependency lists can be generated on the fly. In a rule like
-Newer a.o a.c {
-  #compile a.c into a.o
-}
-the name a.c can be understood as a pattern to trigger a script which
-computes the true dependency list. In particular the script can run
-some kind of makedepend and may even take care of caching the results.
-
-2) The reasoning process can be invoked explicitely. There is no need
-to [exec] a child process. This comes in handy in combination with (1)
-for the maintenance of said dependency cache.
-
-3) The idea of prerequisites was dropped. Their functionality is now
-subsumed by (2).
-
-4) There are no longer system specific rule files. Consequently option
--r is gone. These rule files were never very elaborate. Instead I
-started to collect files with generally useful pattern rules which can
-be sourced in by a brasfile, if necessary.
-
-5) Previously two different methods were used for
- a) making up a rule for a target without one and
- b) finding a default command for a rule without one.
-However, the results tended to be inconsistent. Therefore the concept
-was dropped and in case of (b) the target of the partially available
-rule is now treated like (a), except that the already available
-dependencies are kept. (As far as I found, this is how `make' does
-it.) 
-
-6) The docs have a quick-reference appendix.
+If you don't know bras: go to the end of this message for more info.
 
 
+
+MAJOR CHANGES SINCE 0.8.0
+
+1) Rules are totally different now although compatibility could be
+maintained. A typical rule looks like
+
+  Make bras.dvi {[older bras.dvi bras.tex]} {
+    latex bras.tex
+  }
+
+Note that the 2nd parameter of `Make' can be just any boolean
+expression. The boolean expression is updated only, if the target of
+the rule, `bras.dvi' is considered for update. If the expression
+yields true, the command, i.e. `latex bras.tex', is executed. The
+predicate `older' is one of several predefined
+predicates. Implementing new predicates is a easy as writing a
+Tcl-proc. 
+
+
+2) Compatibility with previously available rules like `Always',
+`Exist' and `Newer' is maintained. Internally they are mapped onto a
+call to `Make'.
+
+
+3) Bras is now *also* a Tcl-package. It should suffice to put
+
+   package require bras
+   namespace import ::bras::*
+
+at the top of your tclsh-, wish-, itcl-, tcl-, bltwish-script to get
+access to rule base command execution. Example: In some kind of editor
+there are several places where you want to be sure that your current
+document is saved to file. Therefore you write a rule along the lines
+of 
+
+   Make $myfile {[file-not-currently-saved $target]} {
+      save-the-file $target
+   }
+
+and whenever you want to be sure that the file is indeed saved, you
+simply write:
+
+   consider $myfile
+
+Other interesting applications are engineering applications requiring
+lengthy computations with several intermediate results.
+
+
+  
 WHERE CAN I GET IT?
 
 The distribution  can be found at
@@ -70,14 +85,12 @@ o Tcl-syntax so that commands associated with rules may contain
   control structures;
 o dependencies in foreign directories can trigger sourcing rule files
   in that directory, recursive bras-execution is not necessary;
-o more than one type of rule: Newer, Exist, Always;
-o new types of rules can be easily added;
-o multiple targets in one rule;
+o just any boolean expression can be used to define when a target is
+  out-of-date. 
 o pattern rules which deserve the name;
 o explicit invocation of the reasoning process possible;
-o automagically created dependency lists
 
 Send comments and requests for enhancements to kir@iitb.fhg.de .
  
 # CVS:
-# $Revision: 1.7 $, $Date: 1999/07/24 11:49:47 $
+# $Revision: 1.8 $, $Date: 2000/03/14 20:23:58 $
