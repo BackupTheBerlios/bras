@@ -10,7 +10,7 @@
 \renewcommand{\bfdefault}{b}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.21 $, $Date: 2000/03/08 22:38:46 $
+% $Revision: 1.22 $, $Date: 2000/03/14 18:09:34 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1264,6 +1264,20 @@ is equivalent to
   \texttt{PatternMake} \textit{regexp deptag}
   \texttt{\{[older} \textit{target} \texttt{\$d]\}} \textit{command}
 \end{quote}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{\Bras as a Package}
+
+Since Version 0.99.1 \bras can be used as a package in any
+Tcl-script. In the future this will be better documented. In short,
+it should suffice to have
+\begin{verbatim}
+  package require bras
+  namespace import ::bras::*
+\end{verbatim}
+somewhere at the beginning of your script to be able to use \bras'
+commands \texttt{Make}, \texttt{consider} and so on. Most command line 
+options of \bras can be set by calling \texttt{::bras::configure}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
 
