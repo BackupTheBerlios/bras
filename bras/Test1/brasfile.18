@@ -1,9 +1,0 @@
-puts "msg: Wrong definition of new rule type"
-puts "expect: a rule must have either three or four parameters"
-
-Defrule Longer {b c} {
-  hallo
-}
-
-Exist jockel {} {
-}

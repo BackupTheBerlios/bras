@@ -1,4 +1,0 @@
-puts "msg: Error `dependency leads to non-existant dir'"
-puts "expect: bras: dependency `@/bla/bli' in `/home1/kir/work/bras/Test1/brasfile.23' leads to non-existing directory `/bla'"
-
-Newer A @/bla/bli
