@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.23 $, $Date: 2000/12/30 16:34:26 $
+# $Revision: 1.24 $, $Date: 2001/01/01 19:35:36 $
 #
 ########################################################################
 rename package X; proc package args {}
@@ -71,15 +71,15 @@ Newer $RPM $TGZ {
 Always publish-index {} {
   sed -e "s/|BRASTARGZ|/[file tail $TGZ]/g" \
       -e "s/|BRASRPM|/[file tail $RPM]/g" index.html >index.tmp
-  scp index.tmp [file join $PUBDIR index.html]
-  scp dir.ttml $PUBDIR
+  scp index.tmp [file join $PUBDIR index.html] 2>@stderr
+  scp dir.ttml $PUBDIR 2>@stderr
 }
 
 Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
-  scp Brasfile [file join $PUBDIR brasfile.exa]
-  scp doc/bras.ps.gz doc/bras.pdf $PUBDIR
+  scp Brasfile [file join $PUBDIR brasfile.exa] 2>@stderr
+  scp doc/bras.ps.gz doc/bras.pdf $PUBDIR 2>@stderr
   tar xzfO $TGZ bras-$::bras::VERSION/CHANGES >CHANGES
-  scp $TGZ $RPM CHANGES $PUBDIR
+  scp $TGZ $RPM CHANGES $PUBDIR 2>@stderr
   rm CHANGES
 }  
 
