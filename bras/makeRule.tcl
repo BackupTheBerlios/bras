@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.10 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.11 $, $Date: 2002/01/09 21:20:09 $
 ########################################################################
 
 namespace eval ::bras {
@@ -40,7 +40,7 @@ proc ::bras::PatternMake {trexp gendep bexp cmd} {
 ########################################################################
 proc ::bras::checkMake {rid theTarget} {
   set currentDir [pwd]
-  set dirns $::bras::Namespace($currentDir)
+  set dirns [dirns .]
 
   ## This namespace is soleley set up to run the boolean
   ## expressions. This helps people to remember not to run predicates

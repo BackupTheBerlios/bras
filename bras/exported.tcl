@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.14 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.15 $, $Date: 2002/01/09 21:20:09 $
 ########################################################################
 
 ##
@@ -108,10 +108,14 @@ proc ::bras::dirns {dir} {
   cd $dir 
   if {[info exist Namespace([pwd])]} {
     set ns $Namespace([pwd])
-    cd $here
-    return $ns
+  } else {
+    ## There was no brasfile [include]d for $dir, so the best we can do
+    ## is to return ::. This happens in particular, if someone just
+    ## uses bras as a package and simple runs some bras commands.
+    set ns ::
   }
-  return -code error "no namespace available for `$dir'"
+  cd $here
+  return $ns
 }
 ########################################################################
 ##

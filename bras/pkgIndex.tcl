@@ -1,10 +1,10 @@
 
-# $Revision: 1.38 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.39 $, $Date: 2002/01/09 21:20:09 $
 
 ## tclPkgUnknown, when running this script, makes sure that
 ## $dir is set to the directory of this very file
 
-set VERSION 2.1
+set VERSION 2.1.1
 set VERDATE 0000-00-00
 package ifneeded bras $VERSION \
     [concat \

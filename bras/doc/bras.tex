@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.34 $, $Date: 2002/01/06 15:19:08 $
+% $Revision: 1.35 $, $Date: 2002/01/09 21:20:09 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1170,6 +1170,36 @@ before and thinks there is nothing to do.
 You may also want to redefine the procedure \Indextt{::bras::report}
 \indextt{report} (p.~\pageref{proc:report}) to redirect all kinds of
 output into a widget.
+
+In addition some care is necessary with regard to
+namespaces\index{namespace}. If a \brasfile{} is read implicitly by
+following an \texttt{@}-target \index{"@-target} or explicitly with
+\texttt{include @}\textit{dir}\indextt{include} for some directory
+\textit{dir}, a namespace is set up for that directory. Now, whenever
+a target is considered in that directory, either by
+\begin{enumerate}
+\item
+  \begin{quote}
+    \texttt{cd} \textit{dir}\\
+    \texttt{consider somefile}
+  \end{quote}
+or by calling an \texttt{@}-target like 
+\item 
+  \begin{quote}
+    \texttt{consider @}\textit{dir}\texttt{/somefile}
+  \end{quote}
+\end{enumerate}
+the namespace for that directory will be used. In particular, the
+rule's condition will be evaluated in that namespace as well as the
+rule's command.
+
+The problem arises mainly if something like number (1) above is called
+\textbf{before and after} a \brasfile{} for \textit{dir} is
+read. Before, the namespace will be \texttt{::}, i.e.\ the global
+context, and afterwards it will be the namespace set up for that
+directory. See section~\ref{proc:dirns} and~\ref{proc:linkvar} for
+more information on \texttt{dirns} and \texttt{linkvar} respetively.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
 \index{bugs}
@@ -1787,10 +1817,11 @@ targets are considered, it is never executed.
 \begin{Describe}
 \item[Synopsis] \Tt{dirns} \It{dir}
 \item[Description] Retrieves the name of the namespace associated with
-  the \brasfile\ in directory \textit{dir}. For this to work, the
-  \brasfile\ in \textit{dir} must have been sourced already either
-  implicitly by following an \texttt{@}-target or explicitly by
-  \texttt{include @\textit{dir}}.
+  the \brasfile\ in directory \textit{dir}. The association is created
+  only when a \brasfile\ in \textit{dir} is sourced either implicitly
+  by following an \texttt{@}-target or explicitly by \texttt{include
+    @\textit{dir}}. If no such association was created before, the
+  global namespace \texttt{::} is returned.
 \item[Example]\begin{verbatim}
   # Use a configuration option defined in the brasfile 
   # of the parent directory to change behaviour.

@@ -58,7 +58,6 @@ proc ::bras::unknown args {
 }
 ########################################################################
 proc ::bras::invokeCmd {rid Target pstack} {
-  variable Namespace
   variable Rule
   variable Opts
 
@@ -106,7 +105,7 @@ proc ::bras::invokeCmd {rid Target pstack} {
   # command may call [consider] recursively, we have to backup and
   # later restore the variables we are going to overwrite.
   set currentDir [pwd]
-  set dirns $Namespace($currentDir)
+  set dirns [dirns .]
 
   set ptails {}
   foreach x [info vars [set pstack]::*] {
