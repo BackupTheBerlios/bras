@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.14 $, $Date: 2000/03/05 12:37:28 $
+# $Revision: 1.15 $, $Date: 2000/03/08 22:36:14 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -263,6 +263,7 @@ proc ::bras::considerOne {target} {
   ## which may return an error. 
   ##
   if {[catch [list ::bras::checkMake $rid $target reason] res]} {
+    #global errorInfo; puts "$errorInfo $res";
     set Indent [string range $Indent 2 end]
     returnFromConsider $target $keepPWD $res error
   }
