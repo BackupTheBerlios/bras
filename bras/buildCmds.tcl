@@ -108,7 +108,7 @@ proc bras.defaultCmd {target deps _reason} {
 	## ok, return the command
 	if $brasOpts(-d) {
 	  append reason \
-	      "\n    using command from pattern rule "
+	      "\nusing command from pattern rule "
 	  append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
 	}
 	return $brasPrule($i,cmd)

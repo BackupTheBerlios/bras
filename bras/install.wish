@@ -120,7 +120,7 @@ proc Install {} {
   exec chmod +x $exe/bras
 
   ## copy library files
-  exec cp buildCmds.tcl evalCmds.tcl sourceDeps.tcl $lib
+  eval exec cp [glob *.tcl] $lib
   set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
   eval exec cp $ruleFiles $lib
 
@@ -141,7 +141,7 @@ proc Install {} {
 }
 ########################################################################
 
-set version [_exec sed -n -e {/^set  *VERSION/s/[^-0-9]*//p} bras]
+set version [_exec sed -n -e {/^set  *VERDATE/s/[^-0-9]*//gp} bras]
 
 if [info exist env(HOME)] {
   set home $env(HOME)
@@ -177,7 +177,7 @@ pack .warn -side top -expand 1
 lentry .x "tclsh-executable" 30 apply
 .x.e insert 0 $TCLSH
 lentry .a "installation prefix" 30 apply
-.a.e insert 0 $home/tools/bras-$version
+.a.e insert 0 $home/tools/bras.$version
 lentry .b "where to put the executable" 30 apply
 lentry .c "where to put files need by bras" 30 apply
 lentry .man "where to put the manual page" 30 apply

@@ -1,7 +1,7 @@
 #!/usr/local/bin/tclsh
 set brasBase |SRCBASE|
 set VERSION 0.2.0
-set VERDATE 1997-03-28
+set VERDATE 1997-04-11
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
@@ -38,6 +38,9 @@ set brasVerdate $VERDATE
 ## brasVersion
 ##   version string 
 ##
+## brasVerdate
+##   date of the version, usually more reliable than the version itself
+##
 ## brasBase
 ##   Directory holding files sourced in by this script
 ##
@@ -62,7 +65,7 @@ set brasVerdate $VERDATE
 ##   <i>,target -- target
 ##   <i>,dep    -- all dependencies for given target
 ##   <i>,cmd    -- command for target/dependency pair
-##   <i>,type   -- Newer, Exist or Always
+##   <i>,type   -- Newer, Exist, Always ...
 set brasPrule(nextID) 0
 ##
 ## brasKnown
@@ -84,16 +87,32 @@ set brasPrule(nextID) 0
 ##   array with an element for every target currently (recursively)
 ##   under consideration; used to detect dependency loops.
 ##
+## brasCmdlist
+##   list of commands to execute. Built up by bras.Consider. Howver,
+##   only the topmost bras.Consider called finally sets the global
+##   variable. All recursively called incarnations set the local
+##   variable of their caller.
+##
+## brasIndent
+##   string containing blanks, used for `-d'-reporting.
+##
 ########################################################################
 
 set argv0 [file tail $argv0]
 
+## This if never succeeds after installation. I need it however run
+## bras from my development directory.
 if { "$brasBase"=="|SRCBASE|" } {
   set brasBase /home1/kir/work/bras
 }
 source $brasBase/buildCmds.tcl
 source $brasBase/evalCmds.tcl
 source $brasBase/sourceDeps.tcl
+source $brasBase/consider.tcl
+source $brasBase/defrule.tcl
+source $brasBase/existRule.tcl
+source $brasBase/newerRule.tcl
+source $brasBase/alwaysRule.tcl
 
 ########################################################################
 ##
@@ -104,7 +123,6 @@ proc bras.gobble {file} {
   global errorInfo brasKnown
 
   if [catch "uplevel #0 source $file" msg] {
-    #puts stderr $msg
     ## strip the last 5 lines off the error stack
     set ei [split $errorInfo \n]
     set l [llength $ei]
@@ -118,21 +136,22 @@ proc bras.gobble {file} {
 ########################################################################
 ##
 ## include
-##   an alias for `source', however we take care about not sourcing any
-## file more than once.
+##   an alias for `source', however we take care to not source any
+##   file more than once.
 ##  
 proc include {name} {
   global brasIncluded
   file stat $name stat
 
   if [info exist brasIncluded($stat(dev),$stat(ino))] return
+  set brasIncluded($stat(dev),$stat(ino)) 1
 
   bras.gobble $name
 }
 ########################################################################
 ##
 ## bras.PatternRule
-##   Declare pattern-rule.
+##   Declare a pattern-rule.
 ##
 proc bras.PatternRule {type target deps cmd} {
   global brasPrule argv0
@@ -166,6 +185,7 @@ proc bras.PatternRule {type target deps cmd} {
   }
 }
 ########################################################################
+if 0 {
 proc PatternNewer {target deps cmd} {
   bras.PatternRule Newer $target $deps $cmd
 }
@@ -175,6 +195,7 @@ proc PatternExist {target deps cmd} {
 }
 proc PatternAlways {target deps cmd} {
   bras.PatternRule Always $target $deps $cmd
+}
 }
 ########################################################################
 ##
@@ -260,6 +281,7 @@ proc bras.enterRule {type target deps cmd} {
   }
 }
 ########################################################################
+if 0 {
 proc Newer {target deps cmd} {
   bras.enterRule Newer $target $deps $cmd
 }
@@ -270,6 +292,7 @@ proc Exist {target deps cmd} {
 ########################################################################
 proc Always {target deps cmd} {
   bras.enterRule Always $target $deps $cmd
+}
 }
 ########################################################################
 proc bras.showCmds {cmds} {
@@ -299,7 +322,8 @@ construct files based on a rule-file
 proc bras.main {argc args} {
   global argv0 brasFile brasTargets brasRules brasPrule brasOpts
   global brasKnown brasBase
-
+  global brasIndent brasCmdlist
+  
   set brasOpts(-d) 0 
   set brasOpts(-n) 0
   set brasOpts(-r) 0
@@ -366,7 +390,14 @@ proc bras.main {argc args} {
   #parray brasRules
   #parray brasPrule
   foreach target $brasTargets {
-    set cmds [bras.buildCmds $target ""]
+    if 0 {
+      set cmds [bras.buildCmds $target ""]
+    } else {
+      set brasIndent ""
+      set brasCmdlist {}
+      bras.Consider $target
+      set cmds $brasCmdlist
+    }
     if $brasOpts(-d) continue
     #bras.showCmds $cmds
     if ![llength $cmds] {
