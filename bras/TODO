@@ -1,5 +1,11 @@
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-1999-06-03:
+2000-03-15:
+
+Write a bunch of small dedicated real world examples.
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-06-03: DONE
 
 Why prerequisites? If the reasoning process can be called explicitely
 anytime, instead of
@@ -33,7 +39,7 @@ o Parallel execution (like make's -j)
 
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-1999-01-01:
+1999-01-01: DONE, only (b) survived
 
 o Option to switch between the following modes:
   a) Collect *all* commands first, then start executing
@@ -75,7 +81,7 @@ o Allow the directories of @-dependencies to be mapped through one
 stage of indirection, so that @bla/ri/lu does not lead to bla/ri, but
 to $DIRMAP(bla/ri) or the like.
 
-
+--> Why? 
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 1999-01-01:
@@ -88,6 +94,7 @@ PatternCDepends {\.deps/.*\.d$} .cc {// .deps} {
 
 So that .deps will be added to the prereq list.
 
+--> Obsolete since 0.99.0
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
