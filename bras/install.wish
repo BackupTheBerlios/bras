@@ -124,7 +124,7 @@ proc Install {} {
 }
 ########################################################################
 
-set version [_exec sed -n -e {/^set  *brasVersion/s/[^-0-9]*//p} bras]
+set version [_exec sed -n -e {/^set  *VERSION/s/[^-0-9]*//p} bras]
 
 if [info exist env(HOME)] {
   set home $env(HOME)
