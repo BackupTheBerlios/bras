@@ -1,9 +1,10 @@
 \documentclass[12pt]{article}
+%\usepackage{bookman}
 \usepackage{a4}
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.7 $, $Date: 1997/05/01 14:54:27 $
+% $Revision: 1.8 $, $Date: 1997/07/26 09:52:26 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -28,11 +29,6 @@ kir@iitb.fhg.de}
 \tableofcontents
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section*{WARNING}
-Everthing said in this document about the variable \texttt{trigger}
-(called \texttt{newer} before) is probably a bit off.
-
-
 \section{Why That?}
 If you ever used \texttt{make}, you may have noticed that it has a few
 odd features. Most annoying to me are
@@ -181,7 +177,6 @@ if a file of that name exists. The file's modification date is irrelevant.
 The \texttt{Always}-rule considers the target to be never
 up-to-date, i.e.\ the rule's commands are always executed if
 \bras{} is asked to bring this target up-to-date.
-\item
 \end{itemize}
 
 Certainly someone can come up with an application requiring other
@@ -250,7 +245,7 @@ not be replaced by a default command.\footnote{Given that I flame
 the final solution. I am about to introduce an explicit do-nothing
 command}.
 
-The following sections describe the four types of rules in detail.
+The following sections describe the three types of rules in detail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The \texttt{Newer}-rule}
@@ -528,7 +523,7 @@ between parent- and child-make as to whether any target was build or
 whether all targets were up-to-date.
 
 \Bras{} allows a different solution. Whenever a dependency starts with
-\texttt{@} and does not belong to the current directory, \bras{] expects
+\texttt{@} and does not belong to the current directory, \bras{} expects
 a \texttt{brasfile} in the directory where the dependency belongs
 to. It uses the rules found there to reason about the dependency ---
 if considered as a target.  The following excerpt from a
@@ -567,13 +562,19 @@ Tcl-\texttt{proc} which \textbf{only records} the rule in an internal
 database. In particular, no commands specified in a rule are yet
 executed. 
 
-But rules are not totally passive in the first phase. If a dependency
-or prerequisite starts with \texttt{@}, \bras{} temporarily changes to the
-directory of the dependency and sources the \texttt{brasfile} it finds
-there. It reports an error, if there is no \texttt{brasfile} with the
-same name as the primary \texttt{brasfile}. Even several dependencies
-of different rules lead to the same directory, the \texttt{brasfile}
-is sourced only once.
+But rules are not always totally passive in the first phase. 
+If called with option \texttt{-es} (for \textbf{e}arly
+\textbf{s}ourcing, the following happens.
+If a dependency or prerequisite starts with \texttt{@}, \bras{}
+temporarily changes to the directory of the dependency and sources the
+\texttt{brasfile} it finds there. It reports an error, if there is no
+\texttt{brasfile} with the same name as the primary
+\texttt{brasfile}. Even several dependencies of different rules lead
+to the same directory, the \texttt{brasfile} is sourced only once.
+
+Option \texttt{-es} is only available for historic reasons. Without
+it, \bras{} reads \texttt{brasfile}s in other directories on demand
+during the reasoning process (section~\ref{secReasoning}).
 
 Beside rules, any Tcl-command can be used in a \texttt{brasfile}. They
 are executed as in every other Tcl-script. Useful examples are setting
@@ -582,6 +583,7 @@ system-specific rules.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning Process}
+\label{secReasoning}
 Either the targets given on the command line or the targets of the
 very first rule found in \texttt{brasfile} are considered in
 turn. Considering a target can have three different results. 
@@ -636,7 +638,7 @@ prerequisites, the reasoning process returns to its parent the result
 that the target needs an update, but that it cannot be build.
 
 \textbf{Hint:} The method of trying out one rule after another for a target allows it
-to specify fallback-rules. If a rule is knows to fail sometimes
+to specify fallback-rules. If a rule is known to fail sometimes
 because of missing files, a second rule can be specified which
 constructs the target from other dependencies.
 
@@ -768,18 +770,18 @@ The first paremeter of \texttt{Defrule} is the name of the
 rule. The name \texttt{Longer} was choosen in favor of \texttt{Shorter}
 to stick to the naming scheme introduced by \texttt{Exist} and
 \texttt{Newer}, where the rule-name denotes the condition under which
-the target is up-to-date./footnote{The \texttt{Always}-rule does not
+the target is up-to-date.\footnote{The \texttt{Always}-rule does not
 fit into this naming scheme, but the rule name \texttt{Never} looks
 quite irritating}.
 
 \texttt{Defrule} installs a Tcl-\texttt{proc} called
 \texttt{Check.Longer} which is called by the reasoning process to
-check whether a target is out of date according to this rule. I must
-always have 4 parameters. The name of these parameters are given in
+check whether a target is out of date according to this rule. It must
+always have 4 parameters. The names of these parameters are given in
 the 2nd argument to \texttt{Defrule}. Their meaning is described below.
 
 The 3rd argument is the body of \texttt{Check.Longer}. It uses the 4
-parematers to communicate with the resoning process.
+parameters to communicate with the resoning process.
 
 The four parameters have the following meaning:
 
