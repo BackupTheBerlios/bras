@@ -9,6 +9,7 @@ Harald Kirsch\\
 kir@iitb.fhg.de}
 
 \newcommand{\bras}{\texttt{bras}}
+\newcommand{\Bras}{\texttt{Bras}}
 \newcommand{\make}{\texttt{make}}
 \newcommand{\brasfile}{\texttt{brasfile}}
 
@@ -215,6 +216,21 @@ considered, independent of the existence of \textit{target} or the
 modification dates of \textit{dependencies}.  But \textbf{before}
 \textit{command} is executed, all
 \textit{dependencies} are brought up-to-date.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Multiple rules for a target}
+Internally, \bras{} allows for at most one rule for every
+target. However, a brasfile may contain more than one rule for a
+target given that
+\begin{itemize}
+\item they are all of the same type, e.g. all are \texttt{Newer}-rules,
+and 
+\item at most one of them has a non-empty command.
+\end{itemize}
+\Bras{} merges all rules for a target and the result is
+equivalent to having specified all dependencies of all the rules for
+the target in just one rule.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Pattern Rules}
