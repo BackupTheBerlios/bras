@@ -34,7 +34,10 @@ proc ::bras::oneLine {in} {
     append line $l
   }
   append line $l
+  set line [string trim $line "\n \t"]
   regsub -all "\\\\" $line { } line
+  regsub -all "\[\t \n\]+" $line { } line
+  set line [split $line " "]
   if {![llength $line] && $c==-1} {return -1}
   return $line
 }
@@ -64,9 +67,9 @@ proc ::bras::readDeps {in ignore _Deps} {
   
   while 1 {
     ## get next line, gobble continuations also
-    set line [bras.oneLine $in]
+    set line [oneLine $in]
     if { "$line"=="-1" } break
-    if ![llength $line] continue
+    if {"$line"==""} continue
 
     ## extract target
     regsub {:} $line { } line
@@ -74,6 +77,7 @@ proc ::bras::readDeps {in ignore _Deps} {
     if {![info exist Deps($target)]} {
       set Deps($target) {}
     }
+
     ## collect dependencies while filtering unwanted ones
     if $ex {
       foreach d [lrange $line 1 end] {
