@@ -124,17 +124,19 @@ proc ::bras::invokeCmd {rid Target nspace} {
 
     ## The following construct runs the command within its own
     ## namespace on stacklevel #0. Well, in fact it ends up on
-    ## stacklevel #1 because [namespace] accounts for on level of
+    ## stacklevel #1 because [namespace] accounts for one level of
     ## stack. 
-    namespace eval $nspace [list variable c $cmd]
-    uplevel \#0 namespace eval $nspace {{
-      if {[catch "unset c; $c" msg]} {
-	::bras::trimErrorInfo
-	append ::errorInfo \
-	    "\n    while making target `$target' in `[pwd]'---SNIP---"
-	return -code error -errorinfo $::errorInfo
-      }
-    }}
+    set script [list catch $cmd msg]
+    set script [list namespace eval $nspace $script]
+    set result [uplevel \#0 $script]
+    if {$result} {
+      #namespace eval $nspace {puts <<<$msg>>>}
+      cd $wearehere
+      ::bras::trimErrorInfo
+      append ::errorInfo \
+	  "\n    while making target `$Target' in `[pwd]'---SNIP---"
+      return -code error -errorinfo $::errorInfo
+    }
     cd $wearehere
   }
 
