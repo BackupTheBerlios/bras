@@ -4,18 +4,24 @@
 		     Rule Based Command Execution
 			       with Tcl
 
-I am pleased to announce version 1.1.0. 
+I am pleased to announce version 1.2.0. 
 
 What's new?
 
-1) The new predicate [updated {a b c ...}] should be used instead of
-[older] if the target is not a file name. It returns 1 (true), if any
-of a, b, c, ... are out of date. 
+1) The command for a rule can now be .relax. to indicate explictly
+that nothing need to be done to bring the rule's target
+up-to-date. Use of .relax. suppresses the message
+  # making target
+for said target.
 
-2) Fixed a bug regarding @-dependencies where the @ was still prefixed
-to the dependency when it was passed to the command of a rule.
+This is most conveniently used together with the predicate [updated]
+which was introduced in 1.1.0 to somehow mimic gnu make's .PHONY
+target. 
 
-3) Added example to demonstrate a setup for multi-platform builts.
+2) An example was added to demonstrate how [updated] and .relax. work
+together. 
+
+The docs were updated to reflect the additional features.
 
 
 WHERE CAN I GET IT?
@@ -53,4 +59,4 @@ Send comments and requests for enhancements to
 kirschh@lionbioscience.com .
  
 # CVS:
-# $Revision: 1.12 $, $Date: 2001/07/29 15:19:36 $
+# $Revision: 1.13 $, $Date: 2001/08/04 16:28:36 $
