@@ -1,4 +1,4 @@
-puts "msg: CDepend needs to remake xxx.D"
+puts "msg: DependsFile needs to remake xxx.D"
 puts "expect: Would create xxx.D"
 puts "expect: Would create xxx.o"
 puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
@@ -36,6 +36,6 @@ Newer xxx.o xxx.D {
   puts "Would create $target"
 }
 
-CDepend xxx.D xxx.c {
+DependsFile xxx.D xxx.c {
   puts "Would create $target"
 }

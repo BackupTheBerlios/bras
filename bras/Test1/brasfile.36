@@ -1,4 +1,4 @@
-puts "msg: CDepend, basic functionality test"
+puts "msg: DependsFile, basic functionality test"
 puts "expect: would make xxx.D now"
 puts "expect: xxx.c"
 puts "expect: xxx.D"
@@ -25,7 +25,7 @@ Newer xxx.o xxx.D {
   rm -f xxx.D xxx.o xxx.c pup.h bla.h
 }
 
-CDepend xxx.D xxx.c {
+DependsFile xxx.D xxx.c {
   puts "would make $target now"
   puts $trigger
 }

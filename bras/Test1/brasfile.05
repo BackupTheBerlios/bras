@@ -7,7 +7,7 @@ exec touch aaYyYaa
 
 ## This is the proc that is called to make a dependency from the
 ## target.
-proc DepYyY {target} {
+proc GenDepYyY {target} {
   regsub XxX $target YyY res
   return $res
 }

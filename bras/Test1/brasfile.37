@@ -1,7 +1,7 @@
-puts "msg: nothing to do for CDepend"
+puts "msg: nothing to do for DependsFile"
 puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
 
-## We create a situation were CDepend and the accompanying Newer have
+## We create a situation were DependsFile and the accompanying Newer have
 ## nothing to do. Watch the order in which files are created.
 
 
@@ -30,6 +30,6 @@ Newer xxx.o xxx.D {
   puts "Would create xxx.o"
 }
 
-CDepend xxx.D xxx.c {
+DependsFile xxx.D xxx.c {
   puts "This is wrong"
 }

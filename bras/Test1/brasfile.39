@@ -7,7 +7,7 @@ puts "expect: done"
 ## Pattern rules are set up to create the following build-chain:
 ## A* --> B* --> C*
 
-proc DepC {target} {
+proc GenDepC {target} {
   return C[string range $target 1 end]
 }
 PatternNewer B.* C {
@@ -15,7 +15,7 @@ PatternNewer B.* C {
 }
 
 
-proc DepB {target} {
+proc GenDepB {target} {
   return B[string range $target 1 end]
 }
 PatternNewer A.* B {
