@@ -23,8 +23,8 @@
 
 # How to compile a .c into a .o .
 
-getenv CC cc
-getenv CFLAGS {}
+#getenv CC cc
+#getenv CFLAGS {}
 
 ########################################################################
 #

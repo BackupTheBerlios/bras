@@ -25,11 +25,11 @@
 # How to run clig to create a command line parser.
 # You may obtain clig at http://wsd.iitb.fhg.de/~kir/clighome/
 #
-# Worth to note here is how a pattern rule looks the script of which
+# Worth to note here is how a pattern rule looks which
 # generates two files at the same time, namely a .c and a .h .
 
-getenv CC cc
-getenv CFLAGS {}
+#getenv CC cc
+#getenv CFLAGS {}
 
 PatternNewer {.*\.[ch]} .cli {
   set base [file rootname $target]

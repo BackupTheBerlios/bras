@@ -23,10 +23,10 @@
 
 # How to link an executable file
 
-getenv CC cc
-getenv CFLAGS {}
-getenv LDFLAGS {}
-getenv LDLIBS {}
+#getenv CC cc
+#getenv CFLAGS {}
+#getenv LDFLAGS {}
+#getenv LDLIBS {}
 
 ##
 ## How to make an executable from a .o-file

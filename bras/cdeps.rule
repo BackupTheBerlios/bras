@@ -31,9 +31,10 @@
 # Please specify in your brasfile the options which let your
 # C-compiler emit makefile-dependencies by setting DEPOPTS.
 #
-getenv DEPOPTS {-M -MG}		;# this for gcc
-getenv INCLUDES {}
-getenv CC cc
+
+#getenv DEPOPTS {-M -MG}		;# this for gcc
+#getenv INCLUDES {}
+#getenv CC cc
 
 ########################################################################
 PatternMake {.*\.dc} .c {[oldcache $target $d]} {
