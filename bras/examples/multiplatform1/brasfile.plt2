@@ -1,0 +1,38 @@
+########################################################################
+# The rules of this file are invoked by ../brasfile via
+# @plt2/main.exe. This is expanded via pattern rules in c2o.rule which
+# were included already in ../brasfile.
+#
+# (C) 2001 Harald Kirsch
+#
+# $Revision: 1.1 $, $Date: 2001/07/29 14:52:02 $
+########################################################################
+
+## Set up the built-environment, e.g. things like CC and CFLAGS.
+##
+## Note that these are global variables which can also be seen in the
+## brasfile the other platform, in particular in commands run on its
+## behalf. Consequently there should better be no cross-dependencies
+## between the platforms, e.g. a file in here should not depend on a
+## file in the other platorm.
+set PLATMSG "There is no business but show buzzyness."
+getenv CFLAGS "-g -W -Wall"
+lappend CFLAGS "-DPLATMSG=\"$PLATMSG\""
+
+## This makes sure that source files are found.
+searchpath {. ../src}
+
+## .exe is not covered by pattern rules in the distribution. Even the
+## following will probably not run on MS. I don't have MS software and
+## cannot test it, sorry.  
+##
+## The rule is invoked by ../brasfile via @plt2/main.exe .
+##
+PatternNewer {.*\.exe} .o {
+  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
+}
+
+
+Always clean {} {
+  eval file delete [glob -nocomplain *.exe *.o *.dc *~] shutupfiledelete
+}
