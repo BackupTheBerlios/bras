@@ -71,7 +71,7 @@ foreach f [concat pkgIndex.tcl [glob *.rule]] {
 #puts $LIBTARGETS
 ## Collect targets to got to DOCDIR
 foreach f {bras.tex bras.ps bras.pdf COPYING-2.0 \
-	       recu-make-cons-harm.ps.gz} {
+	       recu-make-cons-harm.ps.gz bras.1.html} {
   lappend DOCTARGETS [file join $DOCDIR $f 0644]
 }
 lappend DOCTARGETS [file join $DOCDIR examples 0755]
@@ -90,7 +90,7 @@ searchpath {. doc}
 ## bras and bras.1 by entering some paths. This supports installation
 ## schemes where building is performed with a different prefix than
 ## installation, like rpm and stow.
-Make all {[updated {bras.fixed bras.1.fixed}]} .relax.
+Make all {[updated {bras.fixed bras.1.fixed bras.1.html.fixed}]} .relax.
 
 ## Delegate work to every target to be installed by means of the
 ## pattern rule for installation loaded above from install.rule
@@ -149,7 +149,7 @@ Newer bras.1.html.fixed bras.1.html {
 }
 
 Always clean {} {
-  eval file delete -force bras.fixed bras.1.fixed
+  eval file delete -force [glob -nocomplain *.fixed] shutupfiledelete
 }
 ########################################################################
 proc forfile {varnames filename rexp {script {}} } {
