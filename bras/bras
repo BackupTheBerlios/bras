@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.31 $, $Date: 2000/03/05 12:37:26 $
+# $Revision: 1.32 $, $Date: 2000/03/14 20:44:28 $
 ########################################################################
 
 ##
@@ -63,7 +63,7 @@ construct files based on a rule-file
     target - target to be rebuilt (default: the target of the first
              rule in brasfile)
 
-This is version $VERSION of $VERDATE.
+This is version $::bras::VERSION.
 "
   exit 1
 }
@@ -97,7 +97,7 @@ proc ::bras::main {argc args} {
 	  lappend targets [lindex $args $i]
 	}
       }
-      -* bras.usage
+      -* ::bras::usage
       default {
 	if [string match *=* $opt] {
 	  lappend options(=) $opt
