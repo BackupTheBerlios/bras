@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 2000/05/28 11:19:32 $
+# $Revision: 1.5 $, $Date: 2000/06/28 19:27:59 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -179,10 +179,11 @@ proc cd {dir} {
 ########################################################################
 #
 # Depending on command line options, this replaces the normal
-# exec-command. 
+# exec-command. Don't be fooled into thinking that this proc is called 
+# within namespace ::bras. Option -ve renames it to ::exec.
 #
 proc ::bras::verboseExec args {
-  report -ve $args
+  ::bras::report -ve $args
   return [eval ::bras::exec_orig $args]
 }
 ########################################################################
