@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.11 $, $Date: 2000/12/30 16:34:39 $
+## version I am shipping from cvs. (kir) $Revision: 1.12 $, $Date: 2001/09/09 16:36:06 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -34,16 +34,16 @@ tclsh bras all prefix=/usr
 ## There is an install script which understands a prefix ala configure
 tclsh bras install prefix=$RPM_BUILD_ROOT/usr
 
-%post
+#%post
 ## Fix the path to the tclsh
 # Actually I would like to do the following, but is does not work due
 # to rpms database locking (stupid)
 # TCLSH=#\!`rpm -ql tcl|grep /tclsh$`
-TCLSH=#\!`which tclsh`
-p=/usr/bin
-cp $p/bras $p/bras.orig
-sed -e "1s,.*,$TCLSH,"  $p/bras.orig >$p/bras
-rm $p/bras.orig
+#TCLSH=#\!`which tclsh`
+#p=/usr/bin
+#cp $p/bras $p/bras.orig
+#sed -e "1s,.*,$TCLSH,"  $p/bras.orig >$p/bras
+#rm $p/bras.orig
 
 
 
