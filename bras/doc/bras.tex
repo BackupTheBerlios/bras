@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.35 $, $Date: 2002/01/09 21:20:09 $
+% $Revision: 1.36 $, $Date: 2002/01/17 17:23:47 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -74,7 +74,7 @@ breaking the chain of reasoning \cite{Mil97},
 \item the inability to distinguish between targets that merely need to
   exist, those that must be newer than their dependencies, and others
   which must be made for totally different reasons,
-\item the inability to call the reasoning process explicitely without
+\item the inability to call the reasoning process explicitly without
   forking a new \make, thereby breaking the chain of reasoning,
 \item the lack of control structures,
 \item the lack of decent pattern matching.
@@ -282,7 +282,7 @@ a look at the file \Indextt{predicates.tcl} which is part of \bras.
     $inDeps return 1
   }
 \end{listing}
-\end{center}%$ 
+\end{center}%$
  
 First of all, every predicate should be defined in the namespace
 \texttt{::bras::p}\index{namespace!::bras::p@\texttt{::bras::p}}. If
@@ -715,7 +715,7 @@ This has at least two drawbacks:
 \item The few lines above will become even more elaborate as soon as a
   source file may be either platform-specific or generic.
 \item Pattern rules are no longer used because all rules are
-  explicitely constructed.
+  explicitly constructed.
 \end{enumerate}
 
 To overcome these drawbacks, the command \Indextt{searchpath} was
@@ -782,7 +782,7 @@ which was written down or generated the other day will soon be out of
 date.
 
 \Bras{} allows to update the dependency list as necessary. An example
-how this can be done for the dependence of object files on C source
+how this can be done for the relation between object files and C source
 files can be found in the files \Indextt{c2o.rule} (\ref{sec:c2o}) and
 \Indextt{cdeps.rule} (\ref{sec:cdeps}). To use them, include them both into your
 \brasfile{} with
@@ -796,19 +796,19 @@ appendix~\ref{sec:predicates}. For other programming languages similar
 schemes can be implemented. (Send me your patches, please!)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Explicitely Calling the Reasoning Process}
+\section{Explicitly Calling the Reasoning Process}
 \index{consider@\texttt{consider}!explicitly calling}
 \label{secConsider}
 
 Normally the reasoning process is invoked automagically for the first
 target found in the \brasfile{} or for the targets mentioned on the
 command line. However, sometimes it might be necessary to call it
-explicitely, in particular within a rule's script. In a
+explicitly, in particular within a rule's script. In a
 \texttt{makefile} \make{} is \texttt{exec}ed recursively in such
 situations. The disadvantage of this approach is, that results of
 the reasoning which was already performed by the parent process are not
 available to the child process. Consequently the child starts all over
-again. \Bras{} allows to call the reasoning process explicitely
+again. \Bras{} allows to call the reasoning process explicitly
 without \texttt{exec}. Just call
 
 \begin{quote}
@@ -1076,7 +1076,7 @@ Currently available are the following files:
 \begin{center}
 \begin{tabular}{l|l}
 file name & function\\\hline
-\texttt{c2.rule} & compile C source into object file\\
+\texttt{c2o.rule} & compile C source into object file\\
 \texttt{cdeps.rule} & dependency maintenance for C source files\\
 \texttt{cli2ch.rule} & generate command line parser with
   \Indextt{clig}\cite{Kir00}\\
@@ -1592,7 +1592,7 @@ useful new predicate, send me the source.
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}\\
 \texttt{include [file join \$::bras::base c2o.rule]}
-\item[Description] Creates a dependence between a target with suffix
+\item[Description] Creates a relation between a target with suffix
   \texttt{.o} or \texttt{.obj} and a dependency with suffix
   \texttt{.c}. 
 \item[Target] \texttt{\{.*\char92.o(bj)?\}}
@@ -1613,8 +1613,7 @@ useful new predicate, send me the source.
 
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}
-\item[Description] Maintains a dependency cache in dependence of a
-  source file.
+\item[Description] Maintains a dependency cache for a source file.
 \item[Target] \texttt{\{.*\char92.dc\}}
 \item[Dependency] The dependency is derived from the target by
   replacing the target's suffix with \texttt{.c}.
@@ -1659,7 +1658,7 @@ to emit dependency information for \make.
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base
     install.rule]}
-\item[Description] The rule creates a dependence relation between a
+\item[Description] The rule creates a relation between a
   file to be installed somewhere in the system and a file in the local 
   directory or search path (see \ref{sec:searchpath}). If the local
   file is older than the target, it is copied over the target and the
@@ -1700,12 +1699,12 @@ to emit dependency information for \make.
 \indextt{o2x}
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base o2x.rule]}
-\item[Description] Maintains an executable in dependence of an object
+\item[Description] Maintains an executable in relation to an object
   file. Since an executable usually depends on several object files,
   this pattern rule is mainly of use to implicitly define a command to
-  link the files rather than deriving the dependeny relation
+  link the files rather than deriving the dependency relation
   automatically (see the discussion in section
-  ~\ref{secSuffixAsDefCmd}). The dependeny relation with all the
+  ~\ref{secSuffixAsDefCmd}). The dependency relation with all the
   object files must usually be described by other means.
 \item[Target] A name which does not contain a dot, i.e.\ 
   \texttt{\{[\char94.]*\}}
@@ -1765,12 +1764,12 @@ to emit dependency information for \make.
 \subsection{consider --- explicitly call the reasoning process}
 \indextt{::bras::consider}\indextt{consider}
 \begin{Describe}
-%\item[Name] \Flash{consider} --- explicitely call the reasoning
+%\item[Name] \Flash{consider} --- explicitly call the reasoning
 %  process 
 \item[Synopsis] \Tt{consider} \It{targets}
-\item[Description] The command calls the reasoning process explicitely
+\item[Description] The command calls the reasoning process explicitly
   for the given targets. In most cases, the reasoning process is
-  called explicitely for a given target by specifying it on the
+  called explicitly for a given target by specifying it on the
   \bras-commandline. All other invocations happen automatically by
   recursively considering dependencies of targets under consideration.
   However, just in case the need arises, here is the command to invoke
@@ -1986,7 +1985,7 @@ overridden by calling \bras{} like
   \end{center}
   The default implementation of \texttt{report} prints with
   \texttt{puts} and suppresses the trailing newline only, if parameter 
-  \texttt{newline} is explicitely set to $0$.
+  \texttt{newline} is explicitly set to $0$.
 \end{Describe}
 
 %%%%%
