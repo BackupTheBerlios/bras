@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.14 $, $Date: 1998/07/12 15:47:07 $
+% $Revision: 1.15 $, $Date: 1998/08/06 18:09:16 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -769,6 +769,11 @@ global variables are set from the command line.
 All definitions like \texttt{var=value} found on the command
 line are interpreted to make \texttt{var} a global variable with the
 given \texttt{value}.
+
+\textbf{Please note}, however, that the setting may still be
+overridden in a \texttt{brasfile} which is included on demand when
+\bras{} considers an \texttt{@}-target. But you should not have any
+\texttt{brasfile} which does such nasty things anyway.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning Process}

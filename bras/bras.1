@@ -27,13 +27,29 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-d] [-f brasfile] [-h] [-n] [-N] [-r] [-v] [-s] [-ss] [target ...]
+bras [-f brasfile] [-d] [-e] [-es] [-h] [-n] [-N] [-r] [-s] [-ss] [-v] [var=value] [--] [target ...]
 
 .SH OPTIONS
+.IP "-f brasfile"
+specifies the rule-file to use.
+Defaults are 
+.I brasfile
+and
+.I Brasfile
+in that order.
+
 .IP -d
 show reasoning, don't execute any commands. This option requests a
 detailed description of the reasoning performed by bras and is useful
 for debugging.
+
+.IP -e
+Normally, all variables from the environment are transfered into
+global variables within bras before any brasfiles are read. With 
+.IR -e
+you request that this happens after all brasfiles have read thereby
+allowing the environment to override any variable settings in the
+brasfiles. 
 
 .IP -es
 requests early sourcing. With this option, 
@@ -54,14 +70,6 @@ is started in a subdirectory, it may be helpful to give
 to trigger inclusion of the toplevel Brasfile. This of course only
 works if your Brasfiles contain the necessary logic.
 
-
-.IP "-f brasfile"
-specifies the rule-file to use.
-Defaults are 
-.I brasfile
-and
-.I Brasfile
-in that order.
 
 .IP -h
 show usage message and exit.
@@ -94,6 +102,16 @@ show all command lists (not only external commands). Usually only
 external commands are listed before they are executed. With
 .I -v
 the whole command list is listed before it is executed.
+
+.IP var=value
+Your last chance to set global variables within bras before it starts
+evaluating rules. These settings override all settings in environment
+variables or in any of the brasfiles already read before rule
+execution starts. 
+.BR HOWEVER ,
+brasfiles which are read on demand due to consideration of @-targets
+can still override those settings. But it is generally a bad idea
+anyway to set global variables in sub-brasfiles.
 
 .SH DESCRIPTION
 The utility 

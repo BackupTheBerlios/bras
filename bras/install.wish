@@ -1,6 +1,6 @@
 #!/bin/sh
 # tclsh and wish treat the following line as comment \
-exec wish $0
+exec wish $0 "$@"
 
 ##### find tclsh-executable
 set TCLSH ?
@@ -87,8 +87,7 @@ proc clink {dst args} {
 
   set pwd [pwd]
   foreach src $args {
-    cd [file dir $src]
-    set srcdir [pwd]
+    set srcdir [file dirname $src]
     cd $dst
     set srcname [file tail $src]
     if {[file exist $srcname]} {
@@ -104,7 +103,7 @@ proc clink {dst args} {
 }
 ########################################################################
 proc Install {} {
-  global TCLSH version
+  global TCLSH version env
 
   set today [clock format [clock seconds] -format %Y-%m-%d]
 
@@ -119,11 +118,27 @@ proc Install {} {
   mkdirP $man
   mkdirP $doc
 
+  ## Yes, we support rpm's RPM_BUILD_ROOT, however it must be
+  ## explicitely exported in the spec-file
+  foreach dir {lib doc exe man} {
+    if {[info exist env(RPM_BUILD_ROOT)]
+	&& 0==[string first $env(RPM_BUILD_ROOT) [set $dir]]} {
+      set l [string length $env(RPM_BUILD_ROOT)]
+      set clean($dir) [string range [set $dir] $l end]
+      if {![string match /* $clean($dir)]} {
+	set clean($dir) /$clean($dir)
+      }
+    } else {
+      set clean($dir) [set $dir]
+    }
+  }
+
+
   ## copy executable
   exec sed -e "1s,^.\*\$,#!$TCLSH," \
       -e "1,10s,VERSION.*,VERSION $version," \
       -e "1,10s,INSTALLED.*,INSTALLED $today," \
-      -e "s, |SRCBASE|, $lib," bras >$exe/bras
+      -e "s, |SRCBASE|, $clean(lib)," bras >$exe/bras
   exec chmod a+rx $exe/bras
 
   ## copy library files
@@ -134,16 +149,16 @@ proc Install {} {
   ## copy manual page
   exec sed \
       -e "s/|VERDATE|/$version/g" \
-      -e "s,|SRCBASE|,$lib,g" \
-      -e "s,|DOC|,$doc,g" \
+      -e "s,|SRCBASE|,$clean(lib),g" \
+      -e "s,|DOC|,$clean(doc),g" \
       bras.1 >$man/bras.1
 
   ## copy documentation and example
-  exec cp doc/bras.ps doc/bras.tex Brasfile $doc
+  exec cp README doc/bras.ps doc/bras.tex Brasfile $doc
 
   ## create convenience links
-  clink $lroot/bin $exe/bras
-  clink $lroot/man/man1 $man/bras.1
+  clink $lroot/bin $clean(exe)/bras
+  clink $lroot/man/man1 $clean(man)/bras.1
 
   puts "\nThank you for joining us"
   puts "\n\n                   (C) 1996 kir@iitb.fhg.de"
@@ -158,6 +173,22 @@ if [info exist env(HOME)] {
   set home $env(HOME)
 } else {
   set home .
+}
+
+## If command line arguments are available, these should be prefix and
+## lroot. They also trigger non-interactive use.
+if {[llength $argv]!=2 && [llength $argv]!=0} {
+  puts stderr "usage: $argv0 \[prefix lroot\]"
+  exit 1
+}
+if {[llength $argv]==2} {
+  set prefix [lindex $argv 0]
+  set lroot [lindex $argv 1]
+  set interactive 0
+} else {
+  set prefix $home/tools/bras-$version
+  set lroot $home/tools
+  set interactive 1
 }
 
 #####
@@ -188,13 +219,13 @@ pack .warn -side top -expand 1
 lentry .x "tclsh-executable" 30 apply
 .x.e insert 0 $TCLSH
 lentry .a "installation prefix" 30 apply
-.a.e insert 0 $home/tools/bras-$version
+.a.e insert 0 $prefix
 lentry .b "where to put the executable" 30 apply
 lentry .c "where to put files need by bras" 30 apply
 lentry .man "where to put the manual page" 30 apply
 lentry .d "where to put documentation" 30 apply
 lentry .e "link root" 30 apply
-.e.e insert 0 $home/tools
+.e.e insert 0 $lroot
 
 #####
 label .paths \
@@ -213,3 +244,7 @@ button .cancel -text "Cancel" -command exit
 pack .install .cancel -side left -expand 1
 pack .buttons -fill x
 
+if {!$interactive} {
+  .install invoke
+  exit 0
+}
