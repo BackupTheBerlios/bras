@@ -144,14 +144,14 @@ proc bras.evalRule {target dind} {
   ##
   set targetExist 0
   set always 0
-  if { "$brasRules($target,[pwd])"=="a" } {
+  if { "$brasRules($target,[pwd])"=="Always" } {
     ## For an Always-rule, the reason is obvious
     append reason "\n    must always build"
     set always 1
 
   } elseif {[file exists $target]} {
     ## don't mess with this rule any further if it is an Exist-Rule
-    if { "$brasRules($target,[pwd])"=="e" } {
+    if { "$brasRules($target,[pwd])"=="Exist" } {
       return {}
     }
     set targetExist 1
@@ -268,7 +268,7 @@ proc bras.lastMinuteRule {target dind} {
     ## Ok, enter the new rule
     $brasPrule($i,type) $target $depfile $brasPrule($i,cmd)
     if $brasOpts(-d) {
-      set msg "creating Newer-rule from "
+      set msg "creating $brasPrule($i,type)-rule from pattern "
       append msg "($brasPrule($i,dep) -> $brasPrule($i,target))"
       bras.dmsg $dind $msg
     }

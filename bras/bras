@@ -1,7 +1,7 @@
 #!/usr/local/bin/tclsh
 set brasBase |SRCBASE|
-set VERSION 0.1.1
-set VERDATE 1997-03-19
+set VERSION 0.2.0
+set VERDATE 1997-03-28
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
@@ -46,7 +46,7 @@ set brasVerdate $VERDATE
 ##
 ## brasRules 
 ##   array holding explicit rules. The indices are used as follows:
-##   <target>,<dir> -- "e" or "n" to indicate type of rule
+##   <target>,<dir> -- Exist, Always or Newer to indicate type of rule
 ##   <target>,<dir>,cmd -- command to execute
 ##                         if {}, default command may be substituted
 ##                         if { }, no default will be substituted
@@ -196,9 +196,12 @@ proc bras.enterRule {type target deps cmd} {
   ## except, if the old rule is of the same type and only one, the
   ## old one or this one, has a non-empty command
   if [info exists brasRules($target,[pwd])] {
-    if { "$brasRules($target,[pwd])"=="$type"
-	 || ([llength $brasRules($target,[pwd],cmd)]
-	     && [llength $cmd]) } {
+    if { "$brasRules($target,[pwd])"!="$type" } {
+      set err "target `$target' has already rule of type "
+      append err "$brasRules($target,[pwd])"
+      return -code error -errorinfo $err
+    }
+    if { ""!="$brasRules($target,[pwd],cmd)" && ""!="$cmd" } {
       set err "target `$target' has already command\n"
       append err ">>>>>$brasRules($target,[pwd],cmd)<<<<<"
       return -code error -errorinfo $err
@@ -206,7 +209,7 @@ proc bras.enterRule {type target deps cmd} {
     ## add new deps and enter cmd if necessary
     set brasRules($target,[pwd],deps) \
 	[concat $brasRules($target,[pwd],deps) $deps]
-    if [llength $cmd] {
+    if { ""!="$cmd" } {
       set brasRules($target,[pwd],cmd) $cmd
     }
   } else {
@@ -225,7 +228,7 @@ proc bras.enterRule {type target deps cmd} {
 
 
   ## source rule-files for dependencies, if necessary. This is
-  ## necessary only or dependencies starting with `@'. Most of the
+  ## necessary only for dependencies starting with `@'. Most of the
   ## code below is error-checking.
   foreach x $deps {
     if ![string match @* $x] continue
@@ -239,7 +242,7 @@ proc bras.enterRule {type target deps cmd} {
       return -code error -errorinfo $err
     }
 
-    ## source only, if we do not yet this directories brasfile
+    ## source only, if we have not seen this directory's brasfile before
     if { [info exist brasKnown([pwd])] } {
       cd $pwd
       continue
@@ -255,19 +258,18 @@ proc bras.enterRule {type target deps cmd} {
     bras.gobble ${brasFile}
     cd $pwd
   }
-
 }
 ########################################################################
 proc Newer {target deps cmd} {
-  bras.enterRule n $target $deps $cmd
+  bras.enterRule Newer $target $deps $cmd
 }
 ########################################################################
 proc Exist {target deps cmd} {
-  bras.enterRule e $target $deps $cmd
+  bras.enterRule Exist $target $deps $cmd
 }
 ########################################################################
 proc Always {target deps cmd} {
-  bras.enterRule a $target $deps $cmd
+  bras.enterRule Always $target $deps $cmd
 }
 ########################################################################
 proc bras.showCmds {cmds} {

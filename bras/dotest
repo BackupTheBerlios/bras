@@ -1,0 +1,42 @@
+#!/bin/sh
+#\
+exec tclsh "$0" "$@"
+########################################################################
+## 
+## Run prefabricated tests on bras.
+## This is done by running bras on the files Test1/brasfile.??. These
+## files return a message which describes the test, the result to be
+## expected and finally the result. Expected result and actual result
+## are compared.
+##
+cd Test1
+foreach test [lsort [glob brasfile.\[0-9\]\[0-9\]]] {
+  puts -nonewline "[string trim $test brasfile.]: "
+  catch "exec ../bras -f $test" output
+  set expect {}
+  set result {}
+  foreach line [split $output "\n"] {
+    switch -glob -- $line {
+      msg:* {
+	puts -nonewline [string range $line 5 end]
+      }
+      expect:* {
+	append expect "[string range $line 8 end]\n"
+      }
+      default {
+	append result "$line\n"
+      }
+    }
+  }
+  if { [string match "$expect*" $result] } {
+    puts "    ...ok"
+  } else {
+    puts "    *** FAILED ***"
+    puts "-----------------------------------------------------"
+    puts "expected:"
+    puts $expect
+    puts "got:"
+    puts $result
+    puts "-----------------------------------------------------"
+  }
+}
