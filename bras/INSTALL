@@ -6,9 +6,10 @@ with namespace support, i.e. >= 8.0 .
 
 INSTALLATION
 
-Run the command
+Run the commands (*)
 
   tclsh bras prefix=/directory/where/to/install
+  tclsh bras install prefix=/directory/where/to/install
 
 to install bras. This will install bras' files in the following
 directories: 
@@ -26,4 +27,9 @@ directories.
                                         Harald Kirsch
 
 
-P.S.: The script `dotest' is currently broken. Don't try it out.
+
+------
+(*) You may as well just run the 2nd command. The two of them are
+necessary if the prefix must be different for the two commands, like
+when building a package or using stow (see
+http://www.gnu.org/software/stow/stow.html) 
