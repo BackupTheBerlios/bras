@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.19 $, $Date: 2000/03/15 21:34:08 $
+# $Revision: 1.20 $, $Date: 2000/03/22 12:23:02 $
 #
 ########################################################################
 source .version
@@ -85,11 +85,16 @@ Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
 ## pkgIndex.tcl
 ##
 proc findPkgFiles {} {
-  return [eval exec grep -l {{namespace export}} [glob *.tcl]]
+  set a [glob *.tcl]
+  set p [lsearch -exact $a pkgIndex.tcl]
+  if {$p!=-1} {
+    set a [lreplace $a $p $p]
+  }
+  return $a
 }
 
 ## a shortcut for pkgIndex.tcl
-Always pkgIndex pkgIndex.tcl { 
+Always pkgIndex pkgIndex.tcl {
 }
 
 ## Note that findPkgFiles is only called if pkgIndex.tcl must be
