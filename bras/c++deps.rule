@@ -33,23 +33,23 @@
 #
 ########################################################################
 PatternMake {.*[.]dc} .C {[oldcache $target $d]} {
-  ::bras::ruleHelper::updCache_C \
+  ::bras::updateCacheC \
       $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
 }
 PatternMake {.*[.]dc} .cc {[oldcache $target $d]} {
-  ::bras::ruleHelper::updCache_C \
+  ::bras::updateCacheC \
       $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
 }
 PatternMake {.*[.]dc} .cxx {[oldcache $target $d]} {
-  ::bras::ruleHelper::updCache_C \
+  ::bras::updateCacheC \
       $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
 }
 PatternMake {.*[.]dc} .cpp {[oldcache $target $d]} {
-  ::bras::ruleHelper::updCache_C \
+  ::bras::updateCacheC \
       $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
 }
 PatternMake {.*[.]dc} .c++ {[oldcache $target $d]} {
-  ::bras::ruleHelper::updCache_C \
+  ::bras::updateCacheC \
       $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
 }
 ########################################################################
