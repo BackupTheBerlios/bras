@@ -141,7 +141,7 @@ proc Install {} {
   exec chmod a+rx $exe/bras
 
   ## copy library files
-  eval exec cp [glob *.tcl] $lib
+  eval exec cp [glob *.tcl] .version $lib
   #set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
   set ruleFiles [glob -nocomplain *.rule]
   eval exec cp $ruleFiles $lib
@@ -155,7 +155,8 @@ proc Install {} {
   exec chmod 0644 $man/bras.1
   
   ## copy documentation and example
-  exec cp ANNOUNCE README doc/bras.ps doc/bras.tex Brasfile $doc
+  exec cp ANNOUNCE README doc/bras.ps doc/bras.pdf \
+      doc/bras.tex Brasfile $doc
 
   ## create convenience links
   clink $lroot/bin $clean(exe)/bras
