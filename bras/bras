@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.32 $, $Date: 2000/03/14 20:44:28 $
+# $Revision: 1.33 $, $Date: 2000/05/27 15:18:45 $
 ########################################################################
 
 ##
@@ -99,7 +99,7 @@ proc ::bras::main {argc args} {
       }
       -* ::bras::usage
       default {
-	if [string match *=* $opt] {
+	if {[string match *=* $opt]} {
 	  lappend options(=) $opt
 	} else {
 	  lappend targets $opt
@@ -146,7 +146,13 @@ proc ::bras::main {argc args} {
       puts stderr "bras: no target given"
       exit 1
     }
-    set targets $::bras::Targets
+    foreach {startdir targets} $::bras::Targets break
+  }
+
+  ## We (may) have to change to another directory before we start
+  if {[info exist startdir]} {cd $startdir}
+  if {!$::bras::Opts(-s) && !$::bras::Opts(-d)} {
+    puts "cd [pwd]"
   }
 
   if {[catch {::bras::consider $targets} msg]} {

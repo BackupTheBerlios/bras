@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 2000/03/08 22:32:48 $
+# $Revision: 1.3 $, $Date: 2000/05/27 15:18:45 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -227,9 +227,9 @@ proc ::bras::followTarget {target} {
   set dir [file dir [string range $target 1 end]]
 
   ## carefully change directory
-  if [catch "cd $dir" msg] {
-    set err "bras: dependency `$target' in `"
-    append err [file join $oldpwd $brasfile]
+  if {[catch "cd $dir" msg]} {
+    set err "bras: target `$target' in `"
+    append err "[pwd]"
     append err "' leads to non-existing directory `$dir'"
     puts stderr $err
     exit 1
@@ -326,10 +326,10 @@ proc ::bras::enterRule {targets gdep bexp {cmd {}} } {
   ## specified on the command line, this is the default target-list.
   ## It suffices to put just the first element into Targets,
   ## because all of them are made by the command of this rule.
-  ## We make it an @-target so that the brasfile may contain `cd here'
-  ## and `cd there' without messing things up.
+  ## We also record the current directory, because the brasfile may
+  ## contain cd-commands.
   if {![info exist Targets]} {
-    set Targets [file join @[pwd] [lindex $targets 0]]
+    set Targets [list [pwd] [lindex $targets 0]]
   }
 
   ## Although more than one `Make'-command for a target is allowed in
