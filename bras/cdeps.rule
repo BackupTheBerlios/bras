@@ -48,12 +48,14 @@ Defdexpand cdeps {.*\.c} target dep {
     *.o {
       ## use the cache after making sure it is up-to-date
       consider $dc
-      return [exec cat $dc]
+      set in [open $dc r]; set r [read $in]; close $in
+      return $r
     }
     *.dc {
       ## set the cache up
       if {![file exist $target]} {return $dep}
-      return [exec cat $dc]
+      set in [open $dc r]; set r [read $in]; close $in
+      return $r
     }
   }
   return $dep
