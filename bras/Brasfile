@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.26 $, $Date: 2001/10/21 17:28:10 $
+# $Revision: 1.27 $, $Date: 2001/12/30 09:39:22 $
 #
 ########################################################################
 if {$::bras::base!="."} {
@@ -22,7 +22,7 @@ if {$::bras::base!="."} {
 getenv PUBDIR [file join wsd.iitb.fhg.de:.public_html brashome]
 
 ## Where will the .tar.gz go
-getenv TGZDIR [file join [glob ~] rpm SOURCES]
+getenv TGZDIR . ;#[file join [glob ~] rpm SOURCES]
 set TGZ [file join $TGZDIR bras-$::bras::VERSION.tar.gz]
 
 ## Similarly for the binary rpm
@@ -36,9 +36,7 @@ set RPM [file join $RPMDIR bras-$::bras::VERSION-0.noarch.rpm]
 ########################################################################
 
 ## Target tgz is nothing but a shortcut to make $TGZ
-Make tgz {[true $TGZ]} {
-  puts "made $deps"
-}
+Make tgz {[updated $TGZ]} .relax.
 
 ## Target $TGZ is made if it is older than any file known to cvs or
 ## one of the other files mentioned below.
@@ -46,9 +44,11 @@ Make $TGZ {
   [older $target [concat [cvsknown] \
 		      @doc/bras.ps @doc/bras.pdf pkgIndex.tcl]]
 } {
+  ## pkgIndex.tcl is also mentioned with -e to have the VERDATE edited
+  ## in
   ship -F -d $TGZDIR -I doc/bras.ps doc/bras.pdf pkgIndex.tcl \
-      -e bras.spec pkgIndex.tcl \
-      -ver pkgIndex.tcl
+      -ver pkgIndex.tcl \
+      -e bras.spec pkgIndex.tcl
 }
 
 
@@ -64,35 +64,27 @@ Newer $RPM $TGZ {
   rpm -tb --quiet --target noarch $TGZ
 }
 
-## This target copies index.html to a target directory after sed'ing it
-Always publish-index {} {
-  sed -e "s/|BRASTARGZ|/[file tail $TGZ]/g" \
-      -e "s/|BRASRPM|/[file tail $RPM]/g" index.html >index.tmp
-  scp index.tmp [file join $PUBDIR index.html] 2>@stderr
-  scp dir.ttml $PUBDIR 2>@stderr
+## index.html needs some adjustments before going out
+Newer index.html.out {index.html pkgIndex.tcl} {
+  sed -e "s/|VERSION|/$::bras::VERSION/g" <index.html >$target
+}
+Newer CHANGES $TGZ {
+  tar xzfO $TGZ bras-$::bras::VERSION/CHANGES >CHANGES  
 }
 
-Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
-  scp Brasfile [file join $PUBDIR brasfile.exa] 2>@stderr
-  scp doc/bras.ps.gz doc/bras.pdf $PUBDIR 2>@stderr
-  tar xzfO $TGZ bras-$::bras::VERSION/CHANGES >CHANGES
-  scp $TGZ $RPM CHANGES $PUBDIR 2>@stderr
-  rm CHANGES
-}  
+## Rules for publishing
+Make publish {[updated {publish-www publish-tgz}]} .relax.
 
-
-##
-## Pattern Rules
-##
-
-## A simple pattern rule to gzip files. The procedure
-## ::bras::gendep::.withoutgz describes how to derive a dependency from
-## the given target.
-proc ::bras::gendep::.withoutgz {target} {
-  return [file root $target]
+Make publish-www {[updated {publish-CHANGES publish-index}]} .relax.
+Make publish-CHANGES {[updated CHANGES]} {
+ scp CHANGES \
+     pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/
 }
-PatternMake .*\.gz .withoutgz {[older $target $d]} {
-  ## We use redirection because gzip otherwise removes the dependency
-  gzip <$d >$target
+Make publish-index {[updated index.html.out]} {
+ scp index.html.out \
+     pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/index.html
 }
 
+Make publish-tgz {[updated $TGZ]} {
+  ncftpput ftp.berlios.de /incoming $TGZ
+}

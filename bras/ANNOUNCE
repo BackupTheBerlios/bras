@@ -2,30 +2,35 @@
 			      ANNOUNCING
 			     --- bras ---
 		     Rule Based Command Execution
-			       with Tcl
 
-I am pleased to announce version 1.4.0. 
+I am pleased to announce version 2.0.
 
 WHAT'S NEW?
 
-To make it easier to use bras, the driver script no longer relies on
-the package to be installed. That means you just copy one file around
-to get a runnable bras. This allows you to use bras in your projects
-without relying on it to be installed on every machine you move
-to. Just copy that 64k script along with your project. All that is
-needed on a target machine is a Tcl of at least version 8.0.
+Every brasfile managing the built-targets of a directory now operates
+in its own namespace. This should make it even more easy to use bras
+for projects distributed over a large directory tree.
 
-Of course bras, the package, can still be used as before.
+INCOMPATIBILITY NOTE:
+
+The feature described above is an incompatible change over previous
+versions. If, in a multi-directory project, one brasfile
+refers to a global variable set in another directory's
+brasfile, you will have to adapt that. Read the section about
+[linkvar] and [dirns] to find out how.
+
+
+STABILITY:
+
+The new namespace encapsulation is not yet very well tested. I am not
+yet sure if it really helps on multi-directory projects or if it
+rather is in the way. Let me know.
 
 
 WHERE CAN I GET IT?
 
 The distribution  can be found at
-   http://wsd.iitb.fhg.de/~kir/brashome/
-
-From there you can download the distribution, read the docs online or
-download the documentation (in PostScript). A list of changes to
-previous versions is also available.
+   http://bras.berlios.de/
 
 
 WHAT IS IT ANYWAY?
@@ -53,4 +58,4 @@ Send comments and requests for enhancements to
 kirschh@lionbioscience.com .
  
 # CVS:
-# $Revision: 1.15 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.16 $, $Date: 2001/12/30 09:39:22 $
