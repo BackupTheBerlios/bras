@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.11 $, $Date: 1999/02/21 21:46:29 $
+# $Revision: 1.12 $, $Date: 1999/06/03 18:01:02 $
 ########################################################################
 
 ########################################################################
@@ -34,8 +34,29 @@ proc bras.dmsg {dind msg} {
   puts "\#$dind$msg"
 }
 ########################################################################
+proc bras.findIndirectDeps {target dep} {
+  global brasIdeps
+
+  if {![info exist brasIdeps] || [string match @* $dep]} {
+    return $dep
+  }
+
+  foreach rexp $brasIdeps(list) {
+    if {![regexp $rexp $dep]} continue
+    if {[catch "$brasIdeps($rexp) $target $dep" msg]} {
+      global errorInfo
+      regsub {\"catch .*} $errorInfo {} errorInfo
+      puts stderr $errorInfo
+      exit 1
+    } else {
+      return $msg
+    }
+  }
+  return $dep
+}
+########################################################################
 ## Make the list of dependencies without leading @
-proc bras.pureDeps {deps} {
+proc bras.pureDeps--not-used {deps} {
   set pureDeps {}
   foreach dep $deps {
     if {[string match @* $dep]} {
@@ -57,30 +78,27 @@ proc bras.ConsiderPreqs {rid} {
   global brasIndent brasRule brasOpts
 
   ## If this was already checked before, return immediately
-  if {$brasRule($rid,run)!=0} {
-    return $brasRule($rid,run)
-  }
+  ####---- no longer used, instead $target,[pwd],done is set for
+  ####multiple-target rules
+#   if {$brasRule($rid,run)!=0} {
+#     return $brasRule($rid,run)
+#   }
 
+  set preqs $brasRule($rid,preq)
+  ## If there are no preqs, return immediately
+  if {"$preqs"==""} {
+    return 1
+  }
+  
   set t $brasRule($rid,targ)
   if {$brasOpts(-d)} {
-    bras.dmsg $brasIndent "considering prerequisites for `$t'"
+    bras.dmsg $brasIndent "considering prerequisite(s) `$preqs' for `$t'"
   }
 
-  append brasIndent "  "
-  set preqNew {}
-  foreach preq $brasRule($rid,preq) {
-    #shit ## BrasSearchPath is no good for prerequisites, therefore
-    #shit ## bras.ConsiderKernel instead of bras.Consider is used.
-    set r [bras.Consider preq]
-    lappend preqNew $preq
-    if {$r==-1} {
-      ## move out of here
-      set brasIndent [string range $brasIndent 2 end]
-      return -1
-    }
+  foreach preq $preqs {
+    set r [bras.Consider $preq]
+    if {$r==-1} {return -1}
   }
-  set brasRule($rid,preq) $preqNew
-  set brasIndent "[string range $brasIndent 2 end]"
   return 1
 }
 ########################################################################
@@ -140,6 +158,76 @@ proc BrasExpandTarget {target} {
 }
 ########################################################################
 #
+# If a non-empty string is returned, it is an expanded dependency
+# about which something is know, i.e. it either already exists as a
+# file or there is an explicit rule describing how to make it. 
+#
+proc BrasSearchDependency {dep} {
+  global brasSearchPath brasSearched brasTinfo
+
+  ## Don't search for targets which are the result of a search already.
+  if {[info exist brasSearched([pwd],$dep)]} {
+    return $dep
+  }
+
+  ## Don't expand @-names
+  if {[string match @* $dep]} {
+    return $dep
+  }
+
+  ## Don't expand non-relative paths
+  set ptype [file pathtype $dep]
+  if {"$ptype"!="relative"} {
+    if {[file exist $dep] || [info exist  brasTinfo($dep,[pwd],rule)]} {
+      set brasSearched([pwd],$dep) 1
+      return $dep
+    } else {
+      return {}
+    }
+  }
+
+  ## If there is no searchpath, assume .
+  if {[info exist brasSearchPath([pwd])]} { 
+    set path $brasSearchPath([pwd])
+  } else {
+    set path [list {}]
+  }
+
+  ## Try to find the dep as a file along the searchpath
+  foreach x $path {
+    if {"$x"=="."} {set x {}}
+    set t [file join $x $dep]
+    if {[file exist $t]} {
+      set brasSearched([pwd],$dep) 1
+      return $t
+    }
+  }
+
+  ## Try to find an explicit rule for the dependency along the
+  ## searchpath 
+  foreach x $path {
+    if {"$x"=="."} {set x {}}
+    set t [file join $x $dep]
+    ## Now it may be an @-target
+    if {[string match @* $t]} {
+      set keepPWD [bras.followTarget $t]
+      set tail [file tail $t]
+      set found [info exist brasTinfo($tail,[pwd],rule)]
+      cd $keepPWD
+    } else {
+      set found [info exist brasTinfo($t,[pwd],rule)]
+    }
+    if {$found} {
+      set brasSearched([pwd],$dep) 1
+      return $t
+    }
+  }
+
+  #puts "BrasExpandTarget returns $res"
+  return {}
+}
+########################################################################
+#
 # Check whether the target needs to be rebuilt.
 #
 # This is merely a wrapper around bras.ConsiderKernel which applies
@@ -153,7 +241,7 @@ proc BrasExpandTarget {target} {
 ## The parameter target might be changed according to succes in
 ## searching BrasSearchPath.
 ##
-proc bras.Consider {_target} {
+proc bras.Consider-NOT-USED {_target} {
   upvar $_target target
   global brasIndent brasOpts brasSearched
 
@@ -209,6 +297,18 @@ proc bras.leaveDir {newDir} {
 }
 ########################################################################
 ##
+## This terminates bras.Consider after cleaning up a bit.
+##
+proc bras.returnFromConsider {target keepPWD res} {
+  global brasTinfo brasConsidering
+
+  set brasTinfo($target,[pwd],done) $res
+  unset brasConsidering($target,[pwd])
+  bras.leaveDir $keepPWD
+  return -code return $res
+}
+########################################################################
+##
 ## Check whether the target needs to be rebuilt.
 ##
 ## RETURN
@@ -238,19 +338,19 @@ proc bras.leaveDir {newDir} {
 ##      Finally 1 is returned.
 ##
 ##
-proc bras.ConsiderKernel {target} {
+proc bras.Consider {target} {
   global brasRule brasTinfo argv0 brasOpts brasConsidering
   global brasIndent brasLastError
 
-  ## change dir, if target starts with `@'
+  ## change dir, if target starts with `@'. Save current dir in
+  ## keepPWD.
+  set keepPWD .
   if {[string match @* $target]} {
     set keepPWD [bras.followTarget $target]
     set target [file tail $target]
     if {"$keepPWD"=="[pwd]"} {
       set keepPWD .
     }
-  } else {
-    set keepPWD .
   }
 
   if {!$brasOpts(-s) && "$keepPWD"!="."} {
@@ -261,7 +361,7 @@ proc bras.ConsiderKernel {target} {
   ## check, if this target was handled already along another line of
   ## reasoning 
   if [info exist brasTinfo($target,[pwd],done)] {
-    if $brasOpts(-d) {
+    if {$brasOpts(-d)} {
       bras.dmsg $brasIndent "have seen `$target' in `[pwd]' already"
     }
     set pwd [pwd]
@@ -275,13 +375,18 @@ proc bras.ConsiderKernel {target} {
 	"$argv0: dependency loop detected for `$target' in `[pwd]'"
     exit 1
   }
+
+  ## Mark the target as being under consideration to prevent
+  ## dependency loops.
   set brasConsidering($target,[pwd]) 1
 
-#   ## describe line of reasoning
-#   if $brasOpts(-d) {
-#     bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
-#   }
 
+  ## describe line of reasoning
+  if $brasOpts(-d) {
+    bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
+  }
+  ## Prepare for further messages
+  append brasIndent "  "
 
   ## handle targets without rule
   if { ![info exist brasTinfo($target,[pwd],rule)] } {
@@ -289,14 +394,14 @@ proc bras.ConsiderKernel {target} {
 
     ## Check if there is still no rule available
     if {![info exist brasTinfo($target,[pwd],rule)] } {
-      if [file exist $target] {
+      set brasIndent [string range $brasIndent 2 end]
+      if {[file exist $target]} {
 	## The target exists as a file, this is ok.
 	if $brasOpts(-d) {
 	  bras.dmsg $brasIndent \
 	      "`$target' is ok, file exists and has no rule"
 	}
-	set brasTinfo($target,[pwd],done) 0
-	set res 0
+	bras.returnFromConsider $target $keepPWD 0
       } else {
 	## The file does not exist, so we decide it must be remade, but
 	## we don't know how.
@@ -306,49 +411,57 @@ proc bras.ConsiderKernel {target} {
 	}
 	append brasLastError \
 	    "\ndon't know how to make `$target' in `[pwd]'"
-	set brasTinfo($target,[pwd],done) -1
-	set res -1
+	
+	bras.returnFromConsider $target $keepPWD -1
       }
-      unset brasConsidering($target,[pwd])
-      bras.leaveDir $keepPWD
-      return $res
+      puts stderr "BANG: This should not happen!"
     }
+  }
+
+  ##
+  ## Find the target's rule and consider recursively all dependencies
+  ##
+  set rid $brasTinfo($target,[pwd],rule) 
+  set deps $brasRule($rid,deps)
+  set allDeps {}
+  foreach d $deps {
+    if {"[set t [BrasSearchDependency $d]]"!=""} {
+      set d $t
+    }
+    set allDeps \
+	[concat $allDeps [bras.findIndirectDeps $target $d]]
+  }
+
+  if {$brasOpts(-d)} {
+    bras.dmsg $brasIndent "full dependency list of `$target' is: $allDeps"
+  }
+
+  set depInfo {}
+  foreach d $allDeps {
+    set r [bras.Consider $d]
+    if {$r<0} {
+      bras.returnFromConsider $target $keepPWD -1
+    }
+    if {[string match @* $d]} {
+      set d [string range $d 1 end]
+    }
+    lappend depInfo $d $r
   }
 
   ##
   ## Call the target's rule
   ##
-  append brasIndent "  "
-  set rid $brasTinfo($target,[pwd],rule) 
   set rule $brasRule($rid,type)
-  set deps $brasRule($rid,deps)
-  set newer {}
-  # set brasCmdlist {}
-  set reason ""
-  #puts ">>$P<<, >>$deps<<"
-  set res [Check.$rule $target reason deps newer]	;###<<<- HERE
+  set res [Check.$rule $rid $target reason $depInfo]
 
-  if {$res==1} {
-    ## target must be made, but we have to check, if all prerequisites
-    ## are ok.
-    set res [bras.ConsiderPreqs $rid]
-    if {$res==1} {
-      set brasLastError ""
-    }
-  }
   set brasIndent [string range $brasIndent 2 end]
 
-  ## If target is ok, return (almost) immediately
+  ## If target was up-to-date already, return (almost) immediately
   if {$res==0} {
     if { $brasOpts(-d) } {
       bras.dmsg $brasIndent "`$target' in `[pwd]' is up-to-date"
     }
-    set brasTinfo($target,[pwd],done) $res
-
-    ## cleanup and return
-    unset brasConsidering($target,[pwd])
-    bras.leaveDir $keepPWD
-    return $res
+    bras.returnFromConsider $target $keepPWD 0
   }
 
   ## If target cannot be made, return (almost) immediately
@@ -358,104 +471,30 @@ proc bras.ConsiderKernel {target} {
       set msg "should make `$target' in `[pwd]', but can't"
       bras.dmsg $brasIndent $msg
     }
-    set brasTinfo($target,[pwd],done) $res
-
-    ## cleanup and return
-    unset brasConsidering($target,[pwd])
-    bras.leaveDir $keepPWD
-    return $res
+    bras.returnFromConsider $target $keepPWD -1
   }
 
-  #####
-  ##### Target must be made
-  #####
-
-  ## copy local command-list to the command list of the (indirectly)
-  ## calling consider-proc. This requires searching up the stack for
-  ## the variable brasCmdlist.
-#   for {set l [expr [info level]-1]} {$l>=0} {incr l -1} {
-#     upvar #$l brasCmdlist cmdlist
-#     if {[info exist cmdlist]} break
-#   }
-#   if {$l<0} {
-#     puts "BANG BANG BANG! This cannot happen. Must die."
-#     exit 1
-#   }
-#   eval lappend cmdlist $brasCmdlist
-  
-  ## If this command was already executed, not much more has to be done
-  if {1==$brasRule($rid,run)} {
-    append reason "\nbut command was already executed previously"
-    set cmdlist { }
-  } else {
-    ## Get the command for the target. If none exists, try to make one
-    ## up.
-    set pureDeps [bras.pureDeps $deps]
-    if {""=="$brasRule($rid,cmd)"} {
-      set _reason {}
-      set patrigs {}
-      set cmd [bras.defaultCmd \
-		   $brasRule($rid,type) $target $pureDeps _reason patrigs]
-      append reason $_reason
-    } else {
-      set cmd $brasRule($rid,cmd)
-      set brasRule($rid,run) 1
-    }
-
-    ## Add the command for this target to the list of commands. We go
-    ## right through cmdlist here, which is somewhere up the stack,
-    ## since it does not make sense to set the local brasCmdlist
-    ## first.
-    set cmdlist {}
-    if {[llength $cmd]} {
-      lappend cmdlist "@cd [pwd]"
-      lappend cmdlist "@set target \"$target\""
-      lappend cmdlist "@set targets \"$brasRule($rid,targ)\""
-      if {[info exist patrigs] && "$patrigs"!=""} {
-	lappend cmdlist "@set patternTriggers \"$patrigs\""
-      }
-      lappend cmdlist "@set trigger \"$newer\""
-      lappend cmdlist "@set deps \"$pureDeps\""
-      lappend cmdlist "@set preq \"$brasRule($rid,preq)\""
-      lappend cmdlist $cmd 
-    } elseif {[string length $cmd]} {
-      set cmdlist { }
-    }
-  }
-
+  ## Target was made
   if { $brasOpts(-d) } {
     regsub -all "\n" $reason "\n    " reason
     bras.dmsg $brasIndent \
-	"making `$target' in `[pwd]' because$reason"
-    if {"$cmdlist"==""} {
-      bras.dmsg $brasIndent \
-	  "    warning: nothing to execute"
-    }
-    ## Filter this target from target list of the rule
-    set also ""
-    foreach t $brasRule($rid,targ) {
-      if {"$target"!="$t"} {
-	lappend also $t
-      }
-    }
-    if {"$also"!=""} {
-      bras.dmsg $brasIndent \
-	  "same command makes: $also"
-    }
+	"made `$target' in `[pwd]' because$reason"
   }
 
-  ## And now taaaaram, do something useful
-  if {!$brasOpts(-v) && !$brasOpts(-ve) &&
-      !$brasOpts(-d) && !$brasOpts(-s)} {
-    puts "\# $target"
+  ## All other targets of this rule are assumed to be made now. Mark
+  ## them accordingly and filter them out for a message
+  set also ""
+  foreach t $brasRule($rid,targ) {
+    if {"$target"!="$t"} {
+      lappend also $t
+      set brasTinfo($t,[pwd],done) 1
+    }
   }
-  set here [pwd]
-  bras.evalCmds $cmdlist	;# this may lead somewhere else
-  cd $here
+  if {"$also"!="" && $brasOpts(-d)} {
+    bras.dmsg $brasIndent \
+	"same command makes: $also"
+  }
 
   ## finish up and return
-  set brasTinfo($target,[pwd],done) 1
-  unset brasConsidering($target,[pwd])
-  bras.leaveDir $keepPWD
-  return 1
+  bras.returnFromConsider $target $keepPWD 1
 }

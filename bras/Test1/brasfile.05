@@ -1,7 +1,7 @@
 puts "msg: Rule generation from pattern rule"
 
 puts "expect: touch aaYyYaa"
-puts "expect: aaXxXaa <- aaYyYaa"
+puts "expect: aaXxXaa"
 puts "expect: all <- aaXxXaa"
 puts "expect: rm aaYyYaa"
 
@@ -15,8 +15,8 @@ proc GenDepYyY {target} {
   return $res
 }
 
-PatternAlways .*XxX.* YyY {
-  puts "$target <- $preq"
+PatternAlways .*XxX.* {
+  puts "$target"
 }
 
 Always all aaXxXaa {

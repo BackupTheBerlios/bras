@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 1999/02/11 19:46:07 $
+# $Revision: 1.7 $, $Date: 1999/06/03 18:01:03 $
 ########################################################################
 
 
@@ -33,14 +33,15 @@
 ## this rule considers the dependencies, since they may be needed to
 ## create the target.
 ##
-Defrule Exist {target _reason} {
+Defrule Exist {rid target _reason} {
   upvar $_reason reason
 
-  if {![file exist $target]} {
-    append reason "\ndoes not exist"
-    return 1
-  } else {
+  if {[file exist $target]} {
     return 0
   }
+
+  append reason "\ndoes not exist"
+
+  return [bras.invokeCmd $rid $target {} $target]
 }
 ########################################################################

@@ -26,26 +26,6 @@
 
 ########################################################################
 ##
-## Find the first pattern-rule with an id larger than the
-## given one the target of which matches the given target. If none is
-## found, $brasPrule(nextID) is returned. 
-##
-proc bras.nextCandidate.BLOODY-OLD {target id} {
-  global brasPrule
-  set nextID $brasPrule(nextID)
-
-  for {} {$id<$nextID} {incr id} {
-    ## This rule might have been deleted.
-    if { ![info exist brasPrule($id,target)] } continue
-    
-    if [regexp "^$brasPrule($id,target)\$" $target] {
-      return $id
-    }
-  }
-  return $id
-}
-########################################################################
-##
 ## bras.lastMinuteRule
 ##   tries to create a rule from brasPrule for targets that don't
 ##   have any explicit rule.
@@ -72,121 +52,91 @@ proc bras.lastMinuteRule {target dind} {
 
   set lastID [expr $brasPrule(nextID)-1]
  
-  if $brasOpts(-d) {
-    bras.dmsg $dind "trying to make pattern rule for target `$target'"
-  }
+  set reason "trying to make pattern rule for target `$target'"
+
   ## In the first step, we check if there is a rule which matches the
   ## target and generates a dependency which exists as a file
   set ruleID -1
   set activeRules {}
   set activeCandidates {}
+
   for {set id $lastID} {$id>=0} {incr id -1} {
     ## This rule might have been deleted.
     if { ![info exist brasPrule($id,target)] } continue
     
-    ## don't check recursively active rules
-    if $brasPrule($id,cure) continue
-
     ## match the target
-    if ![regexp "^$brasPrule($id,target)\$" $target] continue
+    if {![regexp "^$brasPrule($id,target)\$" $target]} continue
+
+    ## don't check recursively active rules
+    if {$brasPrule($id,cure)} {
+      append reason \
+	  "\n+ `$brasPrule($id,target)' <- `$brasPrule($id,dep)' " \
+	  "already active"
+      continue
+    }
+
+    set which $brasPrule($id,dep)
+
+    ## If the dependency is empty, which may happen for
+    ## Exist-rules, this is a way to make this target.
+    if {"$which"==""} {
+      set ruleID $id
+      set dep {}
+      append reason " ... success"
+      break
+    }
 
     ## generate the dependency with the pattern rule
-    set dep [GenDep$brasPrule($id,dep) $target]
+    set dep [GenDep$which $target]
 
-    ## If the dependency list is empty, which may happen for
-    ## Exist-rules, this is a way to make this target.
-    if {"$dep"==""} {
+    append reason \
+	"\n+ with `$dep' " \
+	"derived from `$brasPrule($id,target)' <- `$brasPrule($id,dep)'"
+ 
+    ## Expand the dependency along the search path
+    if {"[set t [BrasSearchDependency $dep]]"!=""} {
+      ## good one, use it
       set ruleID $id
+      set dep $t
+      append reason "\n+ success, `$dep' exists or has explicit rule"
       break
     }
 
-    ## Expand the dependency into a list of candidates and check if
-    ## one of them exists as a file. Note that it is not forbidden for
-    ## expanded targets to suddenly have an @-prefix.
-    set candidates [BrasExpandTarget $dep]
-    if {$brasOpts(-d)} {
-      bras.dmsg $dind "  possible dependency `$dep'"
-      bras.dmsg $dind "  + searchpath returns `$candidates'"
-    }
-
-    set found 0
-    foreach c $candidates {
-      if {[string match @* $c]} {set c [string range $c 1 end]}
-      if {[file exist $c]} {
-	set found 1
-	break
-      }
-    }
-    if {$found} {
-      set ruleID $id
-      set dep $c
-      set reason "  + file `$c' found"
-      break
-    }
-
-    ## Try to find an explicit rule for one of the candidates
-    foreach c $candidates {
-      if {[string match @* $c]} {
-	# I am curious if this turns out as a misfeature. 
-	set pwd [bras.followTarget $c]
-	set found [info exist brasTinfo($c,[pwd],rule)]
-	cd $pwd
-      } else {
-	set found [info exist brasTinfo($c,[pwd],rule)]
-      }
-      if {$found} break
-    }
-    if {$found} {
-      set ruleID $id
-      set dep $c
-      set reason "  + explict rule found for `$c'"
-      break
-    }
-    if {$brasOpts(-d)} {
-      bras.dmsg $dind \
-	  "  + none of them is an existing file nor a rule target"
-    }
-    lappend activeRules $id
-    lappend activeCandidates [lindex $candidates 0]
+    lappend activeRules $id $dep
   }
+  if {$brasOpts(-d) && ""!="$reason"} {bras.dmsg $dind $reason}
 
   ## If we did not find a rule-id yet, go recursive
   if {$ruleID==-1} {
-    if {$brasOpts(-d) && [llength $activeCandidates]} {
-      bras.dmsg $dind "  + recursively trying `$activeCandidates'"
+    if {$brasOpts(-d) && [llength $activeRules]} {
+      bras.dmsg $dind "+ no success, going recursive"
     }
-    foreach id $activeRules dep $activeCandidates {
+    foreach {id dep} $activeRules {
       #set dep [GenDep$brasPrule($id,dep) $target]
       set brasPrule($id,cure) 1
       set ok [bras.lastMinuteRule $dep "$dind  "]
       set brasPrule($id,cure) 0
       if {$ok} {
 	set ruleID $id
-	set reason {}
 	break
       }
     }
-    if {$ruleID==-1} {
-      if {$brasOpts(-d)} {
-	bras.dmsg $dind "nothing found"
-      }
-      return 0
+  }
+
+  if {$ruleID==-1} {
+    if {$brasOpts(-d)} {
+      bras.dmsg $dind "nothing found"
     }
+    return 0
   }
 
   ## If we arrive here, ruleID>=0 denotes the rule to use.  
   $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
 
-  ## There is absolutely no need to pass $dep through searchpath again
-  set brasSearched([pwd],$dep) 1
-
   if $brasOpts(-d) {
-    if {""!="$reason"} {bras.dmsg $dind $reason}
+    #if {""!="$reason"} {bras.dmsg $dind $reason}
     set msg "creating $brasPrule($id,type)-rule "
     append msg "`$target' <- `$dep'"
-    bras.dmsg $dind $msg
-    set msg "+ using pattern "
-    append msg "($brasPrule($id,target) <- $brasPrule($id,dep))"
     bras.dmsg $dind $msg
   }
       

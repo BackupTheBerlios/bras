@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1999/02/11 19:46:07 $
+# $Revision: 1.5 $, $Date: 1999/06/03 18:01:02 $
 ########################################################################
 
 ########################################################################
@@ -31,26 +31,27 @@
 ## define new types of rules.
 ##
 proc Defrule {Name params body} {
-  ## define the pattern rule associated to the rule
-  proc Pattern$Name {target deps cmd} "
-    bras.PatternRule $Name \$target \$deps \$cmd
-  "
-
   ## define the rule-command itself
   proc $Name {target {deps {}} {cmd {}}} "
     bras.enterRule $Name \$target \$deps \$cmd
   "
 
-  ## Rules may have 2 or 4 parameters. Those with just two are not
-  ## interested in dependencies. Nevertheless we add two params to
+  ## Rules may have 3 or 4 parameters. Those with just 3 are not
+  ## interested in dependencies. Nevertheless we add a param to
   ## keep the interface identical. (About to shoot into my foot with
-  ## those #-params?).
-  if {[llength $params]==2} {
-    set params [concat $params \# \#]
-  }
-  if {[llength $params]!=4} {
+  ## those params?).
+  if {[llength $params]==3} {
+    set params [concat $params \#]
+    proc Pattern$Name {target cmd} "
+      bras.PatternRule $Name \$target {} \$cmd
+    "
+  } elseif {[llength $params]==4} {
+    proc Pattern$Name {target deps cmd} "
+      bras.PatternRule $Name \$target \$deps \$cmd
+    "
+  } else {
     return -code error \
-	-errorinfo "a rule must either two or four parameters"
+	-errorinfo "a rule must have either three or four parameters"
   }
 
   ## define the rule-execution

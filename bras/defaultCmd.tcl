@@ -38,7 +38,7 @@ proc bras.defaultCmd {type target deps _reason _patternTrigger} {
 
   if {$brasOpts(-d)} {
     append reason \
-	"\ntrying to guess command for `$target' " \
+	"guessing command for `$target' " \
 	"depending on `$deps' from rules of type `$type'"
   } 
       
@@ -63,7 +63,7 @@ proc bras.defaultCmd {type target deps _reason _patternTrigger} {
     if [llength $res] {
       if $brasOpts(-d) {
 	append reason \
-	    "\nusing command from pattern rule " \
+	    "\n    using command of rule " \
 	    "`$type $brasPrule($i,dep)->$brasPrule($i,target)' "\
 	    "because `$res' match(es)"
       }
@@ -71,5 +71,6 @@ proc bras.defaultCmd {type target deps _reason _patternTrigger} {
       return $brasPrule($i,cmd)
     }
   }
+  append reason "\n    none found"
   return {}
 }    

@@ -56,10 +56,14 @@ PatternNewer {.*\.o} .dep {
   $CC -c $CFLAGS -o $target [lindex $l 0]
 }
 
+PatternNewer {.*\.o} .c {
+  $CC -c $CFLAGS -o $target $trigger
+}
+
 ##
 ## How to make a dependency file from a C source file
 ## 
-PatternDependsFile .*\.dep .c {
+PatternDependsFile {.*\.dep} .c {
   set l [eval exec "$CC $DEPOPTS $INCLUDES [lindex $deps 0]" ]
   set res {}
   foreach x $l {

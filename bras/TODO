@@ -1,16 +1,39 @@
-o Update doc
-  (This probably never goes away)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-06-03:
 
+Why prerequisites? If the reasoning process can be called explicitely
+anytime, instead of
 
+   Newer bla.o {bla.c // hinzel kunzel jockel} {
+     just do it
+   }
+
+one can to
+
+   Newer bla.o bla.c {
+     consider [list hinzel kunzel jockel]
+     just do it
+   }
+   
+I'll probably remove the prerequisites stuff very soon.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 
 o Find out how to give every brasfile its own scope so that a variable
   like SRC is not messed up, if it is used in several brasfiles.
 
 
 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
+
 o Parallel execution (like make's -j)
 
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 
 o Option to switch between the following modes:
   a) Collect *all* commands first, then start executing
@@ -21,9 +44,14 @@ o Option to switch between the following modes:
 
 
 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 o A check to test if there is a rule for a target.
 
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 
 o Catch all-rules as pattern-rules
 >- This doesn't work either:
@@ -33,9 +61,15 @@ o Catch all-rules as pattern-rules
 
 
 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
+
 o Selective rule dumping for debugging purposes.
 
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 
 o Allow the directories of @-dependencies to be mapped through one
 stage of indirection, so that @bla/ri/lu does not lead to bla/ri, but
@@ -43,6 +77,8 @@ to $DIRMAP(bla/ri) or the like.
 
 
 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1999-01-01:
 o Suggestion from jgg@debian.org
 
 Ack, and a final thing. It would be nice to be able to assign dependancies
@@ -53,6 +89,8 @@ PatternCDepends {\.deps/.*\.d$} .cc {// .deps} {
 So that .deps will be added to the prereq list.
 
 
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 This is done already (read from bottom to top):
 ===============================================

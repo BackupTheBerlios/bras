@@ -23,7 +23,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1999/02/21 21:46:30 $
+# $Revision: 1.3 $, $Date: 1999/06/03 18:01:03 $
 ########################################################################
 
 ##
@@ -114,4 +114,34 @@ proc include {name} {
   if [info exist brasKnown([file join $pwd $file])] return
 
   bras.gobble $name
+}
+########################################################################
+proc consider {targets} {
+  global brasOpts brasIndent
+
+  if {$brasOpts(-d)} {
+    set caller [info level -1]
+    bras.dmsg $brasIndent "=> on behalf of `$caller':"
+    append brasIndent "  "
+  }
+
+  set depInfo {}
+  foreach target $targets {
+    set res [bras.Consider $target]
+    if {$res<0} {
+      return -code error -errorinfo "$target cannot be made"
+    }
+    if {[string match @* $target]} {
+      lappend depInfo [string range $target 1 end] $res
+    } else {
+      lappend depInfo $target $res
+    }
+  }
+
+  if {$brasOpts(-d)} {
+    set brasIndent [string range $brasIndent 2 end]
+    bras.dmsg $brasIndent "<= done with result $res"
+  }
+
+  return $depInfo
 }

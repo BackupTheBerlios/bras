@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.7 $, $Date: 1999/02/21 21:46:31 $
+# $Revision: 1.8 $, $Date: 1999/06/03 18:01:04 $
 ########################################################################
 
 ########################################################################
@@ -37,10 +37,8 @@
 ## non-existing dependency, i.e. this dependency is no reason to
 ## remake the target.
 ##
-Defrule Newer {target _reason _deps _newer} {
-  upvar $_deps deps
+Defrule Newer {rid target _reason depInfo} {
   upvar $_reason reason
-  upvar $_newer newer
   global brasOpts
 
   set reason ""
@@ -56,38 +54,30 @@ Defrule Newer {target _reason _deps _newer} {
     set res 1
   }
   
-  ## check against every dependency, change dependencies as they are
-  ## returned from bras.Consider.
-  set newDeps {}
-  foreach dep $deps {
-    ## Consider the dependency as a target. This may change the
-    ## dependency-name slightly due to application of searchpath.
-    set x [bras.Consider dep]
-    lappend newDeps $dep
-
-    if {$x==-1} {return -1}
-
-    ## strip possible @-prefix from dep. It is no longer needed
-    if {[string index $dep 0]=="@"} {
-      set dep [string range $dep 1 end]
-    }
-
-    if {$brasOpts(-n) && $x} {
-      # No command was executed but the dependency was remade. We
-      # assume that this would render the dependency newer than the
-      # target. 
+  ## check against every dependency. Reasons to make the target are:
+  ## a) a dependency was reported to be freshly made
+  ## b) a dependency was not made fresh but is neverhteless newer
+  set trigger {}
+  set deps {}
+  foreach {dep x} $depInfo {
+    
+    lappend deps $dep
+    if {$x} {
       set res 1
       append reason "\ndependency $dep rebuilt"
-      lappend newer $dep
+      lappend trigger $dep
       continue
     }
 
-    ## This tests the problematic case mentioned above: dep is
-    ## up-to-date but may nevertheless not exist as a file.
+    ## This tests the problematic case mentioned above: dep was
+    ## already up-to-date (i.e. $x above is 0) but may nevertheless
+    ## not exist as a file. With the current rules this cannot happen,
+    ## but someone might have his own strange rules.
     if {![file exist $dep]} {
       append emsg \
-	  "bras(warning): dependency `$dep' "\
-	  "of target $target was not made"
+ 	  "bras(warning): dependency `$dep' "\
+	  "of target $target was not made and cannot render the " \
+	  "target out of date"
       puts stderr $emsg
       continue
     }
@@ -98,9 +88,15 @@ Defrule Newer {target _reason _deps _newer} {
     if {$ttime<$stat(mtime)} {
       set res 1
       append reason "\nolder than `$dep'"
-      lappend newer $dep
+      if {$ttime==0} {append reason " (due to non-existance)"}
+      lappend trigger $dep
     }
   }
-  set deps $newDeps
-  return $res
+
+  if {$res==0} {
+    return 0
+  }
+
+  return [bras.invokeCmd $rid $target $deps $trigger]
+
 }

@@ -28,7 +28,7 @@ set INSTALLED 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.26 $, $Date: 1999/02/21 21:46:28 $
+# $Revision: 1.27 $, $Date: 1999/06/03 18:01:01 $
 ########################################################################
 
 ########################################################################
@@ -54,7 +54,9 @@ set INSTALLED 1111-11-11
 ##   <i>,deps -- dependencies
 ##   <i>,cmd  -- command
 ##   <i>,preq -- prerequisites
-##   <i>,run  --  1: command already on command list
+##   <i>,run  --  (no longer used as of 1999-06-03, the information is
+##                 better handled with brasTinfo(t,d,done))
+##                1: command already on command list
 ##               -1: command cannot be run due to missing prerequisites
 ##                0: not yet checked
 ##
@@ -100,6 +102,15 @@ set brasPrule(nextID) 0
 ##   array with an element for all files sourced either by following
 ##   an @-target or by an explicit `include'. The directory-part of
 ##   the filename is always normalized by means of [pwd].
+##
+## brasIdeps
+##   is a database with with information on how to generate dependency
+##   lists. It is set up with Defdexpand. With <r> a regexp, the
+##   indices used are 
+##   list -- the list of regexps for which dependency expanders exist
+##   <r>  -- name of the proc which is called to expand a dependency
+##           which matches <r>
+set brasIdeps(list) {}
 ##
 ## brasTargets
 ##   Either the default target, i.e. the first one found, or the list
@@ -164,6 +175,7 @@ source [file join $brasBase defaultCmd.tcl]
 source [file join $brasBase consider.tcl]
 source [file join $brasBase brasUtils.tcl]
 source [file join $brasBase exported.tcl]
+source [file join $brasBase defdexpand.tcl]
 
 ## source rule types
 source [file join $brasBase defrule.tcl]
@@ -351,7 +363,7 @@ proc bras.enterRule {type targets deps cmd} {
 
   set deps {}
   set preq {}
-  if {"[lindex [info args Check.$type] 2]"=="\#"} {
+  if {"[lindex [info args Check.$type] 3]"=="\#"} {
     ## This type of rule does not use dependencies. Therefore only one
     ## of front or back may exist now. Its value is copied to preq.
     if {[info exist front] && [info exist back]} {
@@ -666,7 +678,7 @@ proc bras.main {argc args} {
   foreach target $brasTargets {
     set brasIndent ""
 #    set brasCmdlist {}
-    set r [bras.ConsiderKernel $target]
+    set r [bras.Consider $target]
 
     #global brasTinfo; parray brasTinfo
     #bras.showCmds $brasCmdlist

@@ -120,3 +120,83 @@ proc bras.evalCmds {cmds} {
   rename unknown bras.unknown
   rename unknown.orig unknown
 }
+########################################################################
+proc bras.invokeCmd {rid Target Deps Trigger} {
+  #upvar reason $_reason
+  global brasRule brasOpts brasIndent
+  
+  ## The following variables are guaranteed to exist in the context of
+  ## the command to run
+  global target targets trigger deps patternTriggers preq
+
+  ## make sure, prerequisites are available
+  if {[bras.ConsiderPreqs $rid]<0} {
+    return -1
+  }
+
+  ## find the command to execute
+  set cmd $brasRule($rid,cmd)
+  if {""=="$cmd"} {
+    set _reason {}
+    #set patternTriggers {}
+    set cmd [bras.defaultCmd \
+		 $brasRule($rid,type) $Target $Deps \
+		 _reason patternTriggers]
+    if {$brasOpts(-d)} {
+      bras.dmsg $brasIndent $_reason
+    }
+    if {""=="$cmd"} {
+      puts -nonewline stderr \
+	  "bras(warning): no command found to make `$Target' "
+      puts stderr "from `$Deps' (hope that's ok)"
+      return 1
+    }
+  } else {
+    set patternTriggers {}
+    set brasRule($rid,run) 1
+  }
+
+  ## set up the context for the command
+  set target $Target
+  set targets $brasRule($rid,targ)
+  set trigger $Trigger
+  set deps $Deps
+  set preq $brasRule($rid,preq)
+
+  rename unknown unknown.orig
+  rename bras.unknown unknown
+
+  if {$brasOpts(-v)} {
+    puts "\# -- running command --"
+    puts "\# patternTriggers = `$patternTriggers'"
+    puts "\#  target = `$target'"
+    puts "\# targets = `$targets'"
+    puts "\# trigger = `$trigger'"
+    puts "\#    deps = `$deps'"
+    puts "\#    preq = `$preq'"
+    puts [string trim $cmd "\n"]
+  }
+ 
+  if {!$brasOpts(-n)} {
+
+    if {!$brasOpts(-v) && !$brasOpts(-ve) &&
+	!$brasOpts(-d) && !$brasOpts(-s)} {
+      puts  "\# creating $target";
+    }
+    set wearehere [pwd]
+    if [catch "uplevel #0 {$cmd}" msg] {
+      global errorInfo
+      puts stderr \
+	  "bras: a rule-command failed to execute and said"
+      regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
+      puts stderr $errorInfo
+      exit 1
+    }
+    cd $wearehere
+  }
+
+  rename unknown bras.unknown
+  rename unknown.orig unknown
+
+  return 1
+}

@@ -22,18 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 1999/06/03 18:01:01 $
+# $Revision: 1.1 $, $Date: 1999/06/03 18:01:02 $
 ########################################################################
 
-########################################################################
-##
-## It is always decided that the target has to be rebuilt.
-##
-Defrule Always {rid target _reason} {
-  upvar $_reason reason
+proc Defdexpand {procname rexp targetname depname body} {
+  global brasIdeps
 
-  append reason "\nmust always be made"
-
-  return [bras.invokeCmd $rid $target {} {}]
+  set rexp ^${rexp}\$
+  set brasIdeps(list) [linsert $brasIdeps(list) 0 $rexp]
+  set brasIdeps($rexp) $procname
+  
+  proc $procname [list $targetname $depname] $body
 }
 ########################################################################

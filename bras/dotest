@@ -77,6 +77,10 @@ foreach test $sortedTests {
       }
     }
   }
+  if {0==[string length $expect]} {
+    puts stderr "no expect string found in\n$output"
+    exit 1
+  }
   if { [string match "$expect*" $result] } {
     puts "    ...ok"
   } else {
