@@ -129,7 +129,7 @@ proc Install {} {
       bras.1 >$man/bras.1
 
   ## copy documentation
-  exec cp CHANGES doc/Bras.ps doc/Bras.tex $doc
+  exec cp doc/Bras.ps doc/Bras.tex $doc
 
   ## create convenience links
   clink $lroot/bin $exe/bras
