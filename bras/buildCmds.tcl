@@ -350,8 +350,8 @@ proc bras.buildCmds {target dind} {
 	    "`$target' is ok, file exists and has no rule"
       }
       set brasRules($target,[pwd],done) 0
-      cd $keepPWD
       unset brasConsidering($target,[pwd])
+      cd $keepPWD
       return {}
     } else {
       puts stderr "$argv0: no rule to make target `$target' in `[pwd]'"
