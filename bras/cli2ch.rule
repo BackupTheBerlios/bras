@@ -38,7 +38,6 @@ getenv CFLAGS {}
 PatternNewer {.*\.[ch]} .cli {
   set base [file rootname $target]
   clig [lindex $deps 0] -o $base
-  markasdone $base.c $base.h
 }
 ########################################################################
 ##### Local Variables: #
