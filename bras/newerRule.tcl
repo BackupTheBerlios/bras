@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 1997/04/30 17:35:28 $
+# $Revision: 1.4 $, $Date: 1999/01/28 22:30:41 $
 ########################################################################
 
 ########################################################################
@@ -37,7 +37,8 @@
 ## non-existing dependency, i.e. this dependency is no reason to
 ## remake the target.
 ##
-Defrule Newer {target deps _newer _reason} {
+Defrule Newer {target _deps _newer _reason} {
+  upvar $_deps deps
   upvar $_reason reason
   upvar $_newer newer
   
@@ -54,36 +55,43 @@ Defrule Newer {target deps _newer _reason} {
     set res 1
   }
   
-  ## check against every dependency
+  ## check against every dependency, change dependencies as they are
+  ## returned from bras.Consider.
+  set newDeps {}
   foreach dep $deps {
+    ## Consider the dependency as a target. This may change the
+    ## target-name slightly due to application of TargetSearchPath.
+    set x [bras.Consider dep]
+    lappend newDeps $dep
+
+    if {$x==-1} {return -1}
+
+    ## strip possible @-prefix from dep. It is no longer needed
     if {[string index $dep 0]=="@"} {
-      set pdep [string range $dep 1 end]
-    } else {
-      set pdep $dep
+      set dep [string range $dep 1 end]
     }
-    ## consider the dependency as a target
-    set x [bras.Consider $dep]
-    if {$x==-1} {
-      return -1
-    } elseif {$x} {
-      if {$res>=0} {set res 1}
-      append reason "\ndependency $pdep rebuilt"
-      lappend newer $pdep
+
+    if {$x} {
+      set res 1
+      append reason "\ndependency $dep rebuilt"
+      lappend newer $dep
       continue
     }
 
-    ## This is the problematic case mentioned above
-    if {![file exist $pdep]} continue
+    ## This tests the problematic case mentioned above: dep is
+    ## up-to-date but may nevertheless not exist as a file.
+    if {![file exist $dep]} continue
 
     ## The dependency is not remade, but maybe its newer already
-    file stat $pdep stat
+    file stat $dep stat
     #puts ">>>$target<-$pdep"
     #puts "$ttime <> $stat(mtime)"
     if {$ttime<$stat(mtime)} {
-      if {$res>=0} {set res 1}
-      append reason "\nolder than `$pdep'"
-      lappend newer $pdep
+      set res 1
+      append reason "\nolder than `$dep'"
+      lappend newer $dep
     }
   }
+  set deps $newDeps
   return $res
 }

@@ -27,7 +27,7 @@ set INSTALLED 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.23 $, $Date: 1999/01/23 19:27:24 $
+# $Revision: 1.24 $, $Date: 1999/01/28 22:30:39 $
 ########################################################################
 
 ########################################################################
@@ -655,10 +655,11 @@ proc bras.main {argc args} {
 
   #parray brasRules
   #parray brasPrule
+  set VPATH {jockel gockel}
   foreach target $brasTargets {
     set brasIndent ""
     set brasCmdlist {}
-    set r [bras.Consider $target]
+    set r [bras.ConsiderKernel $target]
     #bras.showCmds $brasCmdlist
     if $brasOpts(-d) continue
     #global brasRule;parray brasRule

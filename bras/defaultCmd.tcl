@@ -36,6 +36,12 @@ proc bras.defaultCmd {type target deps _reason _patternTrigger} {
   upvar $_patternTrigger patternTrigger
   global brasPrule brasOpts
 
+  if {$brasOpts(-d)} {
+    append reason \
+	"\ntrying to guess command for `$target' " \
+	"depending on `$deps'"
+  } 
+      
   ## need to check all pattern rules
   set nextID $brasPrule(nextID)
   for {set i [expr $nextID-1]} {$i>=0} {incr i -1} {

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.7 $, $Date: 1997/11/19 07:01:25 $
+# $Revision: 1.8 $, $Date: 1999/01/28 22:30:40 $
 ########################################################################
 
 ########################################################################
@@ -54,24 +54,108 @@ proc bras.pureDeps {deps} {
 ##   1 if all can be made or are ok already
 ##
 proc bras.ConsiderPreqs {rid} {
-  global brasIndent brasRule
+  global brasIndent brasRule brasOpts
 
   ## If this was already checked before, return immediately
   if {$brasRule($rid,run)!=0} {
     return $brasRule($rid,run)
   }
 
+  set t $brasRule($rid,targ)
+  if {$brasOpts(-d)} {
+    bras.dmsg $brasIndent "considering prerequisites for `$t'"
+  }
+
   append brasIndent "  "
+  set preqNew {}
   foreach preq $brasRule($rid,preq) {
-    set r [bras.Consider $preq]
+    #shit ## TargetSearchPath is no good for prerequisites, therefore
+    #shit ## bras.ConsiderKernel instead of bras.Consider is used.
+    set r [bras.Consider preq]
+    lappend preqNew $preq
     if {$r==-1} {
       ## move out of here
       set brasIndent [string range $brasIndent 2 end]
       return -1
     }
   }
+  set brasRule($rid,preq) $preqNew
   set brasIndent "[string range $brasIndent 2 end]"
   return 1
+}
+########################################################################
+#
+# This proc is supposed to be overridden by the user if necessary. For
+# a given target it must return a list of targets. The list of targets
+# is considered in turn until one is found which is up-to-date or can
+# be made.
+#
+
+# This default implementation returns the input unchanged if the
+# global variable TargetSearchPath is not set or if target starts with
+# @ or is not a relative pathname. Otherwise, all elements of
+# TargetSearchPath are prepended to target and the resulting list is
+# returned. 
+proc BrasExpandTarget {target} {
+  global TargetSearchPath
+
+  if {![info exist TargetSearchPath]} { 
+    return [list $target]
+  }
+
+  if {[string match @* $target]} {
+    return [list $target]
+  }
+
+  set ptype [file pathtype $target]
+  if {"$ptype"!="relative"} {
+    return [list $target]
+  }
+
+  set res {}
+  foreach x $TargetSearchPath {
+    if {"$x"!="."} {
+      lappend res [file join $x $target]
+    } else {
+      lappend res $target
+    }
+  }
+  return $res
+}
+########################################################################
+#
+# Check whether the target needs to be rebuilt.
+#
+# This is merely a wrapper around bras.ConsiderKernel which applies
+# TargetSearchPath.
+#
+## RETURN
+## 0: no need to make target
+## 1: target will be made
+## -1: target needs to be made, but don't know how
+##
+## The parameter target might be changed according to succes in
+## searching TargetSearchPath.
+##
+proc bras.Consider {_target} {
+  upvar $_target target
+  global brasIndent brasOpts
+
+  set candidates [BrasExpandTarget $target]
+  if {$brasOpts(-d) &&
+      ([llength $candidates] || "$target"!="[lindex $candidates 0]")} {
+    bras.dmsg $brasIndent "target `$target': trying `$candidates'"
+  }
+
+  foreach c $candidates {
+    set res [bras.ConsiderKernel $c]
+    #bras.dmsg $brasIndent "got $res"
+    if {$res>=0} {
+      set target $c		;# return changed target
+      return $res
+    }
+  }
+  return -1
 }
 ########################################################################
 ##
@@ -104,12 +188,12 @@ proc bras.ConsiderPreqs {rid} {
 ##      Finally 1 is returned.
 ##
 ##
-proc bras.Consider {target} {
+proc bras.ConsiderKernel {target} {
   global brasRule brasTinfo argv0 brasOpts brasConsidering
   global brasIndent brasLastError
 
   #parray brasCmd
-  #parray brasTinfo
+  # parray brasTinfo
   ## change dir, if target starts with `@'
   if {[string match @* $target]} {
     set keepPWD [bras.followTarget $target]
@@ -121,9 +205,9 @@ proc bras.Consider {target} {
   ## check, if this target was handled already along another line of
   ## reasoning 
   if [info exist brasTinfo($target,[pwd],done)] {
-    #if $brasOpts(-d) {
-    #  bras.dmsg $brasIndent "have seen `$target' in `[pwd]' already"
-    #}
+    if $brasOpts(-d) {
+      bras.dmsg $brasIndent "have seen `$target' in `[pwd]' already"
+    }
     set pwd [pwd]
     cd $keepPWD
     return $brasTinfo($target,$pwd,done)
@@ -187,7 +271,7 @@ proc bras.Consider {target} {
   set brasCmdlist {}
   set reason ""
   #puts ">>$P<<, >>$deps<<"
-  set res [Check.$rule $target $deps newer reason]	;###<<<- HERE
+  set res [Check.$rule $target deps newer reason]	;###<<<- HERE
 
   if {$res==1} {
     ## target must be made, but we have to check, if all prerequisites

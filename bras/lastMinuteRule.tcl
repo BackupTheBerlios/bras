@@ -26,15 +26,6 @@
 
 ########################################################################
 ##
-## Check whether pattern rule no. $i is a candidate for further
-## consideration, i.e. matches $target.
-##
-proc bras.isCandidate-NOT_USED_ANYMORE {target i} {
-  global brasPrule
-  return [regexp "^$brasPrule($i,target)\$" $target]
-}
-########################################################################
-##
 ## Find the first pattern-rule with an id larger than the
 ## given one the target of which matches the given target. If none is
 ## found, $brasPrule(nextID) is returned. 
@@ -97,18 +88,56 @@ proc bras.lastMinuteRule {target dind} {
     ## match the target
     if ![regexp "^$brasPrule($id,target)\$" $target] continue
 
-    ## get the dependency and see, if it exists as a file or if there
-    ## is a real rule for it.
+    ## generate the dependency with the pattern rule
     set dep [GenDep$brasPrule($id,dep) $target]
-    if {[file exist $dep] || [info exist brasTinfo($dep,[pwd],rule)]}  {
+
+    ## If the dependency list is empty, which may happen for
+    ## Exist-rules, this is a way to make this target.
+    if {"$dep"==""} {
       set ruleID $id
       break
     }
 
-    lappend activeRules $id
-    if $brasOpts(-d) {
-      bras.dmsg $dind "+ no file `$dep'"
+    ## Expand the dependency into a list of candidates and check if
+    ## one of them exists as a file. Note that it is not forbidden for
+    ## expanded targets to suddenly have an @-prefix.
+    set candidates [BrasExpandTarget $dep]
+    set found 0
+    foreach c $candidates {
+      if {[string match @* $c]} {set c [string range $c 1 end]}
+      if {[file exist $c]} {
+	set found 1
+	break
+      }
     }
+    if {$found} {
+      set ruleID $id
+      set dep $c
+      break
+    }
+
+    ## Try to find an explicit rule for one of the candidates
+    foreach c $candidates {
+      if {[string match @* $c]} {
+	# I am curious if this turns out as a misfeature. 
+	set pwd [bras.followTarget $c]
+	set found [info exist brasTinfo($c,[pwd],rule)]
+	cd $pwd
+      } else {
+	set found [info exist brasTinfo($c,[pwd],rule)]
+      }
+      if {$found} break
+    }
+    if {$found} {
+      set ruleID $id
+      set dep $c
+      break
+    }
+    if $brasOpts(-d) {
+      bras.dmsg $dind \
+	  "+ derived `$dep' is neither a file nor a rule target"
+    }
+    lappend activeRules $id
   }
 
   ## If we did not find a rule-id yet, go recursive
@@ -118,7 +147,7 @@ proc bras.lastMinuteRule {target dind} {
       set brasPrule($id,cure) 1
       set ok [bras.lastMinuteRule $dep "$dind  "]
       set brasPrule($id,cure) 0
-      if $ok {
+      if {$ok} {
 	set ruleID $id
 	break
       }

@@ -47,7 +47,7 @@ getenv AR ar
 ## How to make an object file from a .c-file
 ##
 PatternNewer {.*\.o} .c {
-  $CC -c $CFLAGS [file rootname $target].c
+  $CC -c $CFLAGS -o $target [lindex $trigger 0]
 }
 
 ##
