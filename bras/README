@@ -1,8 +1,79 @@
+WHAT IS bras?
 
-o A brief introduction to bras highlighting the main features can be
-  found in ./doc/brasHome.html  
+Bras is intended to do roughly the same job as the (in)famous
+`make'-utitlity. It executes commands according to a set of rules.
 
-o Full doc can be found in ./doc/Bras.ps.
+Although I am quite happy with `make' most of the time, it has some
+rough edges which I really dislike. Therefore I decided the other day
+that I want to have my own little tool without the rough edges. The
+result is bras.
 
-o Look at INSTALL to find out how to install bras.
+Main features are:
+o rule-controlled command execution, similar to make;
+o written in Tcl, no compilation required;
+o Tcl-syntax so that commands associated with rules may contain
+  control structures;
+o dependencies in foreign directories can trigger sourcing rule files
+  in that directory, recursive bras-execution is not necessary;
+o more than one type of rule: Newer, Exist, Always;
+o new types of rules can be easily added;
+o distinction between dependencies and mere prerequisites;
+o multiple targets in one rule;
+o multiple rules for a target;
+o pattern rules which deserve the name;
+   
 
+
+An examples demonstrating the syntax is shown below. Note that
+everything is Tcl.
+
+########################################################################
+
+## Prepare a list of source file names
+set SRC {bla.c bli.c blu.c hello.c}
+
+## Construct a list of object file names
+regsub -all {\.c} $SRC .o OBJ
+
+## Some variables needed for compilation
+set CFLAGS "-g -Wall"
+set LDLIBS "-L/opt/x11r6/lib -lX11"
+
+## The next command declares a rule. It specifies that the command in
+## braces has to be executed, whenever one of the files in $OBJ or the
+## library ../xx/libxx.a is newer than target hello. Construction of
+## the .o-files is handled by default rules. The `@' in front of the
+## library path instructs bras to try to source ../xx/Brasfile, if
+## available, and build libxx.a according to the rules specified there.
+
+Newer hello "$OBJ @../xx/libxx.a {
+  cc -o hello $OBJ -L../x -lxx $LDLIBS
+}
+
+## Installation usually depends on the existance of the target
+## directory, while the time of update of the directory is irrelevant.
+## The following rule specifies two thing:
+##
+## 1) The installed file $prefix/bin/hello must be newer than `hello'
+## in the current directory. This includes the case where
+## $prefix/bin/hello does not even exist. Then the cp-command must
+## be executed.
+##
+## 2) However, the cp-command can only be executed if `$prefix/bin'
+## exists. But the directory `$prefix/bin' is only a prerequisite,
+## i.e. it must be up-to-date according to the rules, but its
+## non-up-to-dateness cannot trigger the command.
+
+Newer $prefix/bin/hello "hello // $prefix/bin" {
+  cp hello $prefix/bin
+}
+
+## This rule now makes sure the installation directory exists. The
+## list of dependencies // prerequisites is empty, but if necessary,
+## one could put `$prefix' into the prerequisites part of the list.
+Exist $prefix/bin {} {
+  mkdir -p $prefix/bin
+}
+########################################################################
+kir@iitb.fhg.de
+$Revision: 1.4 $, $Date: 1997/07/26 09:53:56 $
