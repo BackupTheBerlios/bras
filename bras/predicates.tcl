@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 2000/03/14 18:08:09 $
+# $Revision: 1.4 $, $Date: 2000/03/22 10:41:42 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -155,7 +155,7 @@ proc ::bras::p::older {targets inDeps} {
 proc ::bras::p::missing {file} {
   installPredicate trigger
 
-  if {![info exist $file]} {
+  if {![file exist $file]} {
     append reason "\n`$file' does not exist"
     ::bras::lappendUnique trigger $file
     return 1
