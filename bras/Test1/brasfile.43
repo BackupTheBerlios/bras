@@ -1,0 +1,12 @@
+puts "msg: we are not confused if a command cd's somewhere else"
+
+puts "expect: Test1"
+
+
+Always all {other} {
+  puts [file tail [pwd]]
+}
+
+Always other {} {
+  cd /
+}
