@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.10 $, $Date: 2000/12/30 12:13:31 $
+# $Revision: 1.11 $, $Date: 2001/07/29 11:21:57 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -32,7 +32,7 @@ source [file join [file dir [info script]] .version]
 #
 ########################################################################
 namespace eval ::bras::p {
-  namespace export older missing true dcold oldcache \
+  namespace export older updated missing true dcold oldcache \
       varchanged or notinitialized
 }
 ########################################################################
@@ -97,6 +97,9 @@ proc ::bras::p::older {targets inDeps} {
   ## Consider all dependencies in turn
   set results [::bras::consider $inDeps]
 
+  ## potential @ in deps no longer needed after consider
+  set inDeps [stripAt $inDeps]
+
   ## cache all mtimes of inDeps
   foreach  d $inDeps   x $results  {
     if {![file exist $d]} {
@@ -151,6 +154,32 @@ proc ::bras::p::older {targets inDeps} {
 }
 ########################################################################
 #
+# returns true, if any of its arguments is made when
+# considered.
+#
+proc ::bras::p::updated {inDeps} {
+  installPredicate {trigger deps} inDeps
+
+  ## Consider all dependencies in turn
+  set results [::bras::consider $inDeps]
+
+  ## potential @ in deps no longer needed after consider
+  set inDeps [stripAt $inDeps]
+
+  set res 0
+  ::bras::concatUnique deps $inDeps
+  foreach d $inDeps   x $results {
+    if {$x} {
+      set res 1
+      ::bras::lappendUnique trigger $d
+      append reason "\n`$d' was made"
+    }
+  }
+
+  return $res
+}
+########################################################################
+#
 # tests if the given target is not an existing file (or directory)
 #
 proc ::bras::p::missing {file} {
@@ -172,6 +201,9 @@ proc ::bras::p::true {{inDeps {}}} {
   installPredicate deps inDeps
 
   ::bras::consider $inDeps
+
+  ## potential @ in deps no longer needed after consider
+  set inDeps [stripAt $inDeps]
 
   append reason "\nmust always be made"
   ::bras::concatUnique deps $inDeps
@@ -224,6 +256,10 @@ proc ::bras::p::dcold {doto dc} {
   ## First of all, the dependency cache $dc must be up-to-date
   ::bras::consider $dc
 
+  if {[string match @* $dc]} {
+    set dc [string range $dc 1 end]
+  }
+
   ## The rest is trivial
   set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
   return [older $doto $dlist]
@@ -268,6 +304,9 @@ proc ::bras::p::varchanged {varnames oldResults} {
   installPredicate [list trigger deps] {}
 
   ::bras::consider $varnames
+
+  ## potential @ in some of the var name no longer needed after consider
+  set varnames [stripAt $varnames]
 
   ## create a new interpreter and source $oldResults into it. If the
   ## file does not even exist, this means that all given vars are

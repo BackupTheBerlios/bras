@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.7 $, $Date: 2001/03/20 20:14:20 $
+# $Revision: 1.8 $, $Date: 2001/07/29 11:21:57 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -166,6 +166,21 @@ proc ::bras::concatUnique {_list newElems} {
   }
 }
 ########################################################################
+#
+# strip optional @ from start of list elements
+#
+proc stripAt {l} {
+  set result {}
+  foreach x $l {
+    if {[string match @* $x]} {
+      lappend result [string range $x 1 end]
+    } else {
+      lappend result $x
+    }
+  }
+  return $result
+}
+########################################################################
 proc ::bras::trimErrorInfo {} {
   if {[set r [string last ---SNIP--- $::errorInfo]]>0} {
     incr r -1
@@ -276,6 +291,16 @@ proc ::bras::followTarget {target} {
 }
 ########################################################################
 ##
+## called by default gendep-functions. It replaces the suffix of a
+## file's name with `gendepName', which is a suffix starting with a
+## dot in most common cases.
+##
+proc ::bras::defaultGendep {target gendepName} {
+  set rootname [file rootname $target]
+  return "${rootname}$gendepName"
+}
+########################################################################
+##
 ## enterPatternRule
 ##   Declare a pattern-rule.
 ##
@@ -309,13 +334,15 @@ proc ::bras::enterPatternRule {trexp gendep bexp cmd} {
   set Prule($id,cmd)   $cmd
   set Prule($id,cure)  0
 
+  #puts ">>$gendep"
   ## create pattern replacement commands for the dependency
   if { 0==[llength [info commands ::bras::gendep::$gendep]] } {
-    set body [format {
-      set rootname [file rootname $target]
-      return [join [list $rootname "%s"] {}]
-    } $gendep]
-    proc ::bras::gendep::$gendep {target} $body
+#     set body [format {
+#       set rootname [file rootname $target]
+#       return [join [list $rootname "%s"] {}]
+#     } $gendep]
+    proc ::bras::gendep::$gendep {target} \
+	"return \[::bras::defaultGendep \$target $gendep\]"
   }
 }
 ########################################################################
