@@ -15,14 +15,14 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.30 $, $Date: 2001/07/29 12:33:51 $
+% $Revision: 1.31 $, $Date: 2001/08/04 16:19:13 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 
 \title{bras\\
 another kind of `make'\\[2mm]
-\small \copyright 1996--2000 Harald Kirsch}
+\small \copyright 1996--2001 Harald Kirsch}
 \author{\relax
 Harald Kirsch\\
 \texttt{kirschh@lionbioscience.com}}
@@ -139,9 +139,18 @@ becomes active and actually does something.
   \begin{quote}
     \texttt{cc -o fft.o fft.c}
   \end{quote}
-  It is executed only if the condition is true. \Bras{} assumes that
-  the target is up-to-date after the command has been executed. It
-  does not check if this is actually true.
+  It can be more or less any piece of ordinary Tcl code. However,
+  commands not known to Tcl are assumed to be commands of the
+  operating system and are passed to \texttt{[exec]} for execution
+  (see \ref{secCmdExec} for details).
+  
+  The command is executed only if the condition is true. \Bras{}
+  assumes that the target is up-to-date after the command has been
+  executed. It does not check if this is actually true.
+  
+  To tell \Bras{} explicitly that no \textit{command} needs to be
+  executed, use the string \Indextt{.relax.} possibly surrounded by
+  white space (see \ref{proc:.relax.}).
 \end{description}
 
 The general form of a \Index{rule} is:
@@ -158,7 +167,7 @@ The first argument of \texttt{Make} can be a list of targets.
 \Bras{} assumes that all of them are made whenever the rule's command
 is executed.
 
-Most of the power and flexibility of \bras{} depends on the fact, that
+Most of the power and flexibility of \bras{} depends on the fact that
 the condition rendering a target out-of-date can be just any
 boolean expression. Ancient \make{} on the other hand knows just one
 condition: the target does not exist as a file or it is older than
@@ -1377,9 +1386,10 @@ useful new predicate, send me the source.
   then used as a shortcut representing the three libraries.
 \begin{verbatim}
   Make libs {[updated {libR.a libS.a libT.a}]} {
-    #Nothing to be done here, libs is not a file target. It only 
-    #serves as a shortcut to combine in an OR-like fashion the results 
-    #of considering the dependencies.
+    # Nothing to be done here, libs is not a file target. 
+    # It only serves as a shortcut to combine in an 
+    # OR-like fashion the results of considering the 
+    # dependencies.
   }
   Make program {[older $target {... libs ...}]} {
     #compilation or other things
@@ -1465,6 +1475,43 @@ useful new predicate, send me the source.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Miscellaneous procedures}
 
+%%%%%
+%%%%% .relax.
+%%%%%
+\subsubsection{.relax. --- a do-nothing indicator for rules}
+\label{proc:.relax.}
+\begin{Describe}
+\item[Synopsis] \Tt{.relax.}
+\item[Description] Used in place of a rule's command, \texttt{.relax.}
+  indicates explicitly that there is nothing to do for the target.
+  Contrast this with using
+  \begin{enumerate}
+  \item the empty string. It means that there is no command at all and
+    will eventually trigger a warning messages, if no other rule for
+    the target is available wich has a command.
+  \item a string of white space. If the target is rendered
+    out-of-date, it is actually executed, does of course nothing, but
+    emits a message like
+    \begin{quote}
+      \ttfamily \# making target
+    \end{quote}
+  \end{enumerate}
+  To suppress the message, use \Indextt{.relax.} instead of the
+  string of white space.
+\item[Note] Although it looks like a Tcl command, \texttt{.relax.} is
+  none. \Bras\ does not evaluate it. It only applies a string compare
+  to a rule's command to find out if it is equal to \texttt{.relax.}.
+  As an added convenience, white space space is trimmed before
+  comparison.
+\item[Example] The indicator \texttt{.relax.} is most conveniently
+  used for default targets which only delegate work to a bunch of other
+  targets but don't themselves represent files to be made.
+  \begin{verbatim}
+  Make all {[updated [progs docs]]} {
+    .relax.
+  }
+  \end{verbatim}
+\end{Describe}
 %%%%%
 %%%%% consider
 %%%%%

@@ -77,6 +77,14 @@ proc ::bras::invokeCmd {rid Target nspace} {
     report warn $msg
     return 1
   }
+  
+  ## silently ignore commands which contain nothing but .relax.,
+  ## possibly surrouned by whitespace.
+  set xcmd [string trim $cmd]
+  if {".relax."=="$xcmd"} {
+    return 1
+  }
+
   set Rule($rid,run) 1
 
 
