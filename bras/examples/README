@@ -9,8 +9,14 @@ to the demonstrated features.
 
 The following examples are available:
 
+dirns --
+  demonstrates how directory related namespaces work
+
 install --
   is an example for the use of the pattern rule in install.rule.
+
+javacompile --
+  shows how to compile java sources and how to create a .jar
 
 multiplatform1 --
   shows a tiny setup to handle multi-platform builts.
