@@ -4,32 +4,18 @@
 		     Rule Based Command Execution
 			       with Tcl
 
-I am pleased to announce version 1.0.0. 
-If you don't know bras: go to the end of this message for more info.
+I am pleased to announce version 1.1.0. 
 
-Finally the step to 1.0.0 had to be done. No major changes happend
-recently. In fact this is more or less a bugfix release against the
-last published version.
+What's new?
 
+1) The new predicate [updated {a b c ...}] should be used instead of
+[older] if the target is not a file name. It returns 1 (true), if any
+of a, b, c, ... are out of date. 
 
-MAJOR CHANGES SINCE 0.99.5
+2) Fixed a bug regarding @-dependencies where the @ was still prefixed
+to the dependency when it was passed to the command of a rule.
 
--- The predicate [varchanged] is should be really useful and working
-now. 
--- Option -ve was broken and now works again.
--- The predicate [oldcache] had some problems when one of its
-arguments did not exist as a file.]
--- Added two examples. One shows predicate [varchanged] at work, the
-other demonstrates how an new predicate can be written.
--- Error handling was thought over again. If a bug in Bras causes an
-exception, this should no longer be obscured.
--- When executing predicates or commands, bras guards again a
-directory change even in case of exceptions.
-
-INCOMPATIBILITY:
--- Executed commands have their error output no longer redirected to
-the stderr. Instead, if they print something on stderr, bras
-interpretes this as an error similar to a non-zero exit code.
+3) Added example to demonstrate a setup for multi-platform builts.
 
 
 WHERE CAN I GET IT?
@@ -67,4 +53,4 @@ Send comments and requests for enhancements to
 kirschh@lionbioscience.com .
  
 # CVS:
-# $Revision: 1.11 $, $Date: 2001/01/01 19:20:58 $
+# $Revision: 1.12 $, $Date: 2001/07/29 15:19:36 $
