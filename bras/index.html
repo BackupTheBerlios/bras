@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <HTML>
 <HEAD>
-<TITLE>bras --- Rule Based Command Execution (21-Feb-1999)</TITLE>
+<TITLE>bras --- Rule Based Command Execution</TITLE>
 <!-- Created by: Harald Kirsch,  5-Nov-1997 -->
 <!-- Changed by: Harald Kirsch, 21-Feb-1999 -->
 
@@ -10,17 +10,17 @@
 <BODY>
 <H1>bras --- Rule Based Command Execution</H1>
 
-Executing commands according to rules instead of in the order in which
+<p>Executing commands according to rules instead of in the order in which
 they appear is the great idea which gave us famous
 <code>make</code>. 
-<p>
 
-Although I am quite happy with <code>make</code> most of the time, it has
-some rough edges which I really dislike. There fore I decided the
-other day that I want to have my own little tool without the rough
-edges. The result is <code>bras</code>.  <p>
 
-Its main features are:
+<p>Although I am quite happy with <code>make</code> most of the time,
+it has some rough edges which I really dislike. Therefore I decided
+the other day that I want to have my own little tool without the rough
+edges. The result is <code>bras</code>.
+
+<p>Its main features are:
 <ul>
 <li>rule-controlled command execution, similar to <code>make</code>;
 <li>written in Tcl, no compilation required;
@@ -29,36 +29,32 @@ Its main features are:
 <li>dependencies in foreign directories can trigger sourcing rule files
   in that directory, recursive execution of <code>bras</code> is not
 necessary; 
-<li>more than one type of rule: Newer, Exist, Always;
-<li>new types of rules can be easily added;
-<li>distinction between dependencies and mere prerequisites;
-<li>multiple targets in one rule;
-<li>multiple rules for a target;
+<li>any type of test can render a target out-of-date
 <li>pattern rules which deserve the name;
 </ul>
 
-Of course not all of those are unique to <code>bras</code> compared to
-<code>make</code>. My favorites are Tcl-syntax and the ability to reason
-over several directories without the necessity to execute <code>bras</code>
-recursively. You may want to study a trivial 
-<A HREF="brasfile.exa">example</A> 
+<p>Of course not all of those are unique to <code>bras</code> compared
+to <code>make</code>. My favorites are Tcl-syntax and the ability to
+reason over several directories without the necessity to execute
+<code>bras</code> recursively. But even better is the possibility to
+      describe when a target is out of date by just any boolean
+      expression which can be written down with Tcl-code.
+
+
+<p>You may want to study a trivial <A HREF="brasfile.exa">example</A>
 to find out if <code>bras</code> is for you.
-<p>
 
+<p>You can download the <a href="./bras.ps.gz">gzipped PostScript
+documentation</a>, the latest release as <a
+href="./|BRASTARGZ|">|BRASTARGZ|</a>, or as <a
+href="./|BRASRPM|">|BRASRPM|</a> both of which include the
+documentation. Since <code>bras</code> does not contain any binary
+files, the rpm might also work on non-intel platforms.
 
-You can now download the 
-<a href="./bras.ps.gz">gzipped PostScript documentation</a>,
-the latest release as <a href="./|BRASTARGZ|">|BRASTARGZ|</a>, or as
-<a href="./|BRASRPM|">|BRASRPM|</a> both of which
-include the documentation. Since <tt>bras</tt> does not contain any
-binary files, the rpm might also work on non-intel platforms.
-<p>
-
-For a start you can also read the <a href="manual/bras.html">online
-documentation</a>. If you know <code>bras</code> already, you may be
-interested in the <a href="CHANGES">changes</a> since the last
-release.
-<p>
+<p>For a start you can also read the documentation as a <a
+href="bras.pdf">PDF-file</a> as. If you know <code>bras</code>
+already, you may be interested in the <a href="CHANGES">changes</a>
+since the last release.
 
 <HR> Please send comments and suggestions to <a
 href="mailto:kir@iitb.fhg.de">Harald Kirsch</a>. Flames expressing the

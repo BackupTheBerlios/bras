@@ -8,54 +8,27 @@
 # bras are highlighted.
 #
 # At first this may look like any other Tcl-script. However in the
-# second half of this script, there are commands like `Newer' or
+# second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.17 $, $Date: 2000/03/05 12:37:26 $
+# $Revision: 1.18 $, $Date: 2000/03/14 20:04:18 $
 #
 ########################################################################
 source .version
 
-## When running bras on this file, I assume the current working
-## directory is my development directory of bras. I am going to
-## collect some of the files in there and want to put them in another
-## directory which I can then transfer one-to-one onto our
-## WWW-server. The directory I want to prepare is set here.
-set BRASHOME /home1/kir/work/WWWkir/brashome
+include [file join $::bras::base cvsknown.tcl]
+namespace import ::bras::cvsknown
 
-## My most recent shipment program knows the .tar.gz it will create
-set BRASTARGZ bras-$::bras::VERSION.tar.gz
+## The destination for publishing
+getenv PUBDIR [file join wsd:.public_html brashome]
+
+## Where will the .tar.gz go
+getenv TGZDIR [file join [glob ~] rpm SOURCES]
+set TGZ [file join $TGZDIR bras-$::bras::VERSION.tar.gz]
 
 ## Similarly for the binary rpm
-set BRASRPM bras-$::bras::VERSION-0.noarch.rpm
-
-## Within $BRASHOME I want several files. I collect their names here
-## in the variable TARGETS
-foreach x "$BRASTARGZ $BRASRPM CHANGES brasfile.exa index.html 
-           bras.ps.gz manual/bras.html" {
-  lappend TARGETS $BRASHOME/$x
-}
-
-## Don't ask why, but I maintain more than one CVS repository. However
-## I know, that this module is here:
-set env(CVSROOT) /zip/CVS
-
-
-## Since I don't know how to ask cvs directly which files it knows
-## something about, we must do it the hard way. These files are the
-## files which go into the distribution. The following lines set the
-## variable CVSFILES from the lines of the files CVS/Entries found in
-## all subdirectories managed by CVS.
-foreach x [exec find . -name Entries -print] {
-  set subdir [file dir [file dir $x]]
-  set in [open $x r]; set lines [split [read $in] \n]; close $in
-  foreach line $lines {
-    set entry [split $line /]
-    if {[lindex $entry 2]>=0.0} {
-      lappend CVSFILES [file join $subdir [lindex $entry 1]]
-    }
-  }
-}
+getenv RPMDIR [file join [glob ~] rpm RPMS noarch ]
+set RPM [file join $RPMDIR bras-$::bras::VERSION-0.noarch.rpm]
 
 ########################################################################
 # 
@@ -63,104 +36,80 @@ foreach x [exec find . -name Entries -print] {
 #                                        (Hier kommt die Maus.)
 ########################################################################
 
-## This rule is easy. It makes sure, all targets are made.
-
-Always all $TARGETS {
-  puts "Done."
-}
-
-
-## This rule make sure that the destination directory exists. Its
-## command is only executed if $BRASHOME does not exist. The rule is
-## invoked by most of the rules which follow. 
-
-Exist $BRASHOME {
-  mkdir -p $target
-}
-
-
-## The distribution's .tar.gz-file is made here. It depends on
-## $CVSFILES, i.e. it is constructed, if one of those is newer than
-## the .tar.gz. The ship-command is my personal distribution
-## packer. If you are interested in it, I can send it to you. The
-## notation @doc/bras.ps tells bras that it can find the rules to make
-## doc/bras.ps in directory doc.
-
-Newer $BRASHOME/$BRASTARGZ [concat $CVSFILES @doc/bras.ps] {
-  ship -F -d $BRASHOME -I doc/bras.ps -e bras bras.spec
-}
-
-Always tgz $BRASHOME/$BRASTARGZ {
+## Target tgz is nothing but a shortcut to make $TGZ
+Make tgz {[true $TGZ]} {
   puts "made $deps"
 }
 
-
-## This rule works along the same lines as the one above.
-## However, note how consider is called to make sure $BRASTARGZ
-## exists. You may ask why I don't add $BRASTARGZ to the
-## dependencies. Well, because it shall not be able to render CHANGES
-## out of date. It suffices to let CHANGES depend on $CVSFILES.
-
-Newer $BRASHOME/CHANGES $CVSFILES {
-  consider $BRASHOME/$BRASTARGZ
-  cd $BRASHOME
-  set x [file root [file root $BRASTARGZ]]
-  tar xzfO $BRASTARGZ $x/CHANGES >CHANGES
+## Target $TGZ is made if it is older than any file known to cvs or
+## one of the other files mentioned below.
+Make $TGZ {
+  [older $target [concat [cvsknown] \
+		      @doc/bras.ps @doc/bras.pdf pkgIndex.tcl]]
+} {
+  ship -F -d $TGZDIR -I doc/bras.ps doc/bras.pdf pkgIndex.tcl \
+      -e bras bras.spec
 }
 
-Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
+
+## Target rpm is a shortcut to make $RPM
+Make rpm {[true $RPM]} {
+  puts "made $deps"
+}
+
+## Target $RPM is made if it is older than $TGZ. A Newer-rule is
+## equivalent to `Make ... {[older $target ...]} 
+Newer $RPM $TGZ {
   cd [glob ~/tmp]
-  rpm -tb --buildarch noarch $BRASHOME/$BRASTARGZ
-  cp [glob ~/tmp/RPMS/noarch/$BRASRPM] $target
+  rpm -tb --target noarch $TGZ
 }
 
-Always rpm $BRASHOME/$BRASRPM {
+## This target copies index.html to a target directory after sed'ing it
+Always publish-index {} {
+  sed -e "s/|BRASTARGZ|/[file tail $TGZ]/g" \
+      -e "s/|BRASRPM|/[file tail $RPM]/g" index.html >index.tmp
+  scp index.tmp [file join $PUBDIR index.html]
 }
 
+Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
+  scp Brasfile [file join $PUBDIR brasfile.exa]
+  scp doc/bras.ps.gz doc/bras.pdf $PUBDIR
+  tar xzfO $TGZ bras-$::bras::VERSION/CHANGES >CHANGES
+  scp $TGZ $RPM CHANGES $PUBDIR
+  rm CHANGES
+}  
 
-## The following three rules are all similar to the two above.
 
-Newer $BRASHOME/brasfile.exa Brasfile {
-  cp $trigger $target
+##
+## pkgIndex.tcl
+##
+proc findPkgFiles {} {
+  return [eval exec grep -l {{namespace export}} [glob *.tcl]]
 }
 
-Newer $BRASHOME/index.html \
-    [list index.html $BRASHOME/$BRASTARGZ $BRASHOME/$BRASRPM] {
-  sed -e "s/|BRASTARGZ|/$BRASTARGZ/g" \
-      -e "s/|BRASRPM|/$BRASRPM/g" index.html >$target
+## a shortcut for pkgIndex.tcl
+Always pkgIndex pkgIndex.tcl { 
 }
 
-Newer $BRASHOME/bras.ps.gz @doc/bras.ps {
-  gzip <$trigger >$target
-}
-
-
-## Here we meet something special. This rule's command is executed, if
-## doc/tex is newer than $BRASHOME/manual/bras.html. But latex2html
-## not only needs doc/bras.tex, but also doc/bras.aux. On the other
-## hand would it be wrong to run latex2html only because the .aux-file
-## is newer than our target. This is why doc/bras.aux is considered
-## explicitly. It is not a dependency, but only a prerequisite.  In
-## addition, doc/bras.aux has an `@'-sign in front. This tells bras
-## that it should read doc/Brasfile to find out how to build
-## doc/bras.aux, if it thinks this is necessary.  
-
-Newer $BRASHOME/manual/bras.html doc/bras.tex {
-  consider @doc/bras.aux
-  latex2html -split 0 -dir $BRASHOME/manual $trigger 
+## Note that findPkgFiles is only called if pkgIndex.tcl must be
+## built. If the files it returns where used in more than one
+## predicate, it could of course cache them in a global variable.
+Make pkgIndex.tcl {[older $target [findPkgFiles]]} {
+  eval pkg_mkIndex -verbose -direct . $deps
 }
 
 ##
-## pkgIndex
+## Pattern Rules
 ##
-Always pkgIndex {} {
-  pkg_mkIndex -verbose -direct . \
-      bras.tcl \
-      consider.tcl \
-      evalCmds.tcl \
-      exported.tcl \
-      lastMinuteRule.tcl \
-      makeRule.tcl \
-      predicates.tcl \
-      sourceDeps.tcl
+
+## A simple pattern rule to gzip files. The procedure
+## ::bras::gendep::.withoutgz describes how to derive a dependency from
+## the given target.
+proc ::bras::gendep::.withoutgz {target} {
+  return [file root $target]
 }
+PatternMake .*\.gz .withoutgz {[older $target $d]} {
+  ## We use redirection because gzip otherwise removes the dependency
+  gzip <$d >$target
+}
+
