@@ -1,0 +1,16 @@
+puts "msg: Two rules for target, first has bad dependency"
+puts "expect: A <- good"
+
+
+
+Newer A a {
+  puts "$target <- $deps"
+}
+Newer A good {
+  puts "$target <- $deps"
+}
+
+Exist good
+
+
+

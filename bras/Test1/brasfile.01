@@ -1,9 +1,0 @@
-puts "msg: Error `two types of rules for one target'"
-puts "expect: target `check' has already command >>>>>"
-
-## The following two rules should emit an error
-Newer check {} {
-}
-
-Always check {} {
-}

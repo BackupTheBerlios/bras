@@ -1,0 +1,26 @@
+puts "msg: Two rules for target, first has bad prerequisite"
+puts "expect: making good"
+puts "expect: A <- good"
+
+
+
+Newer A {a // whoobi} {
+  puts "$target <- $deps"
+}
+
+
+Newer A good {
+  puts "$target <- $deps"
+}
+
+Exist a {} {
+  puts "making $target"
+}
+
+Exist good {} {
+  puts "making $target"
+}
+  
+
+
+

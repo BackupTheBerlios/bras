@@ -12,11 +12,6 @@ puts "expect:     dependency C rebuilt"
 ## fake command line option
 set brasOpts(-d) 1
 
-## Specify command alone
-Command AAA {} {
-  puts "$target <- $trigger"
-}
-
 ## This predicate finds that AAA must be made but can't because of B
 Newer AAA B
 

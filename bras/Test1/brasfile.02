@@ -1,7 +1,0 @@
-
-puts "msg: Error `target has two rules, both with nonempty commands'"
-puts "expect: target `check' has already command >>>>>relax<<<<<"
-
-
-Always check {} {relax}
-Always check {} { }
