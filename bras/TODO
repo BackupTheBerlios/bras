@@ -1,4 +1,62 @@
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30:
+
+Kill >@stdin and the like from -ve output.
+
+also requested by Tom Holroyd <tomh@po.crl.go.jp>.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30:
+
+add a path to search to [include]. Toying around with this idea for
+quite some time, but now also Tom Holroyd <tomh@po.crl.go.jp> asked
+for it. 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30:
+
+.brasrc to put e.g. ::bras::configure -ve 1 into it
+
+Proposed by Tom Holroyd <tomh@po.crl.go.jp>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30:
+
+Globbing for targets such that we can write things like
+
+  Make libs {[updated [globtarget lib*]]}
+  Make pack {[updated [globtarget pack-*]]} 
+
+where [globtargets] looks into the list of targets rather than the
+file system.
+
+In `make', targets are just files, in `bras' targets are just `names', 
+consequently [globtarget] would fit in quite well.
+
+proposed by: max@malva.com.ua
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30: DISMISSED
+
+predicate [follow] like this
+
+> proc follow args {
+>         ::bras::consider $args
+>         return 0
+> }
+
+Note that neither trigger nor deps is set.
+Proposed by Tom Holroyd <tomh@po.crl.go.jp>
+
+==> Like [true] (aka Always) this breaks
+the chain of reasoning which I consider a Bad Thing. Instead,
+[updated] should be used.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2001-09-30:
+
+Add predicate [exists] with glob-facilities. Comes in handy for target 
+clean when the existing files are entered into trigger. Might also be
+useful for .tex-compilation to depend on the existence on an .aux-file.
+
+Proposed by Tom Holroyd <tomh@po.crl.go.jp>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 2000-05-25: DONE
 
 Add predicate varChanged as proposed in Mail to Nils from 2000-03-15.
