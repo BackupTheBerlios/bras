@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.7 $, $Date: 1997/11/24 06:16:27 $
+# $Revision: 1.8 $, $Date: 1998/01/18 13:07:59 $
 #
 ########################################################################
 
@@ -20,7 +20,7 @@
 ## collect some of the files in there and want to put them in another
 ## directory which I can then transfer one-to-one onto our
 ## WWW-server. The directory I want to prepare is set here.
-set BRASHOME brashome
+set BRASHOME /home1/kir/work/WWWkir/brashome
 
 ## My most recent shipment program knows the .tar.gz it will create
 set BRASTARGZ [exec ship -n].tar.gz
