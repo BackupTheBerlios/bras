@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 2000/05/27 15:18:45 $
+# $Revision: 1.4 $, $Date: 2000/05/28 11:19:32 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -182,26 +182,62 @@ proc cd {dir} {
 # exec-command. 
 #
 proc ::bras::verboseExec args {
-  puts $args
+  report -ve $args
   return [eval ::bras::exec_orig $args]
 }
+########################################################################
+##
+## prints "$text" to either stdout or stderr, depending on
+## type. Feel free to redefine this proc, if you want the output to go
+## somewhere else.
+## The following types are used:
+## "warn"  -- reminders for the user about dubious idioms
+## "-d", "-v", "-ve" -- output requested by the respective options
+## "norm" -- output produces without any option set
+##
+proc ::bras::report {type text {newline 1} } {
+  switch -exact -- $type {
+    warn {
+      set out stderr
+    }
+    norm -
+    -d -
+    -v -
+    -ve {
+      set out stdout
+    }
+    default {
+      return -code error -errorinfo "wrong type `$type'"
+    }
+  }
+  if {$newline} {
+    puts $out $text
+  } else {
+    puts -nonewline $out $text
+  }
+}    
 ########################################################################
 ##
 ## gobble
 ##   a wrapper around `source $file' to handle errors gracefully
 ##
+## In case of error, the line "---SNIP---" is introduced on top of the 
+## error stack. Everthing after the first "---SNIP---" is entered onto 
+## the stack later by bras-internals and can be deleted before it is
+## presented to the user.
+##
 proc ::bras::gobble {file} {
-  global errorInfo
+  global errorInfo errorCode
 
-  if [catch "uplevel #0 source $file" msg] {
+  if {[catch "uplevel #0 source $file" msg]} {
     ## strip the last 5 lines off the error stack
     set ei [split $errorInfo \n]
     set l [llength $ei]
-    set lastLine [lindex $ei [expr $l-6]]
-    regsub {\".*\"} $lastLine "\"[file join [pwd] $file]\"" lastLine
-    puts stderr [join [lrange $ei 0 [expr $l-7]] \n]
-    puts stderr $lastLine
-    exit 1
+    set lastline [lindex $ei [expr $l-8]]
+    set ei [lrange $ei 0 [expr {$l-9}]]
+    regsub "\"\[^\"]+\"" $lastline "\"[file join [pwd] $file]\"" lastline
+    lappend ei "${lastline}---SNIP---"
+    return -code error -errorinfo [join $ei "\n"]
   }
 }
 ########################################################################
@@ -218,43 +254,12 @@ proc ::bras::gobble {file} {
 ##   The current directory (before cd) is returned.
 ##
 proc ::bras::followTarget {target} {
-  variable Brasfile
-  variable Known
-  variable Tinfo
   #puts "followTarget $target"
 
   set oldpwd [pwd]
-  set dir [file dir [string range $target 1 end]]
-
-  ## carefully change directory
-  if {[catch "cd $dir" msg]} {
-    set err "bras: target `$target' in `"
-    append err "[pwd]"
-    append err "' leads to non-existing directory `$dir'"
-    puts stderr $err
-    exit 1
-  }
-
-  ## check, if we know already the brasfile here
-  if {[info exist Known([file join [pwd] $Brasfile])]} {
-    return $oldpwd
-  }
-
-  ## before really reading the file, mark the current dir as known,
-  ## because the file to be read may lead back here again.
-  set Known([file join [pwd] $Brasfile]) 1
-
-  ## If the brasfile does not exist, print a warning. There is no need
-  ## to terminate immediately, because things might be handled by
-  ## default rules.
-  if {![file exists ${Brasfile}]} {
-    if {0==[llength [array names Tinfo *,[pwd],rule]]} {
-      puts stderr \
-     "bras warning: no `$Brasfile' found in `[pwd]', so hold your breath"
-    }
-  } else {
-    gobble $Brasfile
-  }
+  set dir [file dir $target]
+  include $dir
+  cd [string range $dir 1 end]
   return $oldpwd
 }
 ########################################################################
@@ -380,7 +385,7 @@ proc ::bras::enterRule {targets gdep bexp {cmd {}} } {
 	  "bras(warning) in `[pwd]': overriding command " \
 	  "`$Rule($rid,cmd)' for target `$targets'" \
 	  " with `$cmd'"
-      puts stderr $msg
+      report warn $msg
     }
     set Rule($rid,cmd) $cmd
 

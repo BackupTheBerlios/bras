@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.16 $, $Date: 2000/03/22 12:21:51 $
+# $Revision: 1.17 $, $Date: 2000/05/28 11:19:32 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -36,7 +36,7 @@ source [file join [file dir [info script]] .version]
 proc ::bras::dmsg {msg} {
   variable Indent
   regsub -all "\n" $msg "\n\#$Indent" msg
-  puts "\#$Indent$msg"
+  report -d "\#$Indent$msg"
 }
 ########################################################################
 #
@@ -123,7 +123,7 @@ proc ::bras::leaveDir {newDir} {
   if {"$newDir"=="."} return
 
   if {!$Opts(-s) && !$Opts(-d)} {
-    puts "cd $newDir"
+    report norm "cd $newDir"
   }
   cd $newDir
 }
@@ -134,14 +134,16 @@ proc ::bras::leaveDir {newDir} {
 proc ::bras::returnFromConsider {target keepPWD res {code return} } {
   variable Tinfo 
   variable Considering
-  variable lastError
 
-  set Tinfo($target,[pwd],done) $res
   unset Considering($target,[pwd])
-  leaveDir $keepPWD
-  if {"$code"=="error" && ![info exist lastError]} {
-    set lastError $res
+  if {"$code"=="error"} {
+    set Tinfo($target,[pwd],done) 0
+    leaveDir $keepPWD
+    return -code error -errorinfo $res
   }
+  
+  set Tinfo($target,[pwd],done) $res
+  leaveDir $keepPWD
   return -code $code $res
 }
 ########################################################################
@@ -149,13 +151,10 @@ proc ::bras::returnFromConsider {target keepPWD res {code return} } {
 ## Check whether the target needs to be rebuilt.
 ##
 ## RETURN
-## 0: no need to make target
-## 1: target was just made
+##  0: no need to make target
+##  1: target was just made
+## -1: don't know how to make that target
 ## 
-## ERRORS:
-## If a target cannot be made because it does not exist as a file and
-## has no rule, an error ist thrown.
-##
 ## How a target is considered:
 ## Suppose target t in directory d is considered. The the following
 ## steps are performed:
@@ -185,7 +184,7 @@ proc ::bras::considerOne {target} {
       set keepPWD .
     } else {
       if {!$Opts(-s) && !$Opts(-d)} {
-	puts "cd [pwd]"
+	report norm "cd [pwd]"
       }
     }
   }
@@ -203,9 +202,12 @@ proc ::bras::considerOne {target} {
 
   ## check for dependeny loops
   if {[info exist Considering($target,[pwd])]} {
-    puts stderr \
-	"bras: dependency loop detected for `$target' in `[pwd]'"
-    exit 1
+    set msg {}
+    append msg \
+	"bras: dependency loop detected for `$target' in `[pwd]'" \
+	"---SNIP---"
+    leaveDir $keepPWD
+    return -code error -errorinfo $msg
   }
 
   ## Mark the target as being under consideration to prevent
@@ -237,8 +239,8 @@ proc ::bras::considerOne {target} {
 	if {$Opts(-d)} {
 	  dmsg "don't know how to make, no rule and file does not exist"
 	}
-	returnFromConsider $target $keepPWD \
-	    "don't know how to make `$target' in `[pwd]'" error
+	returnFromConsider $target $keepPWD -1
+	    #"don't know how to make `$target' in `[pwd]'" error
       }
     }
   } else {
@@ -263,9 +265,9 @@ proc ::bras::considerOne {target} {
   ## which may return an error. 
   ##
   if {[catch [list ::bras::checkMake $rid $target reason] res]} {
-    #global errorInfo; puts "$errorInfo $res";
+    global errorInfo
     set Indent [string range $Indent 2 end]
-    returnFromConsider $target $keepPWD $res error
+    returnFromConsider $target $keepPWD $errorInfo error
   }
   set Indent [string range $Indent 2 end]
 

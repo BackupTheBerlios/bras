@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 2000/03/22 10:41:42 $
+# $Revision: 1.5 $, $Date: 2000/05/28 11:19:32 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -32,7 +32,8 @@ source [file join [file dir [info script]] .version]
 #
 ########################################################################
 namespace eval ::bras::p {
-  namespace export older missing true dcold oldcache
+  namespace export older missing true dcold oldcache \
+      varchanged or notinitialized
 }
 ########################################################################
 #
@@ -206,7 +207,7 @@ proc ::bras::p::changed--very-experimental-dont-use {file} {
 # Source the given $file and return a list which contains all
 # variables and their values set in $file.
 #
-proc ::bras::fetchvalues {_ary file} {
+proc ::bras::fetchvalues-not-supported-dont-use {_ary file} {
   upvar $_ary ary
 
   ## Want to source in a fresh interpreter
@@ -241,7 +242,7 @@ proc ::bras::fetchvalues {_ary file} {
 # Tests if any variable set in $pfile changed since last
 # called. Comparison is performed with a cache file named $file.vc
 #
-proc ::bras::p::newvalue {pfile varglob} {
+proc ::bras::p::newvalue-not-supported-use-varChanged {pfile varglob} {
   installPredicate {trigger deps} pfile
 
   set cache ${pfile}.vc;		# vc -- value cache
@@ -325,3 +326,80 @@ proc ::bras::p::oldcache {dc dotc} {
   return [older $dc $dlist]
 }
 ########################################################################
+##
+## Tests, if the given variable was changed since the last invocation
+## of this test. The variable must be given with its full namespace
+## path, or you really know what you are doing. The variable name can
+## also be an array-element, however it cannot be a whole array.
+##
+## The given variables are also considered as targets. However the
+## result of the consideration is not used. Instead the value found
+## after consideration is compared to a value which was stored when
+## this function was called earlier. If it was not called before for
+## this variable, the variable is considered to have been changed.
+##
+## Since previous values of the tested variables are only kept in
+## memory, this predicate cannot communicate the old value of a
+## variable into another invocation of bras by itself.
+##
+## Read the docs for an example of how to communicate values from one
+## invocation to the next.
+##
+proc ::bras::p::varchanged {varnames {cachefile {}} } {
+  variable varChanged
+
+  installPredicate [list trigger deps] {}
+
+  ## We first read the cachefile. This will set the given variables to 
+  ## their former values, if any.
+  if {[file exist $cachefile]} {
+    if {[::bras::include $cachefile]} {
+      ## it was in fact read. We must set the cache-variables
+      foreach varname $varnames {
+	set varChanged($varname) [set $varname]
+      }
+    }
+  }
+
+  ## Consider the given variable name as a target. We are not
+  ## interested in the result of the consideration because we check
+  ## ourselves if the value was changed.
+  ::bras::consider $varnames
+  
+  set res 0
+  foreach varname $varnames {
+    ::bras::lappendUnique deps $varname
+
+    if {![info exist varChanged($varname)] 
+	|| 0!=[string compare $varChanged($varname) [set $varname]]} {
+      set varChanged($varname) [set $varname]
+      ::bras::lappendUnique trigger $varname
+      append reason "\nvariable `$varname' was changed"
+      set res 1
+    }
+  }
+
+  return $res
+}
+########################################################################
+proc ::bras::p::or {args} {
+  set e [join $args ||]
+  return [expr $e]
+}
+########################################################################
+proc ::bras::p::notinitialized {names} {
+  variable notInitialized
+
+  installPredicate [list trigger deps] {}
+
+  set res 0
+  foreach name $names {
+    ::bras::lappendUnique deps $name
+    if {[info exist notInitialized($name)]} continue
+    set notInitialized($name) 1
+    ::bras::lappendUnique trigger $name
+    append reason "\n`$name' not yet initialized"
+    set res 1
+  }
+  return $res
+}

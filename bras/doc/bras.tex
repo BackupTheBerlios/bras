@@ -12,7 +12,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.23 $, $Date: 2000/03/14 19:59:10 $
+% $Revision: 1.24 $, $Date: 2000/05/28 11:19:37 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1269,7 +1269,7 @@ is equivalent to
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{\Bras\ as a Package}
 
-Since Version 0.99.1 \bras can be used as a package in any
+Since Version 0.99.1 \bras{} can be used as a package in any
 Tcl-script. In the future this will be better documented. In short,
 it should suffice to have
 \begin{verbatim}
@@ -1278,7 +1278,7 @@ it should suffice to have
 \end{verbatim}
 somewhere at the beginning of your script to be able to use \bras'
 commands \texttt{Make}, \texttt{consider} and so on. Most command line 
-options of \bras can be set by calling \texttt{::bras::configure}.
+options of \bras{} can be set by calling \texttt{::bras::configure}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
@@ -1421,6 +1421,34 @@ useful new predicate, send me the source.
 \end{Describe}
 
 %%%%%
+%%%%% notinitialized
+%%%%%
+\label{pred:notinitialized}
+\begin{Describe}
+\item[Name] \Flash{notinitialized} --- returns \texttt{true} only, if
+  it was not called before for all of its arguments
+\item[Synopsis] \Tt{notinitialized} \It{targets}
+\item[Description] This predicate maintains an internal list of those
+  targets for which it was called before. If one of its arguments is
+  not yet on the list, it returns \texttt{true}.
+  
+  Please note that \texttt{notinitialized} \textbf{does not} call
+  \texttt{consider} for its arguments.
+\item[Example]
+\begin{verbatim}
+  Make {paramA paramB paramC} {[notinitialized $targets]} {
+    source paramfile    
+    # assumes that variables paramA ... are set 
+  }
+\end{verbatim} 
+%$
+  This predicate is mainly useful in applications with a GUI which
+  make use of \texttt{forget} (p.~\pageref{proc:forget}) because
+  otherwise a target is never considered more than once. As shown
+  above, it can be used to initialize variables from a source-file once.
+\end{Describe}
+
+%%%%%
 %%%%% oldcache
 %%%%%
 \begin{Describe}
@@ -1481,7 +1509,93 @@ useful new predicate, send me the source.
   \texttt{deps}.
 \end{Describe}
 
+%%%%%
+%%%%% varChanged
+%%%%%
+\begin{Describe}
+\item[Name] \Flash{varchanged} --- did a given variable's value
+  change?
+\item[Synopsis] \Tt{varchanged} \It{varnames}
+\item[Description] The predicate \texttt{varchanged} tests if any of
+  the given variables were changed since the last invocation of 
+  this predicate.
+  
+  Before, all given variable names considered as targets. However the
+  result of the consideration with regard to the fact whether the
+  variable was updated or not is not used. Instead,
+  \verb+[+\texttt{string compare}\verb+]+ is used to compare the
+  current value with one checked previously.
 
+  Since the variable's contents are not stored in a file,
+  \texttt{varchanged} cannot communicate values it has seen between
+  different invocations of \bras. Consequently, its main use is
+  probably within a wish-application, were the user changes variable
+  values to trigger certain events.
+
+  However the following example describes how \texttt{varchanged} can
+  still used effectively in command line invocations of \bras.
+\item[Example]
+  Suppose you have a parameter file to store parameters of
+  algorithms and you want an algorithm to be run only, if a parameter
+  relevant to that algorithm changes. Consequently the result produced by 
+  an algorithm shall not depend on the parameter file as a whole, but
+  only on that particular parameter.
+
+  The following code shows an example with two result files, two input 
+  files and one parameter file:
+  \begingroup\small
+  \verbatiminput{varchanged-example.tcl}
+  \endgroup
+
+  When \bras{} is called to make \texttt{resultA} it acts according to
+  rule 
+  \begin{quote}
+    \ttfamily Make resultA ...
+  \end{quote}
+  In particular it checks the
+  predicate 
+  \begin{quote}
+    \ttfamily [varchanged ::paramA \$target.cache]
+  \end{quote}
+  to see if variable \texttt{::paramA} has changed according to the
+  given cache file. Predicate \texttt{varchanged} first reads the
+  cache file to learn the old value of \texttt{::paramA}. It expects
+  that sourcing the cache file sets \texttt{::paramA} to the value
+  used most recently in a computation. It then copies that value into
+  its internal cache for \texttt{::paramA}. However it is also ok, if
+  \texttt{::paramA} is not set or if the cache file does not exist. 
+
+  The cache file is only ever read once to initialize the internal
+  cache. Later invocations will use the internally cached value to
+  check, if \texttt{::paramA} was changed.
+
+  After the cache file is read, a value found for \texttt{::paramA} 
+  is copied into the internal cache. Then \texttt{varchanged} triggers
+  consideration of target \texttt{::paramA}, which leads to rule
+  \begin{quote}
+    \ttfamily Make \{::paramA ::paramB\} \{[notinitialized
+    \$targets]\} ...\hspace*{-22pt}
+  \end{quote}
+  The predicate \texttt{notinitialized}
+  (p.~\pageref{pred:notinitialized}) returns \texttt{true} if it was
+  called the very first time for any one of
+  its arguments. Consequently, both parameters are initialized by
+  sourcing file \texttt{params} exactly once.
+
+  Now that the internal cache for \texttt{::paramA} as well as the
+  variable itself are initialized from files, both values are compared 
+  and if they don't agree, \texttt{varchanged} returns \texttt{true}.
+
+  Note how the cache file \texttt{resultA.cache} is written at the
+  same time as the result is created.
+
+  If the above rules are used within a \texttt{wish}-application, the
+  second and all later considerations of 
+  \texttt{[varchanged ::paramA
+    ...]} will never again read either the cache or the parameter file
+  because it is assumed that all necessary information is already in
+  memory. 
+\end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Miscellaneous procedures}
 
@@ -1527,6 +1641,26 @@ only, if one of the files of the modules has changed.
 Only if \texttt{\$module.tar.gz} is actually considered for update the
 rather expensive procedure \texttt{cvsknown} is run. When other
 targets are considered, it is never executed.
+\end{Describe}
+
+%%%%%
+%%%%% forget
+%%%%%
+\label{proc:forget}
+\begin{Describe}
+\item[Name] \Flash{forget} --- let \bras{} forget that it has considered 
+  certain targets already
+\item[Synopsis] \Tt{forget} ?\It{targets} \It{dirs}?
+\item[Description] Both parameters \It{targets} and \It{dirs} can be
+  glob-patterns. They describe which targets \bras{} shall mark as ``not
+  yet considered' in which directories. If \It{dirs} is not given,
+  \bras{} forgets the matching targets in all directories. If no
+  argument is given, \bras{} forgets all targets.
+  
+  The functions is normally not useful if \bras{} is invoked on the
+  command line. However if the \bras-package is used in a
+  Tk-application, \texttt{forget} allows to reconsider targets after
+  the user changed some settings.
 \end{Describe}
 %%%%%
 %%%%% getenv

@@ -23,7 +23,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 2000/05/27 15:16:46 $
+# $Revision: 1.7 $, $Date: 2000/05/28 11:19:32 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -127,34 +127,52 @@ proc ::bras::searchpath { {p {never used}} } {
 ##
 proc ::bras::include {name} {
   variable Known
-  
-  if [string match @* $name] {
-    cd [followTarget [file join $name .]]
-    return
+  variable Brasfile
+
+  if {[string match @* $name]} {
+    set name [file join [string range $name 1 end] $Brasfile]
+    set haveAt 1
+  } else {
+    set haveAt 0
   }
 
-  ## To be compatible with followTarget, we first have to move to the
-  ## destination directory to get the correct answer from [pwd]. _NO_,
-  ## just stripping the directory part from $name is useless, because
-  ## it may contain relative parts and parts leading through one or
-  ## more soft-links.
+  ## We first have to move to the destination directory to get the
+  ## correct answer from [pwd]. _NO_, just stripping the directory part
+  ## from $name is useless, because it may contain relative parts and
+  ## parts leading through one or more soft-links.
   set dir [file dir $name]
   set file [file tail $name]
-
   set oldpwd [pwd]
-  if [catch "cd $dir" msg] {
+
+  if {[catch "cd $dir" msg]} {
     set err "bras: include of `$name' tried in directory `$oldpwd'"
-    append err " leads to non-existing directory `$dir'"
-    puts stderr $err
-    exit 1
+    append err " leads to non-existing directory `$dir'" \
+	"---SNIP---"
+    return -code error -errorinfo $err
   }
   set pwd [pwd]
-  cd $oldpwd
 
-  if {[info exist Known([file join $pwd $file])]} return
+  if {[info exist Known([file join $pwd $file])]} {
+    cd $oldpwd
+    return 0
+  }
   set Known([file join $pwd $file]) 1
 
-  gobble $name
+  ## If this was called with an @-name, the file must be source in
+  ## that directory.
+  if {$haveAt} {
+    ## @-names are allowed not to exist.
+    if {[file exist $file]} {
+      gobble $file
+    } else {
+      report warn "bras warning: no `$Brasfile' found in `[pwd]'"
+    }
+    cd $oldpwd
+  } else {
+    cd $oldpwd
+    gobble $name
+  }
+  return 1
 }
 ########################################################################
 #
@@ -189,12 +207,13 @@ proc ::bras::consider {targets} {
   set res {}
   set err {}
   foreach t $targets {
-    if {[catch {::bras::considerOne $t} r]} {
-      append err "\n" $r
+    set r [::bras::considerOne $t]
+    if {$r<0} {
+      append err "don't know how to make `$t' in `[pwd]'\n"
       if {!$Opts(-k)} break
-    } else {
-      lappend res $r
+      set r 0
     }
+    lappend res $r
   }
 
   if {[info exist msg]} {
@@ -203,7 +222,9 @@ proc ::bras::consider {targets} {
   }
 
   if {"$err"!=""} {
-    return -code error $err
+    set err [string trim $err "\n"]
+    append err "---SNIP---"
+    return -code error -errorinfo $err
   } else {
     return $res
   }

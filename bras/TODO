@@ -1,4 +1,16 @@
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2000-05-25: DONE
+
+Add predicate varChanged as proposed in Mail to Nils from 2000-03-15.
+
+Add function forget.
+
+Make -ve reversible in configure.
+
+Allow output destination to be configured such that it is easy to be
+redirected into a widget.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 2000-03-15:
 
 Write a bunch of small dedicated real world examples.

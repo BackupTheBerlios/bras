@@ -105,7 +105,7 @@ proc ::bras::readDeps {in ignore _Deps} {
 proc ::bras::sourcedeps {file args} {
 
   if {![file readable $file]} {
-    puts stderr \
+    report warn \
 	"bras warning: cannot read `[file join [pwd] $file]'"
     return
   }

@@ -33,7 +33,7 @@ source [file join [file dir [info script]] .version]
 # renamed to ::unknown. See invokeCmd for the details.
 #
 proc ::bras::unknown args {
-
+  
   #puts "unknown: `$args'"
 
   set args [eval concat $args]
@@ -44,7 +44,8 @@ proc ::bras::unknown args {
   set ::auto_noexec 1
   set code [catch {uplevel 1 ::bras::unknown.orig $args} res]
   unset ::auto_noexec
-  if {!$code} { ;# the original unknown worked
+  if {!$code} { 
+    # the original unknown worked
     return $res
   }
 
@@ -55,12 +56,6 @@ proc ::bras::unknown args {
     return -code error $res
   }
 
-#   if {$::bras::Opts(-ve)} {
-#     puts $args
-#     set exec ::bras::exec_orig
-#   } else {
-#     set exec exec
-#   }
   if {[catch {eval exec <@stdin 2>@stderr >@stdout $args} msg] } {
     return -code error $msg
   }
@@ -75,9 +70,10 @@ proc ::bras::invokeCmd {rid Target nspace} {
   ## find the command to execute
   set cmd $Rule($rid,cmd)
   if {""=="$cmd"} {
-    puts -nonewline stderr \
-	"bras(warning) in `[pwd]': no command found to make `$Target' "
-    puts stderr "from `$Deps' (hope that's ok)"
+    append msg \
+	"bras(warning) in `[pwd]': no command found to " \
+	"make `$Target' from `$Deps' (hope that's ok)"
+    report warn $msg
     return 1
   }
   set Rule($rid,run) 1
@@ -112,20 +108,20 @@ proc ::bras::invokeCmd {rid Target nspace} {
 #   }
 
   if {$Opts(-v)} {
-    puts "\# -- running command --"
+    report -v "\# -- running command --"
     foreach name [info vars $nspace\::*] {
       set tail [namespace tail $name]
       if {[string match reason $tail]} continue
-      puts "\# $tail = `[set $name]'"
+      report -v "\# $tail = `[set $name]'"
     }
-    puts [string trim $cmd "\n"]
+    report -v [string trim $cmd "\n"]
   }
  
   if {!$Opts(-n)} {
 
     if {!$Opts(-v) && !$Opts(-ve) &&
 	!$Opts(-d) && !$Opts(-s)} {
-      puts  "\# making `$Target'";
+      report norm "\# making `$Target'"
     }
 
     set wearehere [pwd]
@@ -138,9 +134,9 @@ proc ::bras::invokeCmd {rid Target nspace} {
     uplevel \#0 namespace eval $nspace {{
       if {[catch "unset c; $c" msg]} {
 	global errorInfo
-	puts stderr $errorInfo
-	puts stderr "    while making target `$target' with command"
-	exit 1
+	append errorInfo \
+	    "\n    while making target `$target' in `[pwd]'---SNIP---"
+	return -code error -errorinfo $errorInfo
       }
     }}
 	

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 2000/03/14 18:08:09 $
+# $Revision: 1.4 $, $Date: 2000/05/28 11:19:32 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -40,6 +40,12 @@ proc ::bras::Make {targets bexp {cmd {}}} {
 ########################################################################
 proc ::bras::PatternMake {trexp gendep bexp cmd} {
   ::bras::enterPatternRule $trexp $gendep $bexp $cmd
+}
+proc Expr {args} {
+
+  set r [expr $args]
+  puts "Expr: `$args' --> $r"
+  return $r
 }
 ########################################################################
 proc ::bras::checkMake {rid theTarget _reason} {
@@ -72,8 +78,20 @@ proc ::bras::checkMake {rid theTarget _reason} {
 					# interference 
     set $nspace\::targets $targets
     set $nspace\::d $d
-    set r [uplevel \#0 namespace eval $nspace \
-	       [list expr $b]]
+    set cmd [concat uplevel \#0 \
+		 [list namespace inscope $nspace expr [list $b]]]
+    #puts ++++$cmd++++
+    ## $b contains user's code, so care must be taken when
+    ## running it.
+    if {[catch $cmd r]} {
+      global errorInfo;
+      set ei [split $errorInfo "\n"]
+      set l [llength $ei]
+      set ei [lrange $ei 0 [expr {$l-8}]]
+      lappend ei "checking test `$b' for target `$theTarget'---SNIP---"
+      return -code error -errorinfo [join $ei "\n"]
+    }
+    #set r [uplevel \#0 namespace eval $nspace [list expr $b]]
     #set r [::bras::p::evaluate $b]
     set res [expr {$res || $r}]
   }
