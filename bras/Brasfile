@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.15 $, $Date: 1999/07/24 17:08:04 $
+# $Revision: 1.16 $, $Date: 1999/07/24 18:05:13 $
 #
 ########################################################################
 
@@ -63,36 +63,45 @@ foreach x [exec find . -name Entries -print] {
 ########################################################################
 
 ## This rule is easy. It makes sure, all targets are made.
+
 Always all $TARGETS {
   puts "Done."
 }
 
+
 ## This rule make sure that the destination directory exists. Its
 ## command is only executed if $BRASHOME does not exist. The rule is
 ## invoked by most of the rules which follow. 
+
 Exist $BRASHOME {
   mkdir -p $target
 }
 
+
 ## The distribution's .tar.gz-file is made here. It depends on
 ## $CVSFILES, i.e. it is constructed, if one of those is newer than
-## the .tar.gz. The notatation `// $BRASHOME' tells bras that
-## $BRASHOME is needed to execute the command `ship ...', but that its
-## last modification time can never be a reason to let the
-## .tar.gz-file be out-of-date. (The ship-command is my personal
-## distribution packer. If you are interested in it, I can send it to
-## you.)
-## The notation @doc/bras.ps tells bras that it can find the rules to
-## make doc/bras.ps in directory doc.
-Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
+## the .tar.gz. The ship-command is my personal distribution
+## packer. If you are interested in it, I can send it to you. The
+## notation @doc/bras.ps tells bras that it can find the rules to make
+## doc/bras.ps in directory doc.
+
+Newer $BRASHOME/$BRASTARGZ [concat $CVSFILES @doc/bras.ps] {
   ship -F -d $BRASHOME -I doc/bras.ps -e bras bras.spec
 }
+
 Always tgz $BRASHOME/$BRASTARGZ {
   puts "made $deps"
 }
 
+
 ## This rule works along the same lines as the one above.
-Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
+## However, note how consider is called to make sure $BRASTARGZ
+## exists. You may ask why I don't add $BRASTARGZ to the
+## dependencies. Well, because it shall not be able to render CHANGES
+## out of date. It suffices to let CHANGES depend on $CVSFILES.
+
+Newer $BRASHOME/CHANGES $CVSFILES {
+  consider $BRASHOME/$BRASTARGZ
   cd $BRASHOME
   set x [file root [file root $BRASTARGZ]]
   tar xzfO $BRASTARGZ $x/CHANGES >CHANGES
@@ -107,35 +116,36 @@ Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
 Always rpm $BRASHOME/$BRASRPM {
 }
 
+
 ## The following three rules are all similar to the two above.
 
-Newer $BRASHOME/brasfile.exa "Brasfile // $BRASHOME" {
+Newer $BRASHOME/brasfile.exa Brasfile {
   cp $trigger $target
 }
 
 Newer $BRASHOME/index.html \
-    "index.html $BRASHOME/$BRASTARGZ // $BRASHOME" {
+    [list index.html $BRASHOME/$BRASTARGZ $BRASHOME/$BRASRPM] {
   sed -e "s/|BRASTARGZ|/$BRASTARGZ/g" \
       -e "s/|BRASRPM|/$BRASRPM/g" index.html >$target
 }
 
-Newer $BRASHOME/bras.ps.gz "@doc/bras.ps // $BRASHOME" {
+Newer $BRASHOME/bras.ps.gz @doc/bras.ps {
   gzip <$trigger >$target
 }
+
 
 ## Here we meet something special. This rule's command is executed, if
 ## doc/tex is newer than $BRASHOME/manual/bras.html. But latex2html
 ## not only needs doc/bras.tex, but also doc/bras.aux. On the other
 ## hand would it be wrong to run latex2html only because the .aux-file
-## is newer than our target. This is why doc/bras.aux is mentioned
-## behind the double-slash (//). It is not a dependency, but only a
-## prerequisite. 
-## In addition, doc/bras.aux has an `@'-sign in front. This tells bras
+## is newer than our target. This is why doc/bras.aux is considered
+## explicitly. It is not a dependency, but only a prerequisite.  In
+## addition, doc/bras.aux has an `@'-sign in front. This tells bras
 ## that it should read doc/Brasfile to find out how to build
-## doc/bras.aux, if it thinks this is necessary.
-##
-Newer $BRASHOME/manual/bras.html \
-    "doc/bras.tex // $BRASHOME @doc/bras.aux" {
+## doc/bras.aux, if it thinks this is necessary.  
+
+Newer $BRASHOME/manual/bras.html doc/bras.tex {
+  consider @doc/bras.aux
   latex2html -split 0 -dir $BRASHOME/manual $trigger 
 }
 
