@@ -1,7 +1,7 @@
 
 			      ANNOUNCING
 			     --- bras ---
-		     Rule Base Command Execution
+		     Rule Based Command Execution
 			       with Tcl
 
 I am pleased to announce version 0.99.2 of bras. This is supposed to
@@ -21,7 +21,7 @@ maintained. A typical rule looks like
   }
 
 Note that the 2nd parameter of `Make' can be just any boolean
-expression. The boolean expression is updated only, if the target of
+expression. The boolean expression is evaluated only, if the target of
 the rule, `bras.dvi' is considered for update. If the expression
 yields true, the command, i.e. `latex bras.tex', is executed. The
 predicate `older' is one of several predefined
@@ -93,4 +93,4 @@ o explicit invocation of the reasoning process possible;
 Send comments and requests for enhancements to kir@iitb.fhg.de .
  
 # CVS:
-# $Revision: 1.8 $, $Date: 2000/03/14 20:23:58 $
+# $Revision: 1.9 $, $Date: 2000/03/14 20:40:16 $
