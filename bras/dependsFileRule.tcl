@@ -22,17 +22,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 1997/11/09 19:43:17 $
+# $Revision: 1.1 $, $Date: 1997/11/19 07:01:26 $
 ########################################################################
 
 ########################################################################
 ##
 ## This file came into being after a discussion with Jason Gunthorpe
-## <jgg@gpu.srv.ualberta.ca> about the trickery involved to keep a
+## <jgg@debian.org> about the trickery involved to keep a
 ## .o-file up-to-date with respect to its .c- or .cc-file. It is so
 ## tricky because changing the source file or one of its included
 ## files may change the dependency list itself. Jason wanted to talk
-## me into lots of complicated special stuff to implement in into
+## me into lots of complicated special stuff to implement into
 ## bras to be able to handle the problem with Newer-rules --- as you
 ## do with make. A fresh thought after a good nights sleep revealed
 ## that the Newer-Rule is simply the wrong type of rule to use.
@@ -43,7 +43,7 @@
 ## names. Those are added to the dependency list and the whole stuff
 ## is then passed to Newer.
 ## 
-Defrule CDepend {target deps _newer _reason} {
+Defrule DependsFile {target deps _newer _reason} {
   upvar $_reason reason
   upvar $_newer newer
   

@@ -29,7 +29,7 @@
 ## Check whether pattern rule no. $i is a candidate for further
 ## consideration, i.e. matches $target.
 ##
-proc bras.isCandidate {target i} {
+proc bras.isCandidate-NOT_USED_ANYMORE {target i} {
   global brasPrule
   return [regexp "^$brasPrule($i,target)\$" $target]
 }
@@ -60,12 +60,98 @@ proc bras.nextCandidate {target id} {
 ##   have any explicit rule.
 ##
 ## Since we don't have any dependencies available here, only the
+## target can select a rule. 
+##
+## If a rule matches the target, its GenDep-proc is called to generate
+## the dependency. If that dependeny exists as a file, or if there is
+## a real rule with that dependency as target, the rule is
+## used.
+##
+## If no dependency file is found, all rule matching the target are
+## considered again, this time calling lastMinuteRule recursively on
+## the generated dependency.
+##
+## If a rule is (recursively) found, 1 is returned, otherwise 0.
+##
+## To prevent recursive looping, brasPrule($id,cure) is set to 1 for a
+## rule which initiates a recursive search.
+##
+proc bras.lastMinuteRule {target dind} {
+  global brasPrule brasOpts brasRule brasTinfo
+  set lastID [expr $brasPrule(nextID)-1]
+ 
+  if $brasOpts(-d) {
+    bras.dmsg $dind "looking for pattern rule for target `$target'"
+  }
+  ## In the first step, we check if there is a rule which matches the
+  ## target and generates a dependency which exists as a file
+  set ruleID -1
+  set activeRules {}
+  for {set id $lastID} {$id>=0} {incr id -1} {
+    ## This rule might have been deleted.
+    if { ![info exist brasPrule($id,target)] } continue
+    
+    ## don't check recursively active rules
+    if $brasPrule($id,cure) continue
+
+    ## match the target
+    if ![regexp "^$brasPrule($id,target)\$" $target] continue
+
+    ## get the dependency and see, if it exists as a file or if there
+    ## is a real rule for it.
+    set dep [GenDep$brasPrule($id,dep) $target]
+    if {[file exist $dep] || [info exist brasTinfo($dep,[pwd],rule)]}  {
+      set ruleID $id
+      break
+    }
+
+    lappend activeRules $id
+    if $brasOpts(-d) {
+      bras.dmsg $dind "+ no file `$dep'"
+    }
+  }
+
+  ## If we did not find a rule-id yet, go recursive
+  if {$ruleID==-1} {
+    foreach id $activeRules {
+      set dep [GenDep$brasPrule($id,dep) $target]
+      set brasPrule($id,cure) 1
+      set ok [bras.lastMinuteRule $dep "$dind  "]
+      set brasPrule($id,cure) 0
+      if $ok {
+	set ruleID $id
+	break
+      }
+    }
+    if {$ruleID==-1} {
+      return 0
+    }
+  }
+
+  ## If we arrive here, ruleID>=0 denotes the rule to use.  
+  $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
+  if $brasOpts(-d) {
+    set msg "creating $brasPrule($id,type)-rule "
+    append msg "`$target' <- `$dep' from pattern "
+    append msg "($brasPrule($id,target) <- $brasPrule($id,dep))"
+    bras.dmsg $dind $msg
+  }
+      
+  return 1
+}
+########################################################################
+##
+## bras.lastMinuteRule
+##   tries to create a rule from brasPrule for targets that don't
+##   have any explicit rule.
+##
+## Since we don't have any dependencies available here, only the
 ## target can be used to select an appropriate rule. To prevent
 ## infinite recursion due to pattern-rule chaining, a rule is only
 ## returned, if the resulting target will not match a pattern-rule
 ## with a the same or a larger ID.
 ##
-proc bras.lastMinuteRule {target dind} {
+proc bras.lastMinuteRule.BLOODY-OLD {target dind} {
   global brasPrule brasOpts brasRule brasTinfo
   set nextID $brasPrule(nextID)
 
@@ -77,7 +163,7 @@ proc bras.lastMinuteRule {target dind} {
 
     ## Get the derived dependency and check that it can not trigger a
     ## pattern-rule with an ID greater than or equal to id.
-    set depProc Dep$brasPrule($id,dep) 
+    set depProc GenDep$brasPrule($id,dep) 
     set dep [$depProc $target]
     if {[bras.nextCandidate $dep $id]!=$nextID} {
       #puts "not using $id for $target because $dep"

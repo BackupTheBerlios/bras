@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 1997/11/08 21:59:19 $
+# $Revision: 1.7 $, $Date: 1997/11/19 07:01:25 $
 ########################################################################
 
 ########################################################################
@@ -254,7 +254,9 @@ proc bras.Consider {target} {
     set pureDeps [bras.pureDeps $deps]
     if {""=="$brasRule($rid,cmd)"} {
       set _reason {}
-      set cmd [bras.defaultCmd $target $pureDeps _reason]
+      set patrigs {}
+      set cmd [bras.defaultCmd \
+		   $brasRule($rid,type) $target $pureDeps _reason patrigs]
       append reason $_reason
     } else {
       set cmd $brasRule($rid,cmd)
@@ -268,7 +270,10 @@ proc bras.Consider {target} {
       lappend cmdlist "@cd [pwd]"
       lappend cmdlist "@set target \"$target\""
       lappend cmdlist "@set targets \"$brasRule($rid,targ)\""
-      lappend cmdlist "@set newer \"$newer\""
+      #lappend cmdlist "@set newer \"$newer\""
+      if {[info exist patrigs] && "$patrigs"!=""} {
+	lappend cmdlist "@set patternTriggers \"$patrigs\""
+      }
       lappend cmdlist "@set trigger \"$newer\""
       lappend cmdlist "@set deps \"$pureDeps\""
       lappend cmdlist "@set preq \"$brasRule($rid,preq)\""

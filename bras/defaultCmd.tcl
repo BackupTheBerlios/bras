@@ -31,8 +31,9 @@
 ##
 ## _reason gets appended information, if brasOpts(-d) is set
 ##
-proc bras.defaultCmd {target deps _reason} {
+proc bras.defaultCmd {type target deps _reason _patternTrigger} {
   upvar $_reason reason
+  upvar $_patternTrigger patternTrigger
   global brasPrule brasOpts
 
   ## need to check all pattern rules
@@ -41,25 +42,28 @@ proc bras.defaultCmd {target deps _reason} {
     ## This one might have been deleted.
     if { ![info exist brasPrule($i,target)] } continue
 
+    ## If its has the wrong type, it is out of the game
+    if {"$type"!="$brasPrule($i,type)"} continue
+
     ## Is this one a candidate?
-    if { ![bras.isCandidate $target $i] } continue
+    if ![regexp "^$brasPrule($i,target)\$" $target] continue
 
-    ## Generate the derived depencency
-    set d $brasPrule($i,dep)
-    set derivedDep [Dep$d $target]
-    
-    ## Check if derivedDep shows up in $deps
-    foreach d $deps {
-      if { "$derivedDep"!="$d" } continue
+    ## Check all real dependencies against the pattern rule's MatchDep
+    ## function.
+    set MatchDep MatchDep$brasPrule($i,dep)
 
-      ## ok, return the command
+    ## Check to see if any of deps can be matched with MatchDep
+    set res [$MatchDep $target $deps]
+    if [llength $res] {
       if $brasOpts(-d) {
 	append reason \
-	    "\nusing command from pattern rule "
-	append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
+	    "\nusing command from pattern rule " \
+	    "`$type $brasPrule($i,dep)->$brasPrule($i,target)' "\
+	    "because `$res' match(es)"
       }
+      set patternTrigger $res
       return $brasPrule($i,cmd)
     }
   }
+  return {}
 }    
-

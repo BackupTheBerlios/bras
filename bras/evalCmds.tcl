@@ -30,7 +30,7 @@ proc bras.unknown args {
   #puts "unknown: `$args'"
 
   ## There seems to be a change in the return value of auto_execok
-  ## somewhere between 7.4 and 7.6. I trie to exploit both versions.
+  ## somewhere between 7.4 and 7.6. I try to exploit both versions.
   set name [lindex $args 0]
   set tmp [auto_execok $name]
   if {""=="$tmp" || "0"=="$tmp"} {
@@ -38,9 +38,20 @@ proc bras.unknown args {
   } else {
     #puts "would exec $args"
     set args [eval concat $args]
-    puts "$args"
 
-    if {$brasOpts(-n)} {return {}}
+    if {$brasOpts(-N)} {
+      puts stdout $args
+      return {}
+    }
+
+    if {!$brasOpts(-ss)} {
+      ## not super-silent
+      if {!$brasOpts(-s)} {
+	puts stdout $args
+      } else {
+	puts -nonewline stdout .
+      }
+    }
 
     return [uplevel exec <@stdin 2>@stderr >@stdout $args]
   }
@@ -57,7 +68,9 @@ proc bras.evalCmds {cmds} {
       set newcwd [string trim [lindex $cmd 1]]
       if { "$newcwd"=="[pwd]" } continue
       set cmd [string range $cmd 1 end]
-      puts "$cmd"
+      if {!$brasOpts(-s) && !$brasOpts(-ss)} {
+	puts stdout $cmd
+      }
       eval $cmd
       continue
     }
@@ -66,12 +79,13 @@ proc bras.evalCmds {cmds} {
       set cmd [string range $cmd 1 end]
     }
     if $brasOpts(-v) {
-      regsub -all "\n" [string trim $cmd "\n"] "\n%" c
-      puts "%$c"
+      regsub -all "\n" [string trim $cmd "\n"] "\n" c
+      puts "$c"
     }
+    
+    if $brasOpts(-n) continue
 
-    #puts ">>>$cmd<<<"
-    #uplevel #0 "Xshow {$cmd}"
+    ## The command is finally executed with uplevel.
     if [catch "uplevel #0 {$cmd}" msg] {
       puts stderr $msg
       exit 1

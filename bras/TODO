@@ -2,10 +2,15 @@ o Update doc
   (This probably never goes away)
 
 
+
 o Find out how to give every brasfile its own scope so that a variable
   like SRC is not messed up, if it is used in several brasfiles.
 
+
+
 o Parallel execution (like make's -j)
+
+
 
 o Option to switch between the following modes:
   a) Collect *all* commands first, then start executing
@@ -14,7 +19,11 @@ o Option to switch between the following modes:
      made with their first rule.   
      - Might conflict with option -d
 
+
+
 o A check to test if there is a rule for a target.
+
+
 
 o Catch all-rules as pattern-rules
 >- This doesn't work either:
@@ -23,16 +32,65 @@ o Catch all-rules as pattern-rules
 >The idea would be a match anything rule for building libraries.. 
 
 
+
 o Selective rule dumping for debugging purposes.
 
-o Silent operation, very silent operation.
 
-o More intelligent abseiling along a chain of pattern rule so that
-there is no need for intermediate targets to exist.
+
+o Allow the directories of @-dependencies to be mapped through one
+stage of indirection, so that @bla/ri/lu does not lead to bla/ri, but
+to $DIRMAP(bla/ri) or the like.
+
+
+
+o Suggestion from jgg@debian.org
+
+Ack, and a final thing. It would be nice to be able to assign dependancies
+to PatternRules, ie:
+
+PatternCDepends {\.deps/.*\.d$} .cc {// .deps} {
+
+So that .deps will be added to the prereq list.
+
 
 
 This is done already (read from bottom to top):
 ===============================================
+o More intelligent abseiling along a chain of pattern rule so that
+there is no need for intermediate targets to exist. (See more todos
+about pattern rules below)
+(Done, 1997-11-17)
+
+
+o Suggestion from jgg@debian.org. A better way to use pattern rules.
+
+Newer ../objs/t.o ../t.cc
+PatternNet {.*\.o} .cc {...}
+
+Will do this. when considering t.o
+  1) t.o has no command list, attempt to generate one with the pattern
+     rules
+  2) To do this is calles a new function Match.cc over all depends
+  3) by default Match.cc is a regx match of ".*\.cc" but can be user
+     overriden
+  4) If that finds a match then use that rule
+  5) If no match is found then switch to 'trying to find a match in the
+     file system' which is that same as if the Newer line didn't exist
+  6) Call Dep.cc to generate a filesystem name for the .cc file, see if it 
+     exists, if so use this rule.
+(Done, 1997-11-17. The function is called GenMatch. It does not look
+into the file system. If looking for a default command, there is
+already a rule, i.e there is a (probably empty) dependency list, so
+there is no need to consult the file system.)
+
+
+o Make -n really *DO NOTHING*. Move the current behaviour of -n to an
+option with another name.
+(Done, 1997-11-16, using -N for the old behaviour)
+
+o Silent operation, very silent operation.
+(Done, 1997-11-16, using -s and -ss)
+
 o Do I have the same problem for pattern rules?
 (Yes, corrected 1997-11-09)
 

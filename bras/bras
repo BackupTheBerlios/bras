@@ -26,7 +26,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.16 $, $Date: 1997/11/09 19:43:17 $
+# $Revision: 1.17 $, $Date: 1997/11/19 07:01:25 $
 ########################################################################
 
 ########################################################################
@@ -74,9 +74,11 @@ set brasRule(nextID) 0
 ##   number. The indices are used as follows (<i> denotes an integer):
 ##   nextID     -- next unique index
 ##   <i>,target -- target
-##   <i>,dep    -- all dependencies for given target
+##   <i>,dep    -- the dependency of given target
 ##   <i>,cmd    -- command for target/dependency pair
 ##   <i>,type   -- Newer, Exist, Always ...
+##   <i>,cure   -- used by lastMinuteRule, set to 1 if CUrrently
+##                 REcursively considered.
 set brasPrule(nextID) 0
 ##
 ## brasLastError
@@ -97,6 +99,11 @@ set brasPrule(nextID) 0
 ## brasIncluded
 ##   array with an element for every file sourced in with
 ##   command `include'
+##
+## brasLastInclude
+##   just before a file is included with the `include'-command, this
+##   variable is set to the name of the file. This allows the script
+##   to know its own name (on request from jgg@debian.org).
 ##
 ## brasConsidering
 ##   array with an element for every target currently (recursively)
@@ -139,7 +146,7 @@ source $brasBase/alwaysRule.tcl
 source $brasBase/existRule.tcl
 source $brasBase/newerRule.tcl
 #source $brasBase/uptodateOCRule.tcl
-source $brasBase/cDependRule.tcl
+source $brasBase/dependsFileRule.tcl
 
 ########################################################################
 #
@@ -178,12 +185,13 @@ proc bras.gobble {file} {
 ##   file more than once.
 ##  
 proc include {name} {
-  global brasIncluded
+  global brasIncluded brasLastInclude
   file stat $name stat
 
   if [info exist brasIncluded($stat(dev),$stat(ino))] return
   set brasIncluded($stat(dev),$stat(ino)) 1
 
+  set brasLastInclude $name
   bras.gobble $name
 }
 ########################################################################
@@ -236,6 +244,21 @@ proc bras.followTarget {target} {
 }
 ########################################################################
 ##
+## bras.MatchDepDefault
+##   Default function used to match a dependency list when looking for
+##   a default command. Used implicitely by bras.defaultCommand
+##
+proc bras.MatchDepDefault {suffix deps} {
+  set res {}
+  foreach x $deps {
+    if [string match *$suffix $x] {
+      lappend res $x
+    }
+  }
+  return $res
+}
+########################################################################
+##
 ## bras.PatternRule
 ##   Declare a pattern-rule.
 ##
@@ -255,10 +278,18 @@ proc bras.PatternRule {type target dep cmd} {
   set brasPrule($id,dep)    $dep
   set brasPrule($id,cmd)    $cmd
   set brasPrule($id,type)   $type
+  set brasPrule($id,cure)   0
 
   ## create pattern replacement commands for the dependency
-  if { 0==[llength [info commands Dep$dep]] } {
-    proc Dep$dep {target} "return \[file root \$target\]$dep"
+  if { 0==[llength [info commands GenDep$dep]] } {
+    proc GenDep$dep {target} "return \[file root \$target\]$dep"
+  }
+
+  ## create the depenceny matching command
+  if { 0==[llength [info commands MatchDep$dep]] } {
+    proc MatchDep$dep {target realDeps} "
+      return \[bras.MatchDepDefault $dep \$realDeps\]
+    "
   }
 }
 ########################################################################
@@ -444,16 +475,19 @@ proc bras.showCmds {cmds} {
 proc usage {} {
   global argv0 VERDATE
   puts stderr \
-      "usage: $argv0 \[-f brasfile\] \[-d\] \[-h\] \[-n\] \[-r\]\
- \[-v\] \[-es\] \[--\] \[target ...\]
+      "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
+\[-N\] \[-r\] \[-s\] \[-ss\] \[-v\] \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - execute nothing, show reasoning
-        -n - don't execute external commands
-        -r - don't read system standard rule file
-        -v - show all command lists before they are executed
        -es - early sourcing: read brasfiles of foreign directories as soon
              as a @-dependency is encountered.
+        -N - don't execute external commands (precludes -s, -ss)
+        -n - don't execute any commands (implies -v)
+        -r - don't read system standard rule file
+        -s - don't show external commands as they are executed
+       -ss - don't show anything except error messages
+        -v - show all commands
         -- - use the rest of the command-line as target list
              (necessary, if a target starts with `-')
     target - target to be rebuilt (default: the target of the first
@@ -470,15 +504,19 @@ proc bras.main {argc args} {
   global brasIndent brasCmdlist
   
   set brasOpts(-d) 0 
-  set brasOpts(-n) 0
-  set brasOpts(-r) 0
-  set brasOpts(-v) 0
   set brasOpts(-es) 0
+  set brasOpts(-n) 0
+  set brasOpts(-N) 0
+  set brasOpts(-r) 0
+  set brasOpts(-s) 0
+  set brasOpts(-ss) 0
+  set brasOpts(-v) 0
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
     incr i
     switch -glob -- $opt {
       -d {set brasOpts(-d) 1}
+      -es {set brasOpts(-es) 1}
       -f {
 	if {$i>=$argc } {
 	  puts stderr "$argv0: missing file name after option `$opt'"
@@ -488,9 +526,11 @@ proc bras.main {argc args} {
 	incr i
       }
       -n {set brasOpts(-n) 1}
+      -N {set brasOpts(-N) 1}
+      -s {set brasOpts(-s) 1}
+      -ss {set brasOpts(-ss) 1}
       -r {set brasOpts(-r) 1}
       -v {set brasOpts(-v) 1}
-      -es {set brasOpts(-es) 1}
       -- {
 	for {} {$i<$argc} {incr i} {
 	  lappend brasTargets [lindex $args $i]
@@ -503,6 +543,13 @@ proc bras.main {argc args} {
     }
   }
 
+  if $brasOpts(-N) {
+    set brasOpts(-s) 0
+    set brasOpts(-ss) 0
+  }
+  if $brasOpts(-n) {
+    set brasOpts(-v) 1
+  }
   if { ![info exists brasFile] } {
     if { [file exists brasfile] } {
       set brasFile brasfile
@@ -559,7 +606,10 @@ proc bras.main {argc args} {
       bras.evalCmds $brasCmdlist
     }
   } 
-  
+
+  if { $brasOpts(-s) && !$brasOpts(-ss) } {
+    puts stdout ""
+  }
 }
 ########################################################################
 
