@@ -1,10 +1,10 @@
 
-# $Revision: 1.43 $, $Date: 2002/02/26 20:06:48 $
+# $Revision: 1.44 $, $Date: 2002/03/04 19:13:12 $
 
 ## tclPkgUnknown, when running this script, makes sure that
 ## $dir is set to the directory of this very file
 
-set VERSION 2.3.1
+set VERSION 2.3.2
 set VERDATE 0000-00-00
 
 set script [subst -nocommands {
@@ -23,9 +23,10 @@ set script [subst -nocommands {
   ## want them in namespace ::bras, the files are immediatly read by a
   ## namespace import ::bras::[A-Za-z]* anyway.
   source [file join "$dir" cvsknown.tcl]
+  source [file join "$dir" install.tcl]
   source [file join "$dir" makedeps2bras.tcl]
-  source [file join "$dir" updateCacheC.tcl]
   source [file join "$dir" packjar.tcl]
+  source [file join "$dir" updateCacheC.tcl]
 }]
 
 #puts $script
