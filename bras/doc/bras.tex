@@ -8,9 +8,11 @@
 \renewcommand{\sfdefault}{pag}
 \usepackage{moreverb}
 \renewcommand{\bfdefault}{b}
+
+\usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.22 $, $Date: 2000/03/14 18:09:34 $
+% $Revision: 1.23 $, $Date: 2000/03/14 19:59:10 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -454,17 +456,17 @@ taken.
 \item[Step 1] derives a dependency from \texttt{bla.o}. It calls a
   procedure with a name derived from \textit{deptag}, namely
   \begin{quote}
-    \texttt{GenDep}\textit{deptag} \texttt{\$target}
+    \texttt{::bras::gendep::}\textit{deptag} \texttt{\$target}
   \end{quote}
   to create a dependency name. For example if \textit{deptag} is
   \texttt{.c}, \bras{} calls
   \begin{quote}
-    \texttt{GenDep.c \$target}
+    \texttt{::bras::gendep::.c \$target}
   \end{quote}
   to derive a dependency name. The default
-  \texttt{GenDep\textit{deptag}} looks like
+  \texttt{::bras::gendep::\textit{deptag}} looks like
   \begin{quote}
-    \verb|proc GenDep|\textit{deptag} \verb|{target} {|\\
+    \verb|proc ::bras::gendep::|\textit{deptag} \verb|{target} {|\\
       \texttt{\hspace*{2em}return [file root \$target]\textit{deptag}}\\
       \verb|}|
   \end{quote}
@@ -1265,7 +1267,7 @@ is equivalent to
   \texttt{\{[older} \textit{target} \texttt{\$d]\}} \textit{command}
 \end{quote}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{\Bras as a Package}
+\section{\Bras\ as a Package}
 
 Since Version 0.99.1 \bras can be used as a package in any
 Tcl-script. In the future this will be better documented. In short,
