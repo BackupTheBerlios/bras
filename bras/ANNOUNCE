@@ -6,37 +6,42 @@
 
 I am pleased to announce a new version of bras. 
 
+(If you don't know bras: go to the end of this message for more info.)
+at the end of this message.)
+
+
 MAJOR CHANGES SINCE THE LAST PUBLISHED VERSION
 
-o Dependencies are now searched in a list of directories. This eases
-the definition built-environments where source directories are
-read-only and/or source files may come from generic or platform
-specific directories.
+1) Dependency lists can be generated on the fly. In a rule like
+Newer a.o a.c {
+  #compile a.c into a.o
+}
+the name a.c can be understood as a pattern to trigger a script which
+computes the true dependency list. In particular the script can run
+some kind of makedepend and may even take care of caching the results.
 
-o Options to control the output during operation have changed: -ve
-shows external commands, -v shows the full tcl-command list to be
-executed, -s even supresses the printing of targets to be made. The
-terse output produced by default is probably the most visible change
-for a user.
+2) The reasoning process can be invoked explicitely. There is no need
+to [exec] a child process. This comes in handy in combination with (1)
+for the maintenance of said dependency cache.
 
-o The whole operation was changed. Instead of first performing the
-full reasoning and merely collecting commands to be executed, commands
-are now executed as soon as they are found. This has two consequences:
+3) The idea of prerequisites was dropped. Their functionality is now
+subsumed by (2).
 
-  a) Option -d can no longer work without executing any
-  command. Instead it produces debugging output along with normal
-  operations.
+4) There are no longer system specific rule files. Consequently option
+-r is gone. These rule files were never very elaborate. Instead I
+started to collect files with generally useful pattern rules which can
+be sourced in by a brasfile, if necessary.
 
-  b) The semantic of the Newer-rule has changed slightly. Bras no
-  longer assumes that a dependency is in fact updated if its
-  associated command is executed. Instead it always checks
-  modification times. As a result, commands of pattern rules which
-  produce more than one file will not be triggered more than once.
+5) Previously two different methods were used for
+ a) making up a rule for a target without one and
+ b) finding a default command for a rule without one.
+However, the results tended to be inconsistent. Therefore the concept
+was dropped and in case of (b) the target of the partially available
+rule is now treated like (a), except that the already available
+dependencies are kept. (As far as I found, this is how `make' does
+it.) 
 
-o Exist- and Always-rules may no longer have dependencies. Only
-prerequisites are allowed. Similarly Newer- and DependsFile-rules
-don't understand their dependencies also as prerequisites by default.
-
+6) The docs have a quick-reference appendix.
 
 
 WHERE CAN I GET IT?
@@ -49,8 +54,7 @@ download the documentation (in PostScript). A list of changes to
 previous versions is also available.
 
 
-
-WHAT IS THAT BRAS ANYWAY?
+WHAT IS IT ANYWAY?
 
 Out of frustration caused by several (mis)features of make I decided
 the other day that I would like to have a tool which combines 
@@ -66,13 +70,14 @@ o Tcl-syntax so that commands associated with rules may contain
   control structures;
 o dependencies in foreign directories can trigger sourcing rule files
   in that directory, recursive bras-execution is not necessary;
-o more than one type of rule: Newer, Exist, Always, DependsFile;
+o more than one type of rule: Newer, Exist, Always;
 o new types of rules can be easily added;
-o distinction between dependencies and mere prerequisites;
 o multiple targets in one rule;
 o pattern rules which deserve the name;
+o explicit invocation of the reasoning process possible;
+o automagically created dependency lists
 
 Send comments and requests for enhancements to kir@iitb.fhg.de .
  
 # CVS:
-# $Revision: 1.6 $, $Date: 1999/02/21 21:46:28 $
+# $Revision: 1.7 $, $Date: 1999/07/24 11:49:47 $
