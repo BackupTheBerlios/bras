@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.8 $, $Date: 1999/01/28 22:30:40 $
+# $Revision: 1.9 $, $Date: 1999/02/02 06:41:59 $
 ########################################################################
 
 ########################################################################
@@ -69,7 +69,7 @@ proc bras.ConsiderPreqs {rid} {
   append brasIndent "  "
   set preqNew {}
   foreach preq $brasRule($rid,preq) {
-    #shit ## TargetSearchPath is no good for prerequisites, therefore
+    #shit ## BrasSearchPath is no good for prerequisites, therefore
     #shit ## bras.ConsiderKernel instead of bras.Consider is used.
     set r [bras.Consider preq]
     lappend preqNew $preq
@@ -92,34 +92,41 @@ proc bras.ConsiderPreqs {rid} {
 #
 
 # This default implementation returns the input unchanged if the
-# global variable TargetSearchPath is not set or if target starts with
+# global variable BrasSearchPath is not set or if target starts with
 # @ or is not a relative pathname. Otherwise, all elements of
-# TargetSearchPath are prepended to target and the resulting list is
+# BrastSearchPath are prepended to target and the resulting list is
 # returned. 
 proc BrasExpandTarget {target} {
-  global TargetSearchPath
-
-  if {![info exist TargetSearchPath]} { 
+  global BrasSearchPath
+  #puts "BrasExpandTarget $target"
+  if {![info exist BrasSearchPath]} { 
     return [list $target]
   }
 
+  ## Don't expand @-names
   if {[string match @* $target]} {
     return [list $target]
   }
 
-  set ptype [file pathtype $target]
-  if {"$ptype"!="relative"} {
+  ## Don't expand names which contain a path
+  if {"[file tail $target]"!="$target"} {
     return [list $target]
   }
 
+#   set ptype [file pathtype $target]
+#   if {"$ptype"!="relative"} {
+#     return [list $target]
+#   }
+
   set res {}
-  foreach x $TargetSearchPath {
+  foreach x $BrasSearchPath {
     if {"$x"!="."} {
       lappend res [file join $x $target]
     } else {
       lappend res $target
     }
   }
+  #puts "BrasExpandTarget returns $res"
   return $res
 }
 ########################################################################
@@ -127,7 +134,7 @@ proc BrasExpandTarget {target} {
 # Check whether the target needs to be rebuilt.
 #
 # This is merely a wrapper around bras.ConsiderKernel which applies
-# TargetSearchPath.
+# BrasSearchPath.
 #
 ## RETURN
 ## 0: no need to make target
@@ -135,7 +142,7 @@ proc BrasExpandTarget {target} {
 ## -1: target needs to be made, but don't know how
 ##
 ## The parameter target might be changed according to succes in
-## searching TargetSearchPath.
+## searching BrasSearchPath.
 ##
 proc bras.Consider {_target} {
   upvar $_target target
@@ -144,19 +151,34 @@ proc bras.Consider {_target} {
   set candidates [BrasExpandTarget $target]
   if {$brasOpts(-d) &&
       ([llength $candidates] || "$target"!="[lindex $candidates 0]")} {
-    bras.dmsg $brasIndent "target `$target': trying `$candidates'"
+    bras.dmsg $brasIndent "expansion of `$target' is `$candidates'"
   }
 
+  ## We first take a look to see if one of the candidates is an
+  ## existing file 
   foreach c $candidates {
-    set res [bras.ConsiderKernel $c]
-    #bras.dmsg $brasIndent "got $res"
-    if {$res>=0} {
-      set target $c		;# return changed target
-      return $res
+    if {[file exist $c]} {
+      set target $c
+      return [bras.ConsiderKernel $c]
     }
   }
-  return -1
+
+  ## Not an existing file, so disregard the search path (according to
+  ## Paul Duffin).
+  return [bras.ConsiderKernel $target]
+
+  
+#   foreach c $candidates {
+#     set res [bras.ConsiderKernel $c]
+#     #bras.dmsg $brasIndent "got $res"
+#     if {$res>=0} {
+#       set target $c		;# return changed target
+#       return $res
+#     }
+#   }
+#   return -1
 }
+
 ########################################################################
 ##
 ## Check whether the target needs to be rebuilt.

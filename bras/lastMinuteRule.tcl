@@ -113,6 +113,7 @@ proc bras.lastMinuteRule {target dind} {
     if {$found} {
       set ruleID $id
       set dep $c
+      set reason "file `$c' found"
       break
     }
 
@@ -131,9 +132,10 @@ proc bras.lastMinuteRule {target dind} {
     if {$found} {
       set ruleID $id
       set dep $c
+      set reason "explict rule found for `$c'"
       break
     }
-    if $brasOpts(-d) {
+    if {$brasOpts(-d)} {
       bras.dmsg $dind \
 	  "+ derived `$dep' is neither a file nor a rule target"
     }
@@ -149,10 +151,14 @@ proc bras.lastMinuteRule {target dind} {
       set brasPrule($id,cure) 0
       if {$ok} {
 	set ruleID $id
+	set reason "generated rule for `$target'"
 	break
       }
     }
     if {$ruleID==-1} {
+      if {$brasOpts(-d)} {
+	bras.dmsg $dind "nothing found"
+      }
       return 0
     }
   }
@@ -162,8 +168,9 @@ proc bras.lastMinuteRule {target dind} {
   if $brasOpts(-d) {
     set msg "creating $brasPrule($id,type)-rule "
     append msg "`$target' <- `$dep' from pattern "
-    append msg "($brasPrule($id,target) <- $brasPrule($id,dep))"
+    append msg "($brasPrule($id,target) <- $brasPrule($id,dep)) because"
     bras.dmsg $dind $msg
+    bras.dmsg $dind "    $reason"
   }
       
   return 1

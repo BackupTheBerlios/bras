@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1999/01/28 22:30:41 $
+# $Revision: 1.5 $, $Date: 1999/02/02 06:41:59 $
 ########################################################################
 
 ########################################################################
@@ -60,7 +60,7 @@ Defrule Newer {target _deps _newer _reason} {
   set newDeps {}
   foreach dep $deps {
     ## Consider the dependency as a target. This may change the
-    ## target-name slightly due to application of TargetSearchPath.
+    ## target-name slightly due to application of BrasSearchPath.
     set x [bras.Consider dep]
     lappend newDeps $dep
 
