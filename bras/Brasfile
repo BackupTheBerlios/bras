@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.32 $, $Date: 2002/02/11 19:51:33 $
+# $Revision: 1.33 $, $Date: 2002/02/24 11:53:50 $
 #
 ########################################################################
 if {$::bras::base!="."} {
@@ -42,7 +42,7 @@ Make tgz {[updated $TGZ]} .relax.
 ## one of the other files mentioned below.
 set extraFiles [list @doc/bras.ps @doc/bras.pdf \
 		    pkgIndex.tcl bras.1.html]
-Make $TGZ {[older $target [concat [cvsknown] $extraFiles]]} {
+Make $TGZ {[older $target [concat [::bras::cvsknown] $extraFiles]]} {
   ## pkgIndex.tcl is also mentioned with -e to have the VERDATE edited
   ## in
   set oneyear [clock format \

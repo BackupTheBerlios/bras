@@ -19,12 +19,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 2002/02/24 10:10:44 $
+# $Revision: 1.2 $, $Date: 2002/02/24 11:53:50 $
 #
 ########################################################################
 ##
-
-puts "now reading [info script]"
 
 ## NOTE: This works with "jikes +M" too, except if you have classes
 ## which mutually depend on each other. In the latter case, bras will

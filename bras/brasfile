@@ -60,12 +60,7 @@ include [file join $::bras::base install.rule]
 set BINTARGETS [file join $BINDIR bras 0755]
 
 ## Collect all the files to go into LIBDIR
-foreach line [split [package ifneeded bras $::bras::VERSION] \;] {
-  if {[lindex $line 0]!="source"} continue
-  set f [file tail [lindex $line end]]
-  lappend LIBTARGETS [file join $LIBDIR $f 0644]
-}
-foreach f [concat pkgIndex.tcl [glob *.rule]] {
+foreach f [glob *.tcl *.rule] {
   lappend LIBTARGETS [file join $LIBDIR $f 0644]
 }
 #puts $LIBTARGETS
