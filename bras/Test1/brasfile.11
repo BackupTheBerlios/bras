@@ -1,4 +1,4 @@
-puts "msg: checking Newer rule (target does not exist)"
+puts "msg: checking Newer rule with non-existing target"
 puts "expect: creating bla"
 puts "expect: bli <- bla blu"
 
@@ -7,7 +7,7 @@ exec touch blu
 
 ## This rule should be executed because target does not exist
 Newer bli {bla blu} {
-  puts "$target <- $newer"
+  puts "$target <- $trigger"
   rm -f blu
 }
 

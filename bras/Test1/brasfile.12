@@ -1,0 +1,23 @@
+puts "msg: checking deep nesting with nothing to do"
+puts "expect: rm file5 file4 file3 file2 file1"
+
+exec touch file5 file4 file3 file2 file1
+Always file0 file1 {
+  rm file5 file4 file3 file2 file1
+}
+
+Newer file1 file2 {
+  puts wrong
+}
+
+Newer file2 file3 {
+  puts wrong
+}
+
+Newer file3 file4 {
+  puts wrong
+}
+
+Newer file4 file5 {
+  puts wrong
+}

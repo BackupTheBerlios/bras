@@ -1,0 +1,18 @@
+puts "msg: checking dependency-backlink to this dir, target to be rebuild"
+puts "expect: making file2"
+puts "expect: cd /home1/kir/work/bras/Test2"
+puts "expect: file1 <- ../Test1/file2"
+puts "expect: cd /home1/kir/work/bras/Test1"
+puts "expect: file1 <- ../Test2/file1"
+puts "expect: rm file1"
+
+exec touch file1
+Newer file1 @../Test2/file1 {
+  puts "$target <- $trigger"
+  rm file1
+}
+
+## This rule is called via ../Test2/brasfile.15
+Exist file2 {} {
+  puts "making $target"
+}

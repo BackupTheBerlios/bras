@@ -1,0 +1,6 @@
+## called via brasfile in ../Test1
+## refers back to dependency in ../Test1
+
+Newer file1 @../Test1/file2 {
+  puts "$target <- $trigger"
+}

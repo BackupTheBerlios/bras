@@ -1,4 +1,4 @@
-puts "msg: checking Newer rule (dependency created)"
+puts "msg: checking Newer rule with dependency created"
 puts "expect: creating bla"
 puts "expect: bli <- bla"
 
@@ -11,7 +11,7 @@ exec touch bli
 
 ## This rule should be executed because one dependency is newer
 Newer bli {bla blu} {
-  puts "$target <- $newer"
+  puts "$target <- $trigger"
   rm -f bli blu
 }
 

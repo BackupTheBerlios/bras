@@ -1,0 +1,13 @@
+puts "msg: checking dependency in foreign directory, to be rebuild"
+puts "expect: cd /home1/kir/work/bras/Test2"
+puts "expect: file1"
+puts "expect: cd /home1/kir/work/bras/Test1"
+puts "expect: file1 <- ../Test2/file1"
+puts "expect: rm file1"
+
+exec touch file1
+
+Newer file1 @../Test2/file1 {
+  puts "$target <- $trigger"
+  rm file1
+}

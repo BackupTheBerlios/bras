@@ -1,0 +1,13 @@
+puts "msg: checking dependency in foreign directory, nothing to do"
+puts "expect: rm file1 ../Test2/file1
+
+
+exec touch file1
+
+Always nix file1 {
+  rm file1 ../Test2/file1
+}
+
+Newer file1 @../Test2/file1 {
+  puts wrong
+}
