@@ -41,7 +41,7 @@ set AR ar
 ## How to make an object file from a .c-file
 ##
 PatternNewer {.*\.o} .c {
-  $CC -c $CFLAGS [file rootname $target].c
+  $CC -c $CFLAGS $trigger
 }
 
 ##

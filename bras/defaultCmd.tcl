@@ -37,7 +37,7 @@ proc bras.defaultCmd {target deps _reason} {
 
   ## need to check all pattern rules
   set nextID $brasPrule(nextID)
-  for {set i 0} {$i<$nextID} {incr i} {
+  for {set i [expr $nextID-1]} {$i>=0} {incr i -1} {
     ## This one might have been deleted.
     if { ![info exist brasPrule($i,target)] } continue
 
