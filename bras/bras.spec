@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.7 $, $Date: 2000/03/14 20:02:03 $
+## version I am shipping from cvs. (kir) $Revision: 1.8 $, $Date: 2000/03/15 21:36:07 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -28,15 +28,11 @@ of reasoning (like make does) when it works in several directories.
 %setup
 
 %build
+tclsh bras all prefix=/usr
 
 %install
 ## There is an install script which understands a prefix ala configure
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-mkdir -p $RPM_BUILD_ROOT/usr/man/man1
-mkdir -p $RPM_BUILD_ROOT/usr/doc
-
-export RPM_BUILD_ROOT
-./install.wish $RPM_BUILD_ROOT/usr/lib/bras-%{VERSION} $RPM_BUILD_ROOT/usr
+tclsh bras install prefix=$RPM_BUILD_ROOT/usr
 
 %post
 ## Fix the path to the tclsh
@@ -44,7 +40,7 @@ export RPM_BUILD_ROOT
 # to rpms database locking (stupid)
 # TCLSH=#\!`rpm -ql tcl|grep /tclsh$`
 TCLSH=#\!`which tclsh`
-p=/usr/lib/bras-%{VERSION}
+p=/usr/bin
 cp $p/bras $p/bras.orig
 sed -e "1s,.*,$TCLSH,"  $p/bras.orig >$p/bras
 rm $p/bras.orig

@@ -1,34 +1,29 @@
 
 PREREQUISITES
 
-If you don't have tcl, you are out of luck. Until now, I tested it
-with tcl7.6, but it probably works with other versions.
+If you don't have tcl, you are out of luck. You need a Tcl version
+with namespace support, i.e. >= 8.0 .
 
-The whole installation script is probably less portable than the
-program it installs. Therefore, if the installation script fails, you
-can do it the stone-age way:
+INSTALLATION
 
-o copy bras, all .tcl-files and all rules.*-files to the installation
-  directory  
-o edit bras so that it finds
-  - tclsh
-  - the other files you just copied around.
-  This is achieved by entering the path to tclsh in the first line of
-  bras and replacing |SRCBASE| in the second line with the absolute
-  path of the installation directory.
+Run the command
 
+  tclsh bras prefix=/directory/where/to/install
 
+to install bras. This will install bras' files in the following
+directories: 
 
-HOW TO INSTALL
+   $prefix/bin
+   $prefix/lib/bras-$VERSION
+   $prefix/doc/bras-$VERSION
+   $prefix/man/man1
 
-o read README
-o run `install.wish'
+Read the top of `brasfile' to see how to individually change these
+directories. 
 
 				That easy?
 					I hope so!
                                         Harald Kirsch
 
 
-P.S.: The script `dotest' is not intended for general use yet. It
-contains absolute path names in the expected output and will therefore
-almost certainly not work on your computer. So please don't try.
+P.S.: The script `dotest' is currently broken. Don't try it out.

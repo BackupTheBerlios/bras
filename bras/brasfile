@@ -1,0 +1,168 @@
+########################################################################
+#
+# This brasfile is used to install bras from the source distribution. 
+#
+# Run this file by typing
+#
+#   tclsh bras
+#
+# in the current directory. To change any of the following
+# installation directories, assign values on the command line like
+#
+#   tclsh bras prefix=/halli/galli
+#
+########################################################################
+
+getenv prefix /usr/local
+
+## Directory where to put the executable script
+getenv BINDIR [file join $prefix bin]
+
+## Directory where to put the package files (*.tcl and the like)
+getenv LIBDIR [file join $prefix lib bras-$::bras::VERSION]
+
+## Directory where to put the manual page
+getenv MANDIR [file join $prefix man man1]
+
+## Directory where to put assorted documentation files
+getenv DOCDIR [file join $prefix doc bras-$::bras::VERSION]
+
+
+
+
+########################################################################
+
+## This rule is the default. It installs everthing
+Always install {all} {
+  file mkdir $BINDIR $LIBDIR $MANDIR $DOCDIR
+
+  ## to BINDIR
+  file copy -force bras.fixed [file join $BINDIR bras]
+  if {[string match unix $tcl_platform(platform)]} {
+    file attributes [file join $BINDIR bras] -permissions 0755
+  }
+  
+  ## to LIBDIR
+  eval file copy -force [glob *.tcl *.rule] .version $LIBDIR
+
+  ## to DOCDIR
+  file copy -force README ANNOUNCE \
+      doc/bras.tex doc/bras.ps doc/bras.pdf COPYING-2.0 \
+      $DOCDIR
+  
+  ## to MANDIR
+  file copy -force bras.1.fixed [file join $MANDIR bras.1]
+
+  file delete bras.1.fixed bras.fixed
+}
+
+Always all {bras.fixed bras.1.fixed} {
+}
+
+## Here we create bras.fixed, a version of bras only used during
+## installation. It will have $LIBDIR edited into the right place.
+Newer bras.fixed bras {
+  set out [open bras.fixed w]
+  forfile line bras {
+    switch -glob -- $line {
+      "set auto_path*" {
+	puts $out "set auto_path \[concat $LIBDIR \$auto_path\]"
+      }
+      default {
+	puts $out $line
+      }
+    }
+  }
+  close $out
+}
+
+## Here we create bras.1.fixed to enter $DOCDIR into bras.1
+Newer bras.1.fixed bras.1 {
+  set out [open bras.1.fixed w]
+  forfile line bras.1 {
+    if {[string match *|DOC|* $line]} {
+	regsub -all {\|DOC\|} $line $DOCDIR line
+    }
+    puts $out $line
+  }
+  close $out
+}
+
+########################################################################
+proc forfile {varnames filename rexp {script {}} } {
+  ## If script is empty, this in fact means rexp is empty and we use
+  ## whatever we find in rexp as script.
+  if {![string length $script]} {
+    set script $rexp
+    set rexp {}
+    set all 1
+  } else {
+    set all 0
+  }
+
+  ## link varnames to caller's frame
+  switch [llength $varnames] {
+    1 #relax
+    2 {
+      upvar [lindex $varnames 1] lno
+    }
+    default {
+      return -code error \
+	  "first parameter may only have one or two elements"
+    }
+  }
+  upvar [lindex $varnames 0] line
+
+
+  ## open the file if this is not a file descriptor
+  if {[catch {fconfigure $filename}]} {
+    set in [open $filename r]
+    set close {close $in}
+  } else {
+    set in $filename
+    set close \#
+  }
+
+  set lno 0
+  while {-1!=[gets $in line]} {
+    incr lno
+    ## skip unwanted lines
+    if {!$all && ![eval regexp [list $rexp] [list $line]]} continue
+
+    ## evaluate body 
+    set code [catch {uplevel $script} result]
+
+    ## treat return code of body
+    # Copied from tcl.h as a reminder.
+    # Why does catch not return the same codes as return does, at least
+    # for those predifined codes?
+    # define TCL_OK          0
+    # define TCL_ERROR       1
+    # define TCL_RETURN      2
+    # define TCL_BREAK       3
+    # define TCL_CONTINUE    4       
+
+    switch -exact -- $code {
+      0 {}
+      1 {
+	catch {eval $close}
+	global errorInfo
+	#puts "((($errorInfo)))[llength $errorInfo]"
+	regsub "\n *\\(\"uplevel.*" $errorInfo {} errorInfo
+	return -code error -errorinfo $errorInfo $result
+      }
+      2 {
+	eval $close
+	return -code return $result
+      }
+      3 break
+      4 {}
+    }
+  }
+  eval $close
+
+  return {}
+}
+
+
+  
