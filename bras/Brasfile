@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.14 $, $Date: 1999/07/24 11:18:20 $
+# $Revision: 1.15 $, $Date: 1999/07/24 17:08:04 $
 #
 ########################################################################
 
@@ -70,7 +70,7 @@ Always all $TARGETS {
 ## This rule make sure that the destination directory exists. Its
 ## command is only executed if $BRASHOME does not exist. The rule is
 ## invoked by most of the rules which follow. 
-Exist $BRASHOME {} {
+Exist $BRASHOME {
   mkdir -p $target
 }
 
