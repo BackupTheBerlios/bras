@@ -40,29 +40,22 @@ set AR ar
 ##
 ## How to make an object file from a .c-file
 ##
-SuffixNewer .o .c {
+PatternNewer {.*\.o} .c {
   $CC -c $CFLAGS [file rootname $target].c
-}
-
-##
-## How to make an executable directly from a .c-file
-##
-SuffixNewer {} .c {
-  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
 }
 
 ##
 ## How to make an executable from an .o-file
 ##
-SuffixNewer {} .o {
+PatternNewer {[^.]*} .o {
   $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
 }
 
 ##
-## Replace object file in library
+## How to make an executable directly from a .c-file
 ##
-SuffixNewer .a .o {
-  $AR rs $target $newer
+PatternNewer {[^.]*} .c {
+  $CC -o $target $CFLAGS $LDFLAGS $deps $LDLIBS
 }
 
 ########################################################################

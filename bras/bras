@@ -1,4 +1,5 @@
 #!/usr/local/bin/tclsh
+set brasBase |SRCBASE|
 set VERSION 0.0.3
 set VERDATE 1997-03-15
 ########################################################################
@@ -27,7 +28,6 @@ set VERDATE 1997-03-15
 #
 ########################################################################
 
-set brasBase |SRCBASE|
 set brasVersion $VERSION
 set brasVerdate $VERDATE
 
@@ -48,15 +48,22 @@ set brasVerdate $VERDATE
 ##   array holding explicit rules. The indices are used as follows:
 ##   <target>,<dir> -- "e" or "n" to indicate type of rule
 ##   <target>,<dir>,cmd -- command to execute
-##   <target>,<dir>,deps -- dependencies (for rules of type "n")
+##                         if {}, default command may be substituted
+##                         if { }, no default will be substituted
+##   <target>,<dir>,deps -- dependencies
 ##   <target>,<dir>,done -- set, if target already considered
 ##                          1: needs rebuild, 0: no rebuild needed
 ##
-## brasSrule
-##   database of suffix-rules. The indices are used as follows:
-##   <target>,dep       -- all dependencies for given target
-##   <target>,<dep>,cmd -- command for target/dependency pair
-##   <target>,<dep>,type -- "e" or "n" to indicate type of rule
+## brasPrule
+##   database of pattern-rules. Pattern rules are stored and accessed in
+##   the same order as they are introduced. Therefore each one gets a
+##   number. The indices are used as follows (<i> denotes an integer):
+##   nextID     -- next unique index
+##   <i>,target -- target
+##   <i>,dep    -- all dependencies for given target
+##   <i>,cmd    -- command for target/dependency pair
+##   <i>,type   -- Newer, Exist or Always
+set brasPrule(nextID) 0
 ##
 ## brasKnown
 ##   array with an element for all dirs the rule-files of which have
@@ -70,15 +77,19 @@ set brasVerdate $VERDATE
 ##   array holding command-line options
 ##
 ## brasIncluded
-##   array with an element for every file sourced in with the new
+##   array with an element for every file sourced in with
 ##   command `include'
+##
+## brasConsidering
+##   array with an element for every target currently (recursively)
+##   under consideration; used to detect dependency loops.
 ##
 ########################################################################
 
 set argv0 [file tail $argv0]
 
 if { "$brasBase"=="|SRCBASE|" } {
-  set brasBase /home1/kir/tcl/bras
+  set brasBase /home1/kir/work/bras
 }
 source $brasBase/buildCmds.tcl
 source $brasBase/evalCmds.tcl
@@ -120,41 +131,50 @@ proc include {name} {
 }
 ########################################################################
 ##
-## bras.SuffixRule
-##   Declare suffix-rule.
+## bras.PatternRule
+##   Declare pattern-rule.
 ##
-proc bras.SuffixRule {type target deps cmd} {
-  global brasSrule argv0
+proc bras.PatternRule {type target deps cmd} {
+  global brasPrule argv0
 
-  if ![info exist brasSrule($target,deps)] {
-    set brasSrule($target,deps) $deps
-  } else {
-    set brasSrule($target,deps) \
-	[concat $brasSrule($target,deps) $deps]
+  ## Emtpy commands are rather useless here
+  if { ![llength $cmd] } {
+    return -code error \
+	-error "empty commands are not allowed in suffix rules"
   }
-    
+
+  ## make sure, no dependency is equal to the target
   foreach dep $deps {
     if { "$target"=="$dep" } {
       return -code error \
 	  -errorinfo "target `$target' should not be equal to dependency"
     }
-    
-    if [info exist brasSrule($target,$dep,cmd)] {
-      set err "suffix-pair `$dep'->`$target' has already command\n"
-      append err ">>>>>$brasSrule($target,$dep,cmd)<<<<<"
-      return -code error -errorinfo $err
-    }
-    set brasSrule($target,$dep,cmd) $cmd
-    set brasSrule($target,$dep,type) $type
+  }
+
+  ## enter the rule
+  set id $brasPrule(nextID)
+  incr brasPrule(nextID)
+  set brasPrule($id,target) $target
+  set brasPrule($id,dep)    $deps
+  set brasPrule($id,cmd)    $cmd
+  set brasPrule($id,type)   $type
+
+  ## create pattern replacement commands for all dependencies
+  foreach d $deps {
+    if { [llength [info commands Dep$d]] } continue
+    proc Dep$d {target} "return \[file root \$target\]$d"
   }
 }
 ########################################################################
-proc SuffixNewer {target deps cmd} {
-  bras.SuffixRule n $target $deps $cmd
+proc PatternNewer {target deps cmd} {
+  bras.PatternRule Newer $target $deps $cmd
 }
 ########################################################################
-proc SuffixExist {target deps cmd} {
-  bras.SuffixRule e $target $deps $cmd
+proc PatternExist {target deps cmd} {
+  bras.PatternRule Exist $target $deps $cmd
+}
+proc PatternAlways {target deps cmd} {
+  bras.PatternRule Always $target $deps $cmd
 }
 ########################################################################
 ##
@@ -239,17 +259,14 @@ proc bras.enterRule {type target deps cmd} {
 }
 ########################################################################
 proc Newer {target deps cmd} {
-  if ![llength $cmd] {set cmd " "}
   bras.enterRule n $target $deps $cmd
 }
 ########################################################################
 proc Exist {target deps cmd} {
-  if ![llength $cmd] {set cmd " "}
   bras.enterRule e $target $deps $cmd
 }
 ########################################################################
 proc Always {target deps cmd} {
-  if ![llength $cmd] {set cmd " "}
   bras.enterRule a $target $deps $cmd
 }
 ########################################################################
@@ -278,7 +295,7 @@ construct files based on a rule-file
 }
 ########################################################################
 proc bras.main {argc args} {
-  global argv0 brasFile brasTargets brasRules brasSrule brasOpts
+  global argv0 brasFile brasTargets brasRules brasPrule brasOpts
   global brasKnown brasBase
 
   set brasOpts(-d) 0 
@@ -295,6 +312,8 @@ proc bras.main {argc args} {
 	  puts stderr "$argv0: missing file name after option `$opt'"
 	  exit 1
 	}
+	set brasFile [lindex $args $i]
+	incr i
       }
       -h usage
       -n {set brasOpts(-n) 1}
@@ -311,13 +330,13 @@ proc bras.main {argc args} {
       set brasFile brasfile
     } elseif { [file exists Brasfile] } {
       set brasFile Brasfile
+    } else {
+      puts stderr "$argv0: no brasfile found"
+      exit 1
     }
-  } else {
-    puts stderr "$argv0: no brasfile found"
-    exit 1
   }
 
-  if !$brasOpts(-r) {
+  if { !$brasOpts(-r) } {
     set sys $brasBase/rules.[exec uname -s]
     if ![file readable $sys] {
       puts stderr \
@@ -327,9 +346,9 @@ proc bras.main {argc args} {
     }
   }
 
-  if [info exist brasFile] {
+  if { [info exist brasFile] } {
     set brasKnown([pwd]) 1
-    bras.gobble ${brasFile}
+    bras.gobble $brasFile
   }
 
   if ![info exist brasTargets] {
@@ -343,7 +362,7 @@ proc bras.main {argc args} {
   }
 
   #parray brasRules
-  #parray brasSrule
+  #parray brasPrule
   foreach target $brasTargets {
     set cmds [bras.buildCmds $target ""]
     if $brasOpts(-d) continue

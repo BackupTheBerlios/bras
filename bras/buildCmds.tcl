@@ -68,6 +68,57 @@ proc bras.evalExist {target dind} {
 }
 ########################################################################
 ##
+## Check whether pattern rule no. $i is a candidate for further
+## consideration, i.e. matches $target.
+##
+proc bras.isCandidate {target i} {
+  global brasPrule
+  return [regexp "^$brasPrule($i,target)\$" $target]
+}
+########################################################################
+##
+## Try to find a pattern rule that matches target and one of deps in
+## order to use its command as a default command.
+##
+## _reason gets appended information, if brasOpts(-d) is set
+##
+proc bras.defaultCmd {target deps _reason} {
+  upvar $_reason reason
+  global brasPrule brasOpts
+
+  ## need to check all pattern rules
+  set nextID $brasPrule(nextID)
+  for {set i 0} {$i<$nextID} {incr i} {
+    ## This one might have been deleted.
+    if { ![info exist brasPrule($i,target)] } continue
+
+    ## Is this one a candidate?
+    if { ![bras.isCandidate $target $i] } continue
+
+    ## Generate the derived depencencies
+    foreach d $brasPrule($i,dep) {
+      lappend l [Dep$d $target]
+    }
+    
+    ## Cross check list l with list deps
+    foreach d $deps {
+      foreach x $l {
+	if { "$x"!="$d" } continue
+
+	## ok, return the command
+	if $brasOpts(-d) {
+	  append reason \
+	      "\n    using command from pattern rule "
+	  append reason "$brasPrule($i,dep)->$brasPrule($i,target)"
+	}
+	return $brasPrule($i,cmd)
+      }
+    }
+  }
+}    
+
+########################################################################
+##
 ## bras.evalRule --
 ## Check whether any dependencies are newer or do not exist. If so,
 ## return command list to generate the dependencies and the target.
@@ -163,24 +214,10 @@ proc bras.evalRule {target dind} {
   set cmd $brasRules($target,[pwd],cmd)
   #puts "cmd for `$target' is `$cmd'"
 
-  if ![llength $cmd] {
+
+  if { ""=="$cmd" } {
     ## try to find a suitable suffix command
-    set type $brasRules($target,[pwd])
-    set suffix [file extension $target]
-    foreach d $deps {
-      set ds [file extension $d]
-      #puts "checking $suffix $ds"
-      if {[info exist brasSrule($suffix,$ds,cmd)]
-	  && "$brasSrule($suffix,$ds,type)"=="$type"} {
-	set cmd $brasSrule($suffix,$ds,cmd)
-	if $brasOpts(-d) {
-	  append reason \
-	      "\n    using command from suffix-rule `$ds'->`$suffix'"
-	}
-	#puts "found `$cmd'"
-	break
-      }
-    }
+    set cmd [bras.defaultCmd $target $deps reason]
   }
   
   if $brasOpts(-d) {
@@ -203,30 +240,39 @@ proc bras.evalRule {target dind} {
 ########################################################################
 ##
 ## bras.lastMinuteRule
-##   tries to create a rule from braSrule for targets that don't
+##   tries to create a rule from braPrule for targets that don't
 ##   have any explicit rule.
 ##
-proc bras.lastMinuteRule {target suffix dind} {
-  global brasSrule brasOpts brasRules
+proc bras.lastMinuteRule {target dind} {
+  global brasPrule brasOpts brasRules
+  set nextID $brasPrule(nextID)
 
-  #puts "lastMinute `$target' `$suffix'"
-  #parray brasSrule
-  if ![info exist brasSrule($suffix,deps)] return
+  ## try all pattern rules
+  for {set i 0} {$i<$nextID} {incr i} {
+    ## This one might have been deleted.
+    if { ![info exist brasPrule($i,target)] } continue
 
-  set base [file rootname $target]
-  foreach dep $brasSrule($suffix,deps) {
-    if ![file exist $base$dep] continue
-    if { "n"=="$brasSrule($suffix,$dep,type)" } {
-      Newer $target $base$dep $brasSrule($suffix,$dep,cmd)
-    } else {
-      Exist $target $base$dep $brasSrule($suffix,$dep,cmd)
+    ## Is this one a candidate?
+    if { ![bras.isCandidate $target $i] } continue
+
+    ## Check if a derived dependency exists as file
+    foreach d $brasPrule($i,dep) {
+      set depfile [Dep$d $target]
+      if { [file exists $depfile] } {
+	break
+      }
+      unset depfile 
     }
+    if { ![info exist depfile] } continue
+    
+    ## Ok, enter the new rule
+    $brasPrule($i,type) $target $depfile $brasPrule($i,cmd)
     if $brasOpts(-d) {
-      set msg "creating Newer-rule for `$target'"
-      append msg " from rule `$dep'->`$suffix'"
+      set msg "creating Newer-rule from "
+      append msg "($brasPrule($i,dep) -> $brasPrule($i,target))"
       bras.dmsg $dind $msg
     }
-    #parray brasRules $target,*
+    #parray brasRules
     return
   }
 }   
@@ -244,7 +290,7 @@ proc bras.lastMinuteRule {target suffix dind} {
 ##   and if it has been decided to rebuild it, "*" is returned.
 ##
 proc bras.buildCmds {target dind} {
-  global brasRules brasSrule argv0 brasOpts
+  global brasRules brasSrule argv0 brasOpts brasConsidering
 
   ## change dir, if target starts with `@'
   if {[string match @* $target]} {
@@ -253,7 +299,7 @@ proc bras.buildCmds {target dind} {
     set dir [file dir $t]
     if [catch "cd $dir" msg] {
       puts stderr \
-	  "cannot change from `[pwd]' to `$dir' for target `$target'"
+     "$argv0: cannot change from `[pwd]' to `$dir' for `$target'"
       exit 1
     }
     set target [file tail $t]
@@ -278,6 +324,14 @@ proc bras.buildCmds {target dind} {
     }
   }
 
+  ## check for dependeny loops
+  if {[info exist brasConsidering($target,[pwd])]} {
+    puts stderr \
+	"$argv0: dependency loop detected for target `$target'"
+    exit 1
+  }
+  set brasConsidering($target,[pwd]) 1
+
   if $brasOpts(-d) {
     bras.dmsg $dind "considering `$target' in `[pwd]'"
   }
@@ -285,11 +339,11 @@ proc bras.buildCmds {target dind} {
   ## handle targets without rule
   if {![info exist brasRules($target,[pwd])] } {
     ## try to create rule on the fly from suffix
-    set suffix [file extension $target]
-    bras.lastMinuteRule $target $suffix $dind
+    bras.lastMinuteRule $target $dind
   }
 
   if {![info exist brasRules($target,[pwd])] } {
+    ## no rule available
     if [file exist $target] {
       if $brasOpts(-d) {
 	bras.dmsg $dind \
@@ -297,6 +351,7 @@ proc bras.buildCmds {target dind} {
       }
       set brasRules($target,[pwd],done) 0
       cd $keepPWD
+      unset brasConsidering($target,[pwd])
       return {}
     } else {
       puts stderr "$argv0: no rule to make target `$target' in `[pwd]'"
@@ -315,9 +370,9 @@ proc bras.buildCmds {target dind} {
     set brasRules($target,[pwd],done) 1
   }
 
+  #parray brasConsidering
+  unset brasConsidering($target,[pwd])
   cd $keepPWD
-  #puts "xxxxxxxxx $res xxxxxxx"
-
   return $res
 }
 ########################################################################

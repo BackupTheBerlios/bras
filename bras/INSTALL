@@ -2,7 +2,7 @@
 PREREQUISITES
 
 If you don't have tcl, you are out of luck. Until now, I tested it
-with tcl7.4/tk4.0, but it might work with other versions.
+with tcl7.6, but it probably works with other versions.
 
 The whole installation script is probably less portable than the
 program it installs. Therefore, if the installation script fails, you

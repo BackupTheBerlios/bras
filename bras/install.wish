@@ -50,15 +50,17 @@ proc getCurrentSetting {} {
   set prefix [string trim [.a.e get]]
   set exe [installPath $prefix [string trim [.b.e get]]]
   set lib [installPath $prefix [string trim [.c.e get]]]
+  set man [installPath $prefix [string trim [.man.e get]]]
   set doc [installPath $prefix [string trim [.d.e get]]]
   set lroot [string trim [.e.e get]]
   
   set res "currently selected destination dirs:\n"
   append res \
-      "   executable: `$exe'\n" \
-      "library files: `$lib'\n" \
-      "         docu: `$doc'\n" \
-      "    link-root: `$lroot'\n"
+      "   executable: $exe\n" \
+      "library files: $lib\n" \
+      "  manual page: $man\n" \
+      "         docu: $doc\n" \
+      "    link-root: $lroot\n"
   return $res
 }
 ########################################################################
@@ -99,24 +101,39 @@ proc clink {dst args} {
 }
 ########################################################################
 proc Install {} {
-  global TCLSH
+  global TCLSH version
+
   set prefix [string trim [.a.e get]]
   set exe [installPath $prefix [string trim [.b.e get]]]
   set lib [installPath $prefix [string trim [.c.e get]]]
+  set man [installPath $prefix [string trim [.man.e get]]]
   set doc [installPath $prefix [string trim [.d.e get]]]
   set lroot [string trim [.e.e get]]
   mkdirP $exe
   mkdirP $lib
+  mkdirP $man
   mkdirP $doc
 
+  ## copy executable
   exec sed -e "1s,^.\*\$,#!$TCLSH," \
       -e "s, |SRCBASE|, $lib," bras >$exe/bras
   exec chmod +x $exe/bras
+
+  ## copy library files
   exec cp buildCmds.tcl evalCmds.tcl sourceDeps.tcl $lib
   set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
   eval exec cp $ruleFiles $lib
+
+  ## copy manual page
+  exec sed -e "s/|VERSION|/$version/" -e "s,|SRCBASE|,$lib," \
+      bras.1 >$man/bras.1
+
+  ## copy documentation
   exec cp CHANGES doc/Bras.ps doc/Bras.tex $doc
+
+  ## create convenience links
   clink $lroot/bin $exe/bras
+  clink $lroot/man/man1 $man/bras.1
 
   puts "\nThank you for joining us"
   puts "\n\n                   (C) 1996 kir@iitb.fhg.de"
@@ -163,8 +180,8 @@ lentry .a "installation prefix" 30 apply
 .a.e insert 0 $home/tools/bras-$version
 lentry .b "where to put the executable" 30 apply
 lentry .c "where to put files need by bras" 30 apply
+lentry .man "where to put the manual page" 30 apply
 lentry .d "where to put documentation" 30 apply
-.d.e insert 0 doc
 lentry .e "link root" 30 apply
 .e.e insert 0 $home/tools
 
@@ -175,7 +192,7 @@ label .paths \
     -font fixed \
     -relief sunken \
     -padx 10 -pady 4
-pack .x .a .b .c .d .e -side top -fill x
+pack .x .a .b .c .man .d .e -side top -fill x
 pack .paths -fill x
 
 
