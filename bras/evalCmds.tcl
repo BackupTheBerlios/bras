@@ -112,12 +112,11 @@ proc ::bras::invokeCmd {rid Target nspace} {
 #   }
 
   if {$Opts(-v)} {
-    namespace eval $nspace {
-      puts "\# -- running command --"
-      puts "\#  target = `$target'"
-      puts "\# targets = `$targets'"
-      puts "\# trigger = `$trigger'"
-      puts "\#    deps = `$deps'"
+    puts "\# -- running command --"
+    foreach name [info vars $nspace\::*] {
+      set tail [namespace tail $name]
+      if {[string match reason $tail]} continue
+      puts "\# $tail = `[set $name]'"
     }
     puts [string trim $cmd "\n"]
   }
