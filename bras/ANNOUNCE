@@ -1,0 +1,55 @@
+
+			      ANNOUNCING
+			     --- bras ---
+		     Rule Base Command Execution
+			       with Tcl
+
+I am pleased to announce a new version of bras. 
+
+MAJOR CHANGES SINCE THE LAST PUBLISHED VERSION
+
+o A new type of rule called DependsFile handles the dependency between
+  an object file and its associated source file. It takes included
+  files into account.
+o The semantics of pattern rules changed and was greatly enhanced.
+
+
+
+(This announcement was due a month ago, but seems to have been lost
+during the change of moderator. To bad it took me so long to find the
+time to write an announcement again.)
+
+
+The distribution  can be found at
+   http://wsd.iitb.fhg.de/~kir/brashome/
+
+From there you can download the distribution, read the docs online or
+download the documentation (in PostScript). A list of changes to
+previous versions is also available.
+
+
+
+WHAT IS THAT BRAS ANYWAY?
+
+Out of frustration caused by several (mis)features of make I decided
+the other day that I would like to have a tool which combines 
+rule-based and script-like command execution. The result is bras. It
+is written in Tcl and the rule-files it uses are also pretty much
+Tcl. However, bras defines a set of new Tcl-commands which implement
+rule-based command execution.
+
+Main features are:
+o rule-controlled command execution, similar to make;
+o written in Tcl, no compilation required;
+o Tcl-syntax so that commands associated with rules may contain
+  control structures;
+o dependencies in foreign directories can trigger sourcing rule files
+  in that directory, recursive bras-execution is not necessary;
+o more than one type of rule: Newer, Exist, Always, DependsFile;
+o new types of rules can be easily added;
+o distinction between dependencies and mere prerequisites;
+o multiple targets in one rule;
+o pattern rules which deserve the name;
+ 
+# CVS:
+# $Revision: 1.3 $, $Date: 1997/12/14 17:16:16 $
