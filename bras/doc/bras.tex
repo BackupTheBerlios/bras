@@ -21,13 +21,19 @@ kir@iitb.fhg.de}
 \tableofcontents
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{WARNING}
+Everthing said in this document about the variable \texttt{trigger}
+(called \texttt{newer} before) is probably a bit off.
+
+
 \section{Why That?}
 If you ever used \texttt{make}, you may have noticed that it has a few
 odd features. Most annoying to me are
 \begin{itemize}
 \item the crazy syntax (tabs as a structuring element!),
 \item the way variables are expanded,
-\item the inability to handle dependencies in foreign directories,
+\item the inability to call makefiles in other directories without
+breaking the chain of reasoning,
 \item the inability to distinguish between targets that merely need to
   exist and those that must be newer than their dependencies,
 \item the lack of file-targets which always must be build,
@@ -35,17 +41,23 @@ odd features. Most annoying to me are
 \item the lack of decent pattern matching.
 \end{itemize}
 
-It is indisputable that \textbf{the} feature of \texttt{make}, ---
+It is indisputable that \textbf{the} feature of \texttt{make} ---
 rule based command execution --- is most helpful in many situations;
 in particular were it seems to be applied most often:
 conditional compilation of large programs.
 
 My idea was to combine the key features of \texttt{make} with all the
-niceties of a command language, while improving the handling of
-targets in foreign directories and the pattern matching
-facilities. Since I personally like Tcl, not the least for its well
-defined handling of command line substitution (see \texttt{Tcl(n)} and
-no flames, please), I ended up with the present solution. A similar
+niceties of a command language, while improving on all the misfeatures
+mentioned above. In addition, \bras{} allows to define new types of
+rules, so that a target can be rebuilt not only because it is out of
+date, but because of any reason implemented in a new rule.\footnote{My
+first idea was to have at least three types of rules, instead of the one
+in \make{}, but someone on the net proposed to generalize the idea so
+that new types of rules can be easily implemented.}
+
+Since I personally like Tcl, not the least for its well defined
+handling of command line substitution (see \texttt{Tcl(n)} and no
+flames, please), I ended up with the present solution. A similar
 solution might be possible with other command languages.
 
 The following sections assume that you have a rough idea what \make\
@@ -73,9 +85,8 @@ up-to-date.
 What does \textit{up-to-date} mean? Historic \make\ has only one
 notion of \textit{up-to-date}: the target is up-to-date, if it exists
 and is newer than all its dependencies. Because this is to simple in
-some situations, \bras\
-has three types of rules implementing different
-meanings of \textit{up-to-date}:
+some situations, \bras{} has three types of rules implementing
+different meanings of \textit{up-to-date}:
 
 \begin{itemize}
 \item The \texttt{Newer}-rule most closely resembles \make's notion of
@@ -88,14 +99,23 @@ up-to-date, i.e.\ the rule's commands are always executed if
 \bras\ is asked to bring this target up-to-date.
 \end{itemize}
 
+Certainly someone can come up with an application which still cannot be
+handled by the these types of rules. How about a rule which rebuilts
+the target only if \textbf{all} dependencies are newer than the
+target, or one that rebuilts if a dependency does not exist and the
+moon is in a certain phase, or $\ldots$ you name it?
+Section~\ref{secNewRules} describes how to implement new rules into
+bras (which is particularly easy). For the moment however, only the
+rule-types listed above are of interest. 
+
 Looking a bit closer at the meaning of \texttt{Newer}-rules (and
-\make's rules),
-dependencies serve two purposes. On the one hand, they are potential
-inputs used by the commands and must be up-to-date before the commands
-can be executed. On the other hand they trigger the rule if they are
-newer than the target. I could barely resist to implement in \bras\ a
-construct to make these two facets of dependencies explicit, but
-finally decided that the distinction is mainly academic.
+\make's rules), dependencies serve two purposes. On the one hand, they
+are potential inputs used by the commands and must be up-to-date
+before the commands can be executed. On the other hand they trigger
+the rule if they are newer than the target. I could barely resist to
+implement in \bras\ a construct to make these two facets of
+dependencies explicit, but finally decided that the distinction is
+mainly academic.
 
 All that said, \bras's reasoning can be described easily.  After
 reading in the brasfile, the target of the very first rule or the
@@ -370,7 +390,7 @@ Suppose the real rule with the empty command is
 and that
 \begin{verbatim}
   SuffixNewer .*\.o .s {
-    cc -o $target $newer
+    cc -o $target $trigger
   }
 \end{verbatim}
 is the candidate pattern rule. It is obviously good enough
@@ -385,6 +405,24 @@ space. It is most convenient to write something like
   }
 \end{verbatim}
 to prevent \bras\ from looking for default commands.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementing New Types of Rules}
+\label{secNewRules}
+As mentioned previously, there might be situations where the standard
+rule-types are not sufficient to describe the reasoning necessary to
+decide whether a target needs to be made or not. In these special
+cases, a new rule-type must be implemented, which is particularly easy
+with \bras{}. \Bras{} has a procedure called \texttt{Defrule} which is
+used similar to Tcl's \texttt{proc} to define the reasoning to be
+used by the rule to be defined.
+
+\begin{quote}\bf
+More to come later. For the moment have a look at the implementations
+of the Exist- and Newer-Rules in files existRule.tcl and newerRule.tcl
+\end{quote}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Dependencies in Foreign Directories}
@@ -432,10 +470,10 @@ All commands derived from rules are executed on the global level
 so that they have access only to all global variables. In addition
 to the global variables defined in the
 \texttt{brasfile}, \bras\ sets the variables \texttt{target},
-\texttt{deps} and \texttt{newer} respectively to the rule's target, its
+\texttt{deps} and \texttt{trigger} respectively to the rule's target, its
 dependencies and the dependencies that are newer than the target. If
 the target does not exist, all dependencies are considered newer and
-\texttt{deps} and \texttt{newer} will contain the same value(s).
+\texttt{deps} and \texttt{trigger} will contain the same value(s).
 
 Non-internal commands are automatically executed
 via \texttt{exec}. But please remember that \bras\ is basically
