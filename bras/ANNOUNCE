@@ -1,0 +1,32 @@
+
+Hi there,
+
+today I would like to announce a new version of bras (another kind of
+`make').
+
+The home page is at http://www.iitb.fhg.de/~kir/Bras/brasHome.html
+
+It is for all those of you who know the value of `make' and who are at
+the same time not totally happy with it for one reason or another.
+
+Main features of bras are:
+o rule-controlled command execution, similar to make;
+o totally written in Tcl, no compilation required;
+o Tcl-syntax, so if you like Tcl, you will like bras;
+o dependencies in foreign directories are handled nicely;
+o more than one type of rule;
+o new types of rules can be easily added;
+o distinction between dependencies and mere prerequisites;
+o multiple targets in one rule;
+o multiple rules for a target;
+o pattern rules which deserve the name;
+
+
+I consider this alpha software, so be prepared.
+
+Try it and tell me what you think.
+
+	Harald Kirsch
+
+
+$Revision: 1.1 $, $Date: 1997/05/04 17:46:43 $
