@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.17 $, $Date: 2002/02/11 19:53:00 $
+# $Revision: 1.18 $, $Date: 2002/03/04 19:11:11 $
 ########################################################################
 
 ##
@@ -124,9 +124,22 @@ proc ::bras::dirns {dir} {
 ## associated with another directory. The same restrictions apply to
 ## the directory as for dirns.
 ##
-proc ::bras::linkvar {varname dir} {
-  uplevel \#1 \
-      upvar \#0 \[dirns [list $dir]\]::[list $varname] [list $varname]
+proc ::bras::linkvar {args} {
+  if {[llength $args]<2} {
+    append err "::bras::linkvar needs at least two params: varname dir"
+    return -code error $err
+  }
+  set dir [lindex $args end]
+  if {![file isdir $dir]} {
+    append err "last param must be a directory but is `$dir'"
+    return -code error $err
+  }
+  set L [llength $args]
+  incr L -1
+  foreach varname [lrange $args 0 $L] {
+    uplevel \#1 \
+	upvar \#0 \[dirns [list $dir]\]::[list $varname] [list $varname]
+  }
 }
 ########################################################################
 ##
@@ -322,18 +335,6 @@ proc ::bras::consider {targets} {
 proc ::bras::forget { {pattern *} {dir *} } {
   foreach name [array names ::bras::Tinfo $pattern,$dir,done] {
     unset ::bras::Tinfo($name)
-  }
-}
-########################################################################
-##
-## Make directory for target, copy source to target and set
-## permissions of target as requested.
-proc ::bras::install {target source {perm ""}} {
-  file mkdir [file dir $target]
-  file delete -force $target
-  file copy -force $source $target
-  if {"$perm"!=""} {
-    file attributes $target -permission $perm
   }
 }
 ########################################################################
