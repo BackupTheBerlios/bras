@@ -2,7 +2,7 @@
 #
 # This brasfile is used to install bras from the source distribution. 
 #
-# Run this file by typing
+# Invoke processing of this file by typing
 #
 #   tclsh bras
 #
@@ -18,17 +18,19 @@ getenv prefix /usr/local
 ## Directory where to put the executable script
 getenv BINDIR [file join $prefix bin]
 
-## Directory where to put the package files (*.tcl and the like)
-getenv LIBDIR [file join $prefix lib bras-$::bras::VERSION]
-
 ## Directory where to put the manual page
 getenv MANDIR [file join $prefix man man1]
+
+## Directory where to put the package files (*.tcl and the like)
+getenv LIBDIR [file join $prefix lib bras-$::bras::VERSION]
 
 ## Directory where to put assorted documentation files
 getenv DOCDIR [file join $prefix doc bras-$::bras::VERSION]
 
-
-
+## You may explicitely override this. However it would be much easier
+## to just inoke processing of the brasfile by running it like
+##   % the_correct_tclsh_executable bras
+getenv TCLSH [info nameofexecutable]
 
 ########################################################################
 
@@ -48,6 +50,7 @@ Always install {all} {
   ## to DOCDIR
   file copy -force README ANNOUNCE \
       doc/bras.tex doc/bras.ps doc/bras.pdf COPYING-2.0 \
+      doc/recu-make-cons-harm.ps.gz \
       $DOCDIR
   
   ## to MANDIR
@@ -63,7 +66,11 @@ Always all {bras.fixed bras.1.fixed} {
 ## installation. It will have $LIBDIR edited into the right place.
 Newer bras.fixed bras {
   set out [open bras.fixed w]
-  forfile line bras {
+  forfile {line n} bras {
+    if {$n==1} {
+      puts $out "\#!$TCLSH"
+      continue
+    }
     switch -glob -- $line {
       "set auto_path*" {
 	puts $out "set auto_path \[concat $LIBDIR \$auto_path\]"
@@ -81,7 +88,11 @@ Newer bras.1.fixed bras.1 {
   set out [open bras.1.fixed w]
   forfile line bras.1 {
     if {[string match *|DOC|* $line]} {
-	regsub -all {\|DOC\|} $line $DOCDIR line
+      regsub -all {\|DOC\|} $line $DOCDIR line
+    } elseif {[string match *|VERDATE|* $line]} {
+      regsub -all {\|VERDATE\|} $line $bras::VERDATE line
+    } elseif {[string match *|VERSION|* $line]} {
+      regsub -all {\|VERSION\|} $line $bras::VERSION line
     }
     puts $out $line
   }
