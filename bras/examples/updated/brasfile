@@ -54,13 +54,13 @@
 #
 #
 # (C) 2001 Harald Kirsch
-# $Revision: 1.1 $, $Date: 2001/08/04 15:25:38 $
+# $Revision: 1.2 $, $Date: 2001/10/07 15:04:05 $
 ########################################################################
 
 Always Catch_User_Who_Dont_Read_This_File {} {
   ::bras::configure -s
   append msg \
-      "Please read the comments in `brasfile' to see what this" \
+      "Please read the comments in `brasfile' to see what this " \
       "example does.\n" \
       "In short:\n" \
       "  1) run ../../bras all\n" \
