@@ -1,4 +1,4 @@
-#!/usr/local/bin/tclsh8.0
+#!/usr/local/bin/tclsh
 set brasBase |SRCBASE|
 set VERDATE 1111-11-11
 
@@ -26,7 +26,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.12 $, $Date: 1997/06/06 17:19:11 $
+# $Revision: 1.13 $, $Date: 1997/07/19 17:39:44 $
 ########################################################################
 
 ########################################################################
@@ -185,6 +185,54 @@ proc include {name} {
 }
 ########################################################################
 ##
+## bras.followTarget
+##  
+## Handle all what is necessary to follow an @-target to its
+## home. In particular:
+## - change directory
+## - read brasfile
+## And do all this with the necessary error handling.  
+##
+## RETURN
+##   The current directory (before cd) is returned.
+##
+proc bras.followTarget {target} {
+  global brasFile brasKnown
+  #puts "followTarget $target"
+
+  set oldpwd [pwd]
+  set dir [file dir [string range $target 1 end]]
+
+  ## carefully change directory
+  if [catch "cd $dir" msg] {
+    set err "bras: dependency `$target' in `$oldpwd/${brasFile}'"
+    append err " leads to non-existing directory `$dir'"
+    puts stderr $err
+    exit 1
+  }
+
+  ## check, if we know already the brasfile here
+  if [info exist brasKnown([pwd])] {
+    return $oldpwd
+  }
+
+  ## before really reading the file, mark the current dir as known,
+  ## because the file to be read may lead back here again.
+  set brasKnown([pwd]) 1
+
+  ## If the brasfile does not exist, print a warning. There is no need
+  ## to terminate immediately, because things might be handled by
+  ## default rules.
+  if ![file exists ${brasFile}] {
+    puts stderr \
+    "bras warning: no `${brasFile}' found in `[pwd]', so hold your breath"
+  } else {
+    bras.gobble ${brasFile}
+  }
+  return $oldpwd
+}
+########################################################################
+##
 ## bras.PatternRule
 ##   Declare a pattern-rule.
 ##
@@ -221,63 +269,12 @@ proc bras.PatternRule {type target deps cmd} {
 }
 ########################################################################
 ##
-## User command to add (more) dependencies to a target
-##
-if 0 {
-proc Dependencies {target deps} {
-  global brasTinfo brasFile brasKnown
-
-  ## I wonder if it were better to squeeze out multiply mentioned
-  ## dependencies.
-  if {![info exist brasTinfo($target,[pwd],deps)]} {
-    set brasTinfo($target,[pwd],deps) $deps
-  } else {
-    eval lappend brasTinfo($target,[pwd],deps) $deps
-  }
-
-  ## source rule-files for dependencies, if necessary. This is
-  ## necessary only for dependencies starting with `@'. Most of the
-  ## code below is error-checking.
-  foreach x $deps {
-    if ![string match @* $x] continue
-
-    set dir [file dir [string range $x 1 end]]
-
-    ## change to dir of that dependency
-    set pwd [pwd]
-    if [catch "cd $dir" msg] {
-      set err "dependency `$x' leads to "
-      append err "non-existing directory `$dir'"
-      return -code error -errorinfo $err
-    }
-    #puts "+++ Just switched to [pwd]"
-
-    ## source only, if we have not seen this directory's brasfile before
-    if {[info exist brasKnown([pwd])]} {
-      cd $pwd
-      continue
-    }
-
-    if { ![file exists ${brasFile}]} {
-      set err "dependency `$x' leads to"
-      append err " `[pwd]', but there is no `${brasFile}'"
-      cd $pwd
-      return -code error -errorinfo $err
-    }
-    set brasKnown([pwd]) 1
-    bras.gobble ${brasFile}
-    cd $pwd
-  }
-}
-}
-########################################################################
-##
 ## bras.enterRule
 ##    declare a rule
 ##
 proc bras.enterRule {type targets deps cmd} {
   global brasRule brasTinfo brasFile brasTargets brasKnown argv0
-  global brasPreqSeparator
+  global brasPreqSeparator brasOpts
 
   #parray brasCmd
   ## newline characters and semicolons are poisonous for `eval' so
@@ -329,37 +326,15 @@ proc bras.enterRule {type targets deps cmd} {
   ## source rule-files for dependencies and prerequisites if
   ## necessary. This is necessary only for dependencies starting with
   ## `@'. Most of the code below is error-checking.
+  ## Since 1997-07-19, the code below is only executed if specifically
+  ## requested with option -es (early sourcing).
+  if {!$brasOpts(-es)} return
+
   foreach x "$deps $preq" {
     if ![string match @* $x] continue
-
-    set dir [file dir [string range $x 1 end]]
-
-    ## change to dir of that dependency
-    set pwd [pwd]
-    if [catch "cd $dir" msg] {
-      set err "dependency `$x' leads to "
-      append err "non-existing directory `$dir'"
-      return -code error -errorinfo $err
-    }
-    #puts "+++ Just switched to [pwd]"
-
-    ## source only, if we have not seen this directory's brasfile before
-    if {[info exist brasKnown([pwd])]} {
-      cd $pwd
-      continue
-    }
-
-    if { ![file exists ${brasFile}]} {
-      set err "dependency `$x' leads to"
-      append err " `[pwd]', but there is no `${brasFile}'"
-      cd $pwd
-      return -code error -errorinfo $err
-    }
-    set brasKnown([pwd]) 1
-    bras.gobble ${brasFile}
-    cd $pwd
+    set backHere [bras.followTarget $x]
+    cd $backHere
   }
-
 }
 ########################################################################
 ##
@@ -375,13 +350,15 @@ proc usage {} {
   global argv0 VERDATE
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-f\] \[-h\] \[-n\] \[-r\]\
- \[-v\] \[--\] \[target ...\]
+ \[-v\] \[-es\] \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - execute nothing, show reasoning
         -n - don't execute external commands
         -r - don't read system standard rule file
         -v - show all command lists before they are executed
+       -es - early sourcing: read brasfiles of foreign directories as soon
+             as a @-dependency is encountered.
         -- - use the rest of the command-line as target list
              (necessary, if a target starts with `-')
     target - target to be rebuilt (default: the target of the first
@@ -401,6 +378,7 @@ proc bras.main {argc args} {
   set brasOpts(-n) 0
   set brasOpts(-r) 0
   set brasOpts(-v) 0
+  set brasOpts(-es) 0
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
     incr i
@@ -417,6 +395,7 @@ proc bras.main {argc args} {
       -n {set brasOpts(-n) 1}
       -r {set brasOpts(-r) 1}
       -v {set brasOpts(-v) 1}
+      -es {set brasOpts(-es) 1}
       -- {
 	for {} {$i<$argc} {incr i} {
 	  lappend brasTargets [lindex $args $i]

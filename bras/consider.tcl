@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1997/05/01 14:52:42 $
+# $Revision: 1.5 $, $Date: 1997/07/19 17:39:44 $
 ########################################################################
 
 ########################################################################
@@ -113,16 +113,8 @@ proc bras.Consider {target} {
   #parray brasTinfo
   ## change dir, if target starts with `@'
   if {[string match @* $target]} {
-    set t [string range $target 1 end]
-    set keepPWD [pwd]
-    set dir [file dir $t]
-    if [catch "cd $dir" msg] {
-      puts stderr \
-     "$argv0: cannot change from `[pwd]' to `$dir' for `$target'"
-      exit 1
-    }
-    set target [file tail $t]
-
+    set keepPWD [bras.followTarget $target]
+    set target [file tail $target]
   } else {
     set keepPWD .
   }

@@ -1,6 +1,4 @@
 puts "msg: Error `dependency leads to non-existant dir'"
-puts "expect: dependency `@/bla/bli' leads to non-existing directory `/bla'"
-puts "expect:     invoked from within"
-puts "expect: \"bras.enterRule Newer \$target \$deps \$cmd\""
+puts "expect: bras: dependency `@/bla/bli' in `/home1/kir/work/bras/Test1/brasfile.23' leads to non-existing directory `/bla'"
 
 Newer A @/bla/bli
