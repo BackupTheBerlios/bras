@@ -1,6 +1,9 @@
 puts "msg: Exist rule"
+
+puts "expect: touch bla"
 puts "expect: creating XxXxXx"
- 
+puts "expect: rm -f bla"
+
 ## make a file which exists once rule evalutation starts
 exec touch bla
 

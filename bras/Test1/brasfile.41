@@ -1,7 +1,11 @@
 puts "msg: SearchPath, make bla.o in build from ../unix/bla.y via bla.c"
+
+puts "expect: rm -rf build unix"
+puts "expect: mkdir -p build unix"
+puts "expect: touch unix/bla.y"
 puts "expect: cd /home1/kir/work/bras/Test1/build"
-puts "expect: making bla.c from ../unix/bla.y"
-puts "expect: making bla.o from bla.c"
+puts "expect: cp ../unix/bla.y bla.c"
+puts "expect: cp bla.c bla.o"
 puts "expect: cd /home1/kir/work/bras/Test1"
 puts "expect: rm -rf build unix"
 
@@ -11,10 +15,10 @@ exec mkdir -p build unix
 exec touch unix/bla.y
 
 PatternNewer .*\.o .c {
-  puts "making $target from $trigger"
+  cp $trigger $target
 }
 PatternNewer .*\.c .y {
-  puts "making $target from $trigger"
+  cp $trigger $target
 }
 
 ## This rule forwards us to subdirectory build. The rules to obey

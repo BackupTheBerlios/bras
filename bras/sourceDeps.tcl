@@ -101,7 +101,7 @@ proc sourceDeps {file args} {
 
   if {![file readable $file]} {
     puts stderr \
-	"bras warning: cannot read `[pwd]/$file'"
+	"bras warning: cannot read `[file join [pwd] $file]'"
     return
   }
   set in [open $file]

@@ -1,9 +1,14 @@
 puts "msg: Newer rule with non-existing target"
-puts "expect: creating bla"
+
+puts "expect: touch blu"
+puts "expect: rm -f bla bli"
+puts "expect: touch bla"
 puts "expect: bli <- bla blu"
+puts "expect: rm -f blu"
 
 ## need an existing file, must also be recorded as newer
 exec touch blu
+exec rm -f bla bli
 
 ## This rule should be executed because target does not exist
 Newer bli {bla blu} {
@@ -12,7 +17,7 @@ Newer bli {bla blu} {
 }
 
 Newer bla {} {
- puts "creating bla"
+  touch $target
 }
 
 Exist blu {} {

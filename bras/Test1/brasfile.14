@@ -1,4 +1,10 @@
 puts "msg: Dependency in foreign directory, nothing to do"
+
+puts "expect: rm -f file1 ../Test2/file1"
+puts "expect: touch ../Test2/file1"
+puts "expect: touch file1"
+puts "expect: cd /home1/kir/work/bras/Test2"
+puts "expect: cd /home1/kir/work/bras/Test1"
 puts "expect: rm file1 ../Test2/file1"
 
 exec rm -f file1 ../Test2/file1

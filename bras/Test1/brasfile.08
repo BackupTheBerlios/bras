@@ -1,6 +1,10 @@
 puts "msg: Always rule"
+
+puts "expect: touch bla"
 puts "expect: bli"
 puts "expect: bla"
+puts "expect: rm bla"
+
 
 ## need a target which is perfectly ok 
 exec touch bla

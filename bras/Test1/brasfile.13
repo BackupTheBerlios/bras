@@ -1,13 +1,19 @@
 puts "msg: Dependency in foreign directory, to be rebuild"
-puts "expect: cd /home1/kir/work/bras/Test2"
-puts "expect: file1"
-puts "expect: cd /home1/kir/work/bras/Test1"
-puts "expect: file1 <- ../Test2/file1"
-puts "expect: rm file1"
 
+puts "expect: rm -f ../Test2/file1"
+puts "expect: touch file1"
+puts "expect: cd /home1/kir/work/bras/Test2"
+puts "expect: touch file1"
+puts "expect: cd /home1/kir/work/bras/Test1"
+puts "expect: cp ../Test2/file1 file1"
+puts "expect: rm file1 ../Test2/file1"
+
+exec rm -f ../Test2/file1
 exec touch file1
+set c [clock seconds]
+while {[clock seconds]==$c} {after 10}
 
 Newer file1 @../Test2/file1 {
-  puts "$target <- $trigger"
-  rm file1
+  cp $trigger $target
+  rm file1 ../Test2/file1
 }

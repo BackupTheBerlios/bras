@@ -1,6 +1,10 @@
 puts "msg: DependsFile needs to remake xxx.D"
-puts "expect: Would create xxx.D"
-puts "expect: Would create xxx.o"
+
+puts "expect: touch bla.h pup.h"
+puts "expect: touch xxx.o"
+puts "expect: touch bla.h"
+puts "expect: touch xxx.D"
+puts "expect: touch xxx.o"
 puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
 
 ## We create a situation were xxx.D contains the right things, but
@@ -33,9 +37,9 @@ Always all {xxx.o} {
 }
 
 Newer xxx.o xxx.D {
-  puts "Would create $target"
+  touch $target
 }
 
 DependsFile xxx.D xxx.c {
-  puts "Would create $target"
+  touch $target
 }

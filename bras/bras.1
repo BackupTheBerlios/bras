@@ -27,7 +27,7 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-f brasfile] [-d] [-es] [-h] [-n] [-N] [-r] [-s] [-ss] [-v] [var=value] [--] [target ...]
+bras [-f brasfile] [-d] [-es] [-h] [-n] [-r] [-s] [-v] [-ve] [var=value] [--] [target ...]
 
 .SH OPTIONS
 .IP "-f brasfile"
@@ -39,9 +39,12 @@ and
 in that order.
 
 .IP -d
-show reasoning, don't execute any commands. This option requests a
+show reasoning in addition to normal processing. This option requests a
 detailed description of the reasoning performed by bras and is useful
-for debugging.
+for debugging. (Up to version 0.6.0, -d suppressed the execution of any
+commands. Since then the reasoning process was changed in a way that
+non-execution of commands changes the results. To return exact
+results, -d can no longer suppress execution of commands.)
 
 .IP -e 
 .B This option no longer exists. 
@@ -60,7 +63,7 @@ brasfiles.
 
 .IP -es
 requests early sourcing.
-.B (Deprecated. Please use the @path
+.B (Deprecated. Please use the `include @path'
 .B feature in brasfiles of subdirectories.)
 
 With this option, 
@@ -85,34 +88,35 @@ works if your Brasfiles contain the necessary logic.
 .IP -h
 show usage message and exit.
 
-.IP -N
-don't execute external commands. External commands are those which are
-not built into Tcl, like rm, cat, cp and the like.
-
 .IP -n
-don't execute anything.
+don't execute anything. This option implies -v, but the commands shown
+are only an approximation of what would happen, if -n were not given.
+This is because the results of reasoning can only be complete, if
+commands are executed.
 
 .IP -r
 don't read system's standard rule files. Standard rule files are
 .RI |SRCBASE|/rules. system ,
 where
 .I system
-is the result of a call to 
-.IR "uname -s" .
+is the content of
+.IR "tcl_platform(os)" .
 
 .IP -s
-silent operation. Instead of printing all commands executed, only
-one dot is printed for every command.
-
-.IP -ss
-super silent operation. Not even the dots are printed. Only error
-messages are shown.
+silent operation. Don't print anything except warnings and error
+messages.
 
 .IP -v
-show all command lists (not only external commands). Usually only
-external commands are listed before they are executed. With
-.I -v
-the whole command list is listed before it is executed.
+show the full list of commands which are executed.
+
+.IP -ve
+installs a verbose version of
+.I exec
+resulting in a log of all external commands executed. The output is
+the closest approximation possible to the typical output of
+`make'. However tcl-commands which are executed can only be seen with
+-v.
+
 
 .IP var=value
 Your last chance to set environment variables, i.e. to set elements of

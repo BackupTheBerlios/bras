@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.4 $, $Date: 1999/01/24 07:37:47 $
+## version I am shipping from cvs. (kir) $Revision: 1.5 $, $Date: 1999/02/21 21:46:29 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -74,6 +74,7 @@ rm $p/bras.orig
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/dependsFileRule.tcl
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/evalCmds.tcl
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/existRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/exported.tcl
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/lastMinuteRule.tcl
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/newerRule.tcl
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/sourceDeps.tcl

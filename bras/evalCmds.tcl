@@ -23,7 +23,6 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
-
 proc bras.unknown args {
   global brasOpts auto_noexec
 
@@ -50,22 +49,34 @@ proc bras.unknown args {
 	"command not found when executing `$args'"
   }
 
-  if {$brasOpts(-N)} {
-    puts stdout $args
-    return {}
-  }
+#   if {$brasOpts(-N)} {
+#     puts stdout $args
+#     return {}
+#   }
   
-  if {!$brasOpts(-ss)} {
-    ## not super-silent
-    if {!$brasOpts(-s)} {
-      puts stdout $args
-    } else {
-      puts -nonewline stdout .
-    }
-  }
+#   if {!$brasOpts(-ss)} {
+#     ## not super-silent
+#     if {!$brasOpts(-s)} {
+#       puts stdout $args
+#     } else {
+#       puts -nonewline stdout .
+#     }
+#   }
   
   #    return [uplevel exec <@stdin 2>@stderr >@stdout $args]
-  return [eval exec <@stdin 2>@stderr >@stdout $args]
+#   if {!$brasOpts(-v) && !$brasOpts(-s)} {
+#     puts $args
+#   }
+
+  if {$brasOpts(-ve)} {
+    puts $args
+    set exec bras.exec
+  } else {
+    set exec exec
+  }
+  if {[catch {eval $exec <@stdin 2>@stderr >@stdout $args} msg] } {
+    return -code error $msg
+  }
 
 }
 ########################################################################
@@ -80,7 +91,7 @@ proc bras.evalCmds {cmds} {
       set newcwd [string trim [lindex $cmd 1]]
       if { "$newcwd"=="[pwd]" } continue
       set cmd [string range $cmd 1 end]
-      if {!$brasOpts(-s) && !$brasOpts(-ss)} {
+      if {!$brasOpts(-s)} {
 	puts stdout $cmd
       }
       eval $cmd
@@ -100,7 +111,8 @@ proc bras.evalCmds {cmds} {
     ## The command is finally executed with uplevel.
     if [catch "uplevel #0 {$cmd}" msg] {
       puts stderr \
-	  "\nbras: a rule-command failed to execute and said:\n"
+	  "bras: a rule-command failed to execute and said"
+      regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
       puts stderr $errorInfo
       exit 1
     }

@@ -1,22 +1,30 @@
 puts "msg: Newer rule with dependency created"
-puts "expect: creating bla"
+
+puts "expect: rm -f bla"
+puts "expect: touch blu"
+puts "expect: touch bli"
+puts "expect: touch bla"
 puts "expect: bli <- bla"
-
-
+puts "expect: rm -f bli blu"
 
 ## need some existing files with defined modified dates
-exec touch blu; after 1000
+exec rm -f bla
+exec touch blu
+set c [clock seconds]; while {[clock seconds]==$c} {after 10}
 exec touch bli
+set c [clock seconds]; while {[clock seconds]==$c} {after 10}
 
 
-## This rule should be executed because one dependency is newer
+
+## This rule should be executed because dependency bla is newer than
+## target bli. 
 Newer bli {bla blu} {
   puts "$target <- $trigger"
   rm -f bli blu
 }
 
 Newer bla {} {
- puts "creating bla"
+  touch bla
 }
 
 Exist blu {} {

@@ -1,5 +1,10 @@
 puts "msg: Newer rule with dependency newer"
+
+puts "expect: touch bla"
+puts "expect: touch bli"
+puts "expect: touch blu"
 puts "expect: bli <- blu"
+puts "expect: rm -f bla bli blu"
 
 
 

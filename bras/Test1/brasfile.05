@@ -1,6 +1,9 @@
 puts "msg: Rule generation from pattern rule"
+
+puts "expect: touch aaYyYaa"
 puts "expect: aaXxXaa <- aaYyYaa"
 puts "expect: all <- aaXxXaa"
+puts "expect: rm aaYyYaa"
 
 ## We need a file to trigger the pattern rule
 exec touch aaYyYaa

@@ -1,4 +1,8 @@
 puts "msg: SearchPath, make bla.o in build from from ../unix/bla.c"
+
+puts "expect: rm -rf build unix"
+puts "expect: mkdir -p build unix"
+puts "expect: touch unix/bla.c"
 puts "expect: cd /home1/kir/work/bras/Test1/build"
 puts "expect: making bla.o from ../unix/bla.c"
 puts "expect: cd /home1/kir/work/bras/Test1"

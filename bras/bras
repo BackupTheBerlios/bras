@@ -28,7 +28,7 @@ set INSTALLED 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.25 $, $Date: 1999/02/11 19:46:06 $
+# $Revision: 1.26 $, $Date: 1999/02/21 21:46:28 $
 ########################################################################
 
 ########################################################################
@@ -118,7 +118,7 @@ set brasPrule(nextID) 0
 ##   array with an element for every target currently (recursively)
 ##   under consideration; used to detect dependency loops.
 ##
-## brasCmdlist
+## brasCmdlist  !!!!! no longer used after 0.6.0 !!!!!!!
 ##   list of commands to execute. Built up by bras.Consider. Howver,
 ##   only the topmost bras.Consider called finally sets the global
 ##   variable. All recursively called incarnations set the local
@@ -157,21 +157,20 @@ if { "$brasBase"=="|SRCBASE|" } {
 }
 unset f
 
-source $brasBase/evalCmds.tcl
-source $brasBase/sourceDeps.tcl
-source $brasBase/lastMinuteRule.tcl
-source $brasBase/defaultCmd.tcl
-source $brasBase/consider.tcl
-source $brasBase/brasUtils.tcl
+source [file join $brasBase evalCmds.tcl]
+source [file join $brasBase sourceDeps.tcl]
+source [file join $brasBase lastMinuteRule.tcl]
+source [file join $brasBase defaultCmd.tcl]
+source [file join $brasBase consider.tcl]
+source [file join $brasBase brasUtils.tcl]
+source [file join $brasBase exported.tcl]
 
 ## source rule types
-source $brasBase/defrule.tcl
-source $brasBase/alwaysRule.tcl
-source $brasBase/existRule.tcl
-source $brasBase/newerRule.tcl
-#source $brasBase/uptodateOCRule.tcl
-source $brasBase/dependsFileRule.tcl
-source $brasBase/exported.tcl
+source [file join $brasBase defrule.tcl]
+source [file join $brasBase alwaysRule.tcl]
+source [file join $brasBase existRule.tcl]
+source [file join $brasBase newerRule.tcl]
+source [file join $brasBase dependsFileRule.tcl]
 
 ########################################################################
 #
@@ -183,6 +182,15 @@ rename cd _cd
 proc cd {dir} {
   if {"$dir"=="."} return
   _cd $dir
+}
+########################################################################
+#
+# Depending on command line options, this replaces the normal
+# exec-command. 
+#
+proc bras.verboseExec args {
+  puts $args
+  return [eval bras.exec $args]
 }
 ########################################################################
 ##
@@ -197,7 +205,7 @@ proc bras.gobble {file} {
     set ei [split $errorInfo \n]
     set l [llength $ei]
     set lastLine [lindex $ei [expr $l-6]]
-    regsub {\".*\"} $lastLine "\"[pwd]/$file\"" lastLine
+    regsub {\".*\"} $lastLine "\"[file join [pwd] $file]\"" lastLine
     puts stderr [join [lrange $ei 0 [expr $l-7]] \n]
     puts stderr $lastLine
     exit 1
@@ -225,20 +233,21 @@ proc bras.followTarget {target} {
 
   ## carefully change directory
   if [catch "cd $dir" msg] {
-    set err "bras: dependency `$target' in `$oldpwd/${brasFile}'"
-    append err " leads to non-existing directory `$dir'"
+    set err "bras: dependency `$target' in `"
+    append err [file join $oldpwd $brasFile]
+    append err "' leads to non-existing directory `$dir'"
     puts stderr $err
     exit 1
   }
 
   ## check, if we know already the brasfile here
-  if [info exist brasKnown([pwd]/$brasFile)] {
+  if [info exist brasKnown([file join [pwd] $brasFile])] {
     return $oldpwd
   }
 
   ## before really reading the file, mark the current dir as known,
   ## because the file to be read may lead back here again.
-  set brasKnown([pwd]/$brasFile) 1
+  set brasKnown([file join [pwd] $brasFile]) 1
 
   ## If the brasfile does not exist, print a warning. There is no need
   ## to terminate immediately, because things might be handled by
@@ -411,7 +420,7 @@ proc bras.enterRule {type targets deps cmd} {
   
 
   ## Add the new information into brasRule($rid,...)
-  concatUnique brasRule($rid,targ) $t
+  concatUnique brasRule($rid,targ) $targets
   concatUnique brasRule($rid,deps) $deps
   concatUnique brasRule($rid,preq) $preq
   if {"$cmd"!=""} {
@@ -518,19 +527,18 @@ proc bras.usage {} {
   global argv0 VERSION INSTALLED
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
-\[-N\] \[-r\] \[-s\] \[-ss\] \[-v\] \[var=value]\
+\[-r\] \[-s\] \[-v\] \[-ve\] \[var=value]\
 \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
-        -d - execute nothing, show reasoning
+        -d - show reasoning in addition to normal processing
        -es - early sourcing: read brasfiles of foreign directories as soon
              as a @-dependency is encountered.
-        -N - don't execute external commands (precludes -s, -ss)
         -n - don't execute any commands (implies -v)
         -r - don't read system standard rule file
-        -s - don't show external commands as they are executed
-       -ss - don't show anything except error messages
-        -v - show all commands
+        -s - don't show anything except error messages
+        -v - show all commands to be executed
+       -ve - use verbose version of exec
         -- - use the rest of the command-line as target list
              (necessary, if a target starts with `-')
  var=value - just before starting to read brasfiles, element var of
@@ -546,16 +554,16 @@ This is version $VERSION installed on $INSTALLED.
 proc bras.main {argc args} {
   global env argv0 brasFile brasTargets brasPrule brasOpts
   global brasKnown brasBase brasLastError
-  global brasIndent brasCmdlist
+  global brasIndent
+  # global brasCmdlist
   
   set brasOpts(-d) 0
   set brasOpts(-es) 0
   set brasOpts(-n) 0
-  set brasOpts(-N) 0
   set brasOpts(-r) 0
   set brasOpts(-s) 0
-  set brasOpts(-ss) 0
   set brasOpts(-v) 0
+  set brasOpts(-ve) 0
   set brasOpts(=) {}
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
@@ -575,11 +583,14 @@ proc bras.main {argc args} {
 	incr i
       }
       -n {set brasOpts(-n) 1}
-      -N {set brasOpts(-N) 1}
       -s {set brasOpts(-s) 1}
-      -ss {set brasOpts(-ss) 1}
       -r {set brasOpts(-r) 1}
       -v {set brasOpts(-v) 1}
+      -ve {
+	set brasOpts(-ve) 1
+	rename exec bras.exec
+	rename bras.verboseExec exec
+      }
       -- {
 	for {} {$i<$argc} {incr i} {
 	  lappend brasTargets [lindex $args $i]
@@ -596,10 +607,6 @@ proc bras.main {argc args} {
     }
   }
 
-  if $brasOpts(-N) {
-    set brasOpts(-s) 0
-    set brasOpts(-ss) 0
-  }
   if $brasOpts(-n) {
     set brasOpts(-v) 1
   }
@@ -625,7 +632,8 @@ proc bras.main {argc args} {
 
   ## If not suppressed with -r, read default rule files
   if { !$brasOpts(-r) } {
-    set sys $brasBase/rules.[exec uname -s]
+    global tcl_platform
+    set sys [file join $brasBase rules.$tcl_platform(os)]
     if ![file readable $sys] {
       puts stderr \
 	  "bras: no system specific rules file, leaves me stupid!"
@@ -636,7 +644,7 @@ proc bras.main {argc args} {
 
   ## Read the rule file and whatever it includes
   if { [info exist brasFile] } {
-    set brasKnown([pwd]/$brasFile) 1
+    set brasKnown([file join [pwd] $brasFile]) 1
     bras.gobble $brasFile
   }
 
@@ -657,29 +665,30 @@ proc bras.main {argc args} {
 
   foreach target $brasTargets {
     set brasIndent ""
-    set brasCmdlist {}
+#    set brasCmdlist {}
     set r [bras.ConsiderKernel $target]
 
     #global brasTinfo; parray brasTinfo
     #bras.showCmds $brasCmdlist
-
-    if $brasOpts(-d) continue
 
     if {$r==-1} {
       puts "bras: cannot make $target because$brasLastError"
       puts "      try to use -d to find out more"
       exit 1
     }
-    if {![llength $brasCmdlist]} {
-      puts "$argv0: nothing to be done for `$target'"
-    } else {
-      bras.evalCmds $brasCmdlist
-    }
+
+#    if $brasOpts(-d) continue
+
+#     if {![llength $brasCmdlist]} {
+#       puts "$argv0: nothing to be done for `$target'"
+#     } else {
+#       bras.evalCmds $brasCmdlist
+#     }
   } 
 
-  if { $brasOpts(-s) && !$brasOpts(-ss) } {
-    puts stdout ""
-  }
+#   if { $brasOpts(-s) } {
+#     puts stdout ""
+#   }
 }
 ########################################################################
 

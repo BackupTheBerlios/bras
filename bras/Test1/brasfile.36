@@ -1,5 +1,8 @@
 puts "msg: DependsFile, basic functionality test"
-puts "expect: would make xxx.D now"
+
+puts "expect: touch bla.h pup.h"
+puts "expect: rm -f xxx.D"
+puts "expect: touch xxx.D"
 puts "expect: xxx.c"
 puts "expect: xxx.D"
 puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
@@ -26,6 +29,6 @@ Newer xxx.o xxx.D {
 }
 
 DependsFile xxx.D xxx.c {
-  puts "would make $target now"
+  touch $target
   puts $trigger
 }

@@ -1,4 +1,7 @@
 puts "msg: nothing to do for DependsFile"
+
+puts "expect: touch bla.h pup.h"
+puts "expect: touch xxx.o"
 puts "expect: rm -f xxx.D xxx.o xxx.c pup.h bla.h"
 
 ## We create a situation were DependsFile and the accompanying Newer have

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 1999/02/11 19:46:07 $
+# $Revision: 1.7 $, $Date: 1999/02/21 21:46:31 $
 ########################################################################
 
 ########################################################################
@@ -41,7 +41,8 @@ Defrule Newer {target _reason _deps _newer} {
   upvar $_deps deps
   upvar $_reason reason
   upvar $_newer newer
-  
+  global brasOpts
+
   set reason ""
   set res 0
   
@@ -60,7 +61,7 @@ Defrule Newer {target _reason _deps _newer} {
   set newDeps {}
   foreach dep $deps {
     ## Consider the dependency as a target. This may change the
-    ## target-name slightly due to application of BrasSearchPath.
+    ## dependency-name slightly due to application of searchpath.
     set x [bras.Consider dep]
     lappend newDeps $dep
 
@@ -71,7 +72,10 @@ Defrule Newer {target _reason _deps _newer} {
       set dep [string range $dep 1 end]
     }
 
-    if {$x} {
+    if {$brasOpts(-n) && $x} {
+      # No command was executed but the dependency was remade. We
+      # assume that this would render the dependency newer than the
+      # target. 
       set res 1
       append reason "\ndependency $dep rebuilt"
       lappend newer $dep
@@ -80,12 +84,17 @@ Defrule Newer {target _reason _deps _newer} {
 
     ## This tests the problematic case mentioned above: dep is
     ## up-to-date but may nevertheless not exist as a file.
-    if {![file exist $dep]} continue
+    if {![file exist $dep]} {
+      append emsg \
+	  "bras(warning): dependency `$dep' "\
+	  "of target $target was not made"
+      puts stderr $emsg
+      continue
+    }
 
-    ## The dependency is not remade, but maybe its newer already
+    ## Is the dependency indeed newer now than the target?
     file stat $dep stat
-    #puts ">>>$target<-$pdep"
-    #puts "$ttime <> $stat(mtime)"
+    #puts "$target\($ttime) $dep\($stat(mtime))"
     if {$ttime<$stat(mtime)} {
       set res 1
       append reason "\nolder than `$dep'"

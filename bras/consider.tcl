@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.10 $, $Date: 1999/02/11 19:46:06 $
+# $Revision: 1.11 $, $Date: 1999/02/21 21:46:29 $
 ########################################################################
 
 ########################################################################
@@ -30,8 +30,8 @@
 ## bras.dmsg
 ##
 proc bras.dmsg {dind msg} {
-  regsub -all "\n" $msg "\n$dind" msg
-  puts $dind$msg
+  regsub -all "\n" $msg "\n\#$dind" msg
+  puts "\#$dind$msg"
 }
 ########################################################################
 ## Make the list of dependencies without leading @
@@ -197,6 +197,17 @@ proc bras.Consider {_target} {
   return [bras.ConsiderKernel $target]
 }
 ########################################################################
+proc bras.leaveDir {newDir} {
+  global brasOpts
+
+  if {"$newDir"=="."} return
+
+  if {!$brasOpts(-s)} {
+    puts "cd $newDir"
+  }
+  cd $newDir
+}
+########################################################################
 ##
 ## Check whether the target needs to be rebuilt.
 ##
@@ -231,15 +242,21 @@ proc bras.ConsiderKernel {target} {
   global brasRule brasTinfo argv0 brasOpts brasConsidering
   global brasIndent brasLastError
 
-  #parray brasCmd
-  # parray brasTinfo
   ## change dir, if target starts with `@'
   if {[string match @* $target]} {
     set keepPWD [bras.followTarget $target]
     set target [file tail $target]
+    if {"$keepPWD"=="[pwd]"} {
+      set keepPWD .
+    }
   } else {
     set keepPWD .
   }
+
+  if {!$brasOpts(-s) && "$keepPWD"!="."} {
+    puts "cd [pwd]"
+  }
+
 
   ## check, if this target was handled already along another line of
   ## reasoning 
@@ -248,10 +265,9 @@ proc bras.ConsiderKernel {target} {
       bras.dmsg $brasIndent "have seen `$target' in `[pwd]' already"
     }
     set pwd [pwd]
-    cd $keepPWD
+    bras.leaveDir $keepPWD
     return $brasTinfo($target,$pwd,done)
   }
-
 
   ## check for dependeny loops
   if {[info exist brasConsidering($target,[pwd])]} {
@@ -294,7 +310,7 @@ proc bras.ConsiderKernel {target} {
 	set res -1
       }
       unset brasConsidering($target,[pwd])
-      cd $keepPWD
+      bras.leaveDir $keepPWD
       return $res
     }
   }
@@ -307,7 +323,7 @@ proc bras.ConsiderKernel {target} {
   set rule $brasRule($rid,type)
   set deps $brasRule($rid,deps)
   set newer {}
-  set brasCmdlist {}
+  # set brasCmdlist {}
   set reason ""
   #puts ">>$P<<, >>$deps<<"
   set res [Check.$rule $target reason deps newer]	;###<<<- HERE
@@ -331,7 +347,7 @@ proc bras.ConsiderKernel {target} {
 
     ## cleanup and return
     unset brasConsidering($target,[pwd])
-    cd $keepPWD
+    bras.leaveDir $keepPWD
     return $res
   }
 
@@ -346,7 +362,7 @@ proc bras.ConsiderKernel {target} {
 
     ## cleanup and return
     unset brasConsidering($target,[pwd])
-    cd $keepPWD
+    bras.leaveDir $keepPWD
     return $res
   }
 
@@ -357,20 +373,20 @@ proc bras.ConsiderKernel {target} {
   ## copy local command-list to the command list of the (indirectly)
   ## calling consider-proc. This requires searching up the stack for
   ## the variable brasCmdlist.
-  for {set l [expr [info level]-1]} {$l>=0} {incr l -1} {
-    upvar #$l brasCmdlist cmdlist
-    if {[info exist cmdlist]} break
-  }
-  if {$l<0} {
-    puts "BANG BANG BANG! This cannot happen. Must die."
-    exit 1
-  }
-  eval lappend cmdlist $brasCmdlist
+#   for {set l [expr [info level]-1]} {$l>=0} {incr l -1} {
+#     upvar #$l brasCmdlist cmdlist
+#     if {[info exist cmdlist]} break
+#   }
+#   if {$l<0} {
+#     puts "BANG BANG BANG! This cannot happen. Must die."
+#     exit 1
+#   }
+#   eval lappend cmdlist $brasCmdlist
   
   ## If this command was already executed, not much more has to be done
   if {1==$brasRule($rid,run)} {
     append reason "\nbut command was already executed previously"
-    set cmd { }
+    set cmdlist { }
   } else {
     ## Get the command for the target. If none exists, try to make one
     ## up.
@@ -388,12 +404,13 @@ proc bras.ConsiderKernel {target} {
 
     ## Add the command for this target to the list of commands. We go
     ## right through cmdlist here, which is somewhere up the stack,
-    ## since it does not make sense to set the local brasCmdlist first.
+    ## since it does not make sense to set the local brasCmdlist
+    ## first.
+    set cmdlist {}
     if {[llength $cmd]} {
       lappend cmdlist "@cd [pwd]"
       lappend cmdlist "@set target \"$target\""
       lappend cmdlist "@set targets \"$brasRule($rid,targ)\""
-      #lappend cmdlist "@set newer \"$newer\""
       if {[info exist patrigs] && "$patrigs"!=""} {
 	lappend cmdlist "@set patternTriggers \"$patrigs\""
       }
@@ -401,15 +418,16 @@ proc bras.ConsiderKernel {target} {
       lappend cmdlist "@set deps \"$pureDeps\""
       lappend cmdlist "@set preq \"$brasRule($rid,preq)\""
       lappend cmdlist $cmd 
+    } elseif {[string length $cmd]} {
+      set cmdlist { }
     }
-    #puts $cmdlist
   }
 
   if { $brasOpts(-d) } {
     regsub -all "\n" $reason "\n    " reason
     bras.dmsg $brasIndent \
 	"making `$target' in `[pwd]' because$reason"
-    if {"$cmd"==""} {
+    if {"$cmdlist"==""} {
       bras.dmsg $brasIndent \
 	  "    warning: nothing to execute"
     }
@@ -426,9 +444,18 @@ proc bras.ConsiderKernel {target} {
     }
   }
 
+  ## And now taaaaram, do something useful
+  if {!$brasOpts(-v) && !$brasOpts(-ve) &&
+      !$brasOpts(-d) && !$brasOpts(-s)} {
+    puts "\# $target"
+  }
+  set here [pwd]
+  bras.evalCmds $cmdlist	;# this may lead somewhere else
+  cd $here
+
   ## finish up and return
   set brasTinfo($target,[pwd],done) 1
   unset brasConsidering($target,[pwd])
-  cd $keepPWD
+  bras.leaveDir $keepPWD
   return 1
 }

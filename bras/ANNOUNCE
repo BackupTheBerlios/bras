@@ -8,15 +8,34 @@ I am pleased to announce a new version of bras.
 
 MAJOR CHANGES SINCE THE LAST PUBLISHED VERSION
 
-o Syntax like prefix=/opt/jockel on the command line no longer sets
-  global variables but environment variables (env-array of Tcl).
-o The command `getenv' was introduced. A line like
-    getenv prefix /usr/local
-  in a brasfile will set `prefix' to the value of the environement
-  variable `prefix' (which itself might have been set on the command
-  line) or, if this is not available, to `/usr/local'.
-o The execution of unknown commands was changed slightly to be
-  (hopefully) the same as in plain Tcl.
+o Dependencies are now searched in a list of directories. This eases
+the definition built-environments where source directories are
+read-only and/or source files may come from generic or platform
+specific directories.
+
+o Options to control the output during operation have changed: -ve
+shows external commands, -v shows the full tcl-command list to be
+executed, -s even supresses the printing of targets to be made. The
+terse output produced by default is probably the most visible change
+for a user.
+
+o The whole operation was changed. Instead of first performing the
+full reasoning and merely collecting commands to be executed, commands
+are now executed as soon as they are found. This has two consequences:
+
+  a) Option -d can no longer work without executing any
+  command. Instead it produces debugging output along with normal
+  operations.
+
+  b) The semantic of the Newer-rule has changed slightly. Bras no
+  longer assumes that a dependency is in fact updated if its
+  associated command is executed. Instead it always checks
+  modification times. As a result, commands of pattern rules which
+  produce more than one file will not be triggered more than once.
+
+o Exist- and Always-rules may no longer have dependencies. Only
+prerequisites are allowed. Similarly Newer- and DependsFile-rules
+don't understand their dependencies also as prerequisites by default.
 
 
 
@@ -56,4 +75,4 @@ o pattern rules which deserve the name;
 Send comments and requests for enhancements to kir@iitb.fhg.de .
  
 # CVS:
-# $Revision: 1.5 $, $Date: 1999/01/24 07:37:47 $
+# $Revision: 1.6 $, $Date: 1999/02/21 21:46:28 $

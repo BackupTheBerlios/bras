@@ -23,7 +23,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 1999/02/11 19:36:06 $
+# $Revision: 1.2 $, $Date: 1999/02/21 21:46:30 $
 ########################################################################
 
 ##
@@ -89,7 +89,7 @@ proc include {name} {
   global brasKnown
   
   if [string match @* $name] {
-    cd [bras.followTarget $name/.]
+    cd [bras.followTarget [file join $name .]]
     return
   }
 
@@ -111,26 +111,7 @@ proc include {name} {
   set pwd [pwd]
   cd $oldpwd
 
-  if [info exist brasKnown($pwd/$file)] return
+  if [info exist brasKnown([file join $pwd $file])] return
 
   bras.gobble $name
 }
-########################################################################
-##
-## pretend@
-##  This is useful to enter rules into the rule base for a
-##  build-directory which has not its own brasfile. All rules which
-##  follow this command are entered as if they were found in the
-##  brasfile of the given directory.
-##
-##  The directory must however exist already.
-##
-
-# proc pretend@ {dir} {
-
-#   if {[catch "cd $dir" msg]} {
-#     puts stderr "bras: pretend@ can not change to directory `$dir'"
-#     exit 1
-#   }
-# }     
-  
