@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.33 $, $Date: 2002/02/24 11:53:50 $
+# $Revision: 1.34 $, $Date: 2002/02/26 20:06:48 $
 #
 ########################################################################
 if {$::bras::base!="."} {
@@ -85,7 +85,7 @@ Make publish {[updated {publish-www publish-tgz}]} .relax.
 Make publish-www {[updated [list publish-CHANGES publish-index \
 				publish-doc]]} .relax.
 
-Make publish-CHANGES {[updated CHANGES]} {
+Always publish-CHANGES CHANGES {
  scp CHANGES \
      pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/
 }
@@ -93,7 +93,7 @@ Always publish-doc {@doc/bras.pdf @doc/bras.ps bras.1.html} {
  scp $deps \
      pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/
 }
-Make publish-index {[updated index.html.out]} {
+Always publish-index index.html.out {
  scp index.html.out \
      pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/index.html
 }

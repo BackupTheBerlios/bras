@@ -1,10 +1,10 @@
 
-# $Revision: 1.42 $, $Date: 2002/02/24 11:53:50 $
+# $Revision: 1.43 $, $Date: 2002/02/26 20:06:48 $
 
 ## tclPkgUnknown, when running this script, makes sure that
 ## $dir is set to the directory of this very file
 
-set VERSION 2.3
+set VERSION 2.3.1
 set VERDATE 0000-00-00
 
 set script [subst -nocommands {
