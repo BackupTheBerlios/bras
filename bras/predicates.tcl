@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.13 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.14 $, $Date: 2002/02/24 10:18:56 $
 ########################################################################
 
 ########################################################################
@@ -30,7 +30,8 @@
 #
 ########################################################################
 namespace eval ::bras::p {
-  namespace export older updated missing true dcold oldcache \
+  namespace export older pairedolder updated missing true \
+      dcold oldcache \
       varchanged or notinitialized md5older
 }
 ########################################################################
@@ -153,6 +154,51 @@ proc ::bras::p::older {targets inDeps} {
 
   ::bras::concatUnique deps $inDeps
 
+  return $res
+}
+########################################################################
+#
+# tests if i'th element of $targets does not exist or is older than
+# i'th element of $inDeps. Compare this with [older] where every
+# element of $targets is tested against every element of $inDeps.
+# 
+proc ::bras::p::pairedolder {targets inDeps} {
+  if {[llength $targets]!=[llength $inDeps]} {
+    return -code error "input lists must have equal length"
+  }
+
+  installPredicate {trigger deps} inDeps
+  ## Consider all dependencies in turn
+  set results [::bras::consider $inDeps]
+
+  ## potential @ in deps no longer needed after consider
+  set inDeps [stripAt $inDeps]
+
+  set res 0
+  foreach t $targets   d $inDeps   x $results {
+    if {![file exist $t]} {
+      set res 1
+      append reason "\n`$t' does not exist"
+      ::bras::lappendUnique trigger $d
+      continue
+    }
+    if {![file exist $d]} {
+      if {$x} {
+	set res 1
+	append reason "\n`$d' was just made"
+	::bras::lappendUnique trigger $d
+      }
+      continue
+    }
+    set ttime [file mtime $t]
+    set dtime [file mtime $d]
+    if {$ttime<$dtime} {
+      set res 1
+      append reason "\n`$t' is older than `$d'"
+      ::bras::lappendUnique trigger $d
+    }
+  }
+  ::bras::concatUnique deps $inDeps
   return $res
 }
 ########################################################################
