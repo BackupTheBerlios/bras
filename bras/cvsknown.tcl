@@ -19,15 +19,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 2000/12/30 16:37:11 $
+# $Revision: 1.4 $, $Date: 2002/02/24 10:16:02 $
 ########################################################################
 
-namespace eval ::bras {
-  namespace export cvsknown
-}
 ########################################################################
 #
-# ::bras::cvsknown
+# cvsknown
 # returns the name of all files CVS knows about in the current
 # directory and in subdirectories.
 #
@@ -41,6 +38,7 @@ namespace eval ::bras {
 #
 # PARAMETER:
 # dir -- this is normally used only internally
+namespace eval ::bras {}
 proc ::bras::cvsknown { {dir {}} } {
   #puts ">>> `$dir'"
   if {![file readable CVS/Entries]} {
