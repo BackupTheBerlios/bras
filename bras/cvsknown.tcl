@@ -3,7 +3,7 @@
 # This file is part of bras, a program similar to the (in)famous
 # `make'-utitlity, written in Tcl.
 #
-# Copyright (C) 1996--2000 Harald Kirsch, (kir@iitb.fhg.de)
+# Copyright (C) 1996--2000 Harald Kirsch
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 2000/03/05 12:37:28 $
+# $Revision: 1.2 $, $Date: 2000/05/28 11:54:03 $
 ########################################################################
 
 namespace eval ::bras {

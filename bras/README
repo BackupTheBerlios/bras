@@ -17,7 +17,8 @@ o dependencies in foreign directories can trigger sourcing rule files
   in that directory, recursive bras-execution is not necessary;
 o just any boolean expression can describe, when a target is out-of-date
 o pattern rules which deserve the name;
-   
+o reasoning engine can also be used within Tk-applications   
 
-Send comments and requests for enhancements to kir@iitb.fhg.de .
+Send comments and requests for enhancements to 
+kirschh@lionbioscience.com .
 The homepage ob bras is at http://wsd.iitb.fhg.de/~kir/brashome/ .
