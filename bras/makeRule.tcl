@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 2000/12/30 12:13:31 $
+# $Revision: 1.7 $, $Date: 2000/12/30 16:40:26 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -83,13 +83,16 @@ proc ::bras::checkMake {rid theTarget _reason} {
     #puts ++++$cmd++++
     ## $b contains user's code, so care must be taken when
     ## running it.
+    set currentDir [pwd]
     if {[catch $cmd r]} {
+      cd $currentDir
       trimErrorInfo
       append ::errorInfo \
 	  "\n    while checking test `$b' for " \
 	  "target `$theTarget'---SNIP---"
       return -code error -errorinfo $::errorInfo
     }
+    cd $currentDir
     set res [expr {$res || $r}]
   }
 
