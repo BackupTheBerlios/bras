@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.18 $, $Date: 1999/07/24 11:18:36 $
+% $Revision: 1.19 $, $Date: 1999/07/24 11:51:14 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -597,6 +597,28 @@ is found, its dependency and its command are added the target's rule
 as described in section~\ref{secMultipleRules}. In particular the
 dependency resulting from the pattern rule is put in front of the
 dependency list to make \texttt{[lindex \$deps 0]} work.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Rule Library}
+
+Recently I started to collect a few generally useful pattern
+rules. Look for files with suffix \texttt{.rule} in the
+distribution. To access them in your brasfile, please use something
+like 
+\begin{verbatim}
+  source [file join $::bras::base c2o.rule]
+\end{verbatim}
+Currently available are the following files:
+\begin{center}
+\begin{tabular}{l|l}
+file name & functionality\\\hline
+\texttt{c2.rule} & compile C source into object file\\
+\texttt{cdeps.rule} & dependency maintenance for C source files\\
+\texttt{cli2ch.rule} & generate command line parser with
+  \texttt{clig}\\
+\texttt{o2x.rule} & compile object file(s) into executable\\
+\end{tabular}
+\end{center}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Fine-tuning the Rule Base}
