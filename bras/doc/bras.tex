@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.38 $, $Date: 2002/02/13 20:55:05 $
+% $Revision: 1.39 $, $Date: 2002/02/24 11:37:36 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -45,6 +45,7 @@ Harald Kirsch\\
 \newcommand{\Index}[1]{#1\index{#1}}
 \newcommand{\Indextt}[1]{\texttt{#1}\index{#1@\texttt{#1}}}
 \newcommand{\Indexit}[1]{\textit{#1}\index{#1@\textit{#1}}}
+
 \parindent 0pt
 \parskip 1ex
 \overfullrule 3mm
@@ -222,10 +223,7 @@ to the list of the targets of the rule which happens to be \texttt{\{a
 \end{description}
 
 Most of the time, the condition contains just one predicate or is a
-logical combination of a few predicates. The following section
-describes predicates in detail.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+logical combination of a few predicates. The followingollowingollowingollowingcates incates incates in%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Predicates}\index{predicate}
 
 Predicates are test-procedures implementing the conditions under which
@@ -391,6 +389,55 @@ condition of the first one. As a result \verb|[lindex $deps 0]|%$
 will be \texttt{a.c} and not \texttt{b.h} as it would be if the
 evaluation order was not reverted.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Multi-Target Rules}\index{rule!multi-target}
+\index{multi-target}
+
+Sometimes, a rule's command generates more than one file (target). A
+typical example is the compilation of several \Index{Java} source
+files with one call to the compiler (for \texttt{pairedolder} see section~\ref{pred:pairedolder}):
+\begin{verbatim}
+  Make {A.class B.class} {
+    [pairedolder $targets {A.java B.java}]
+  } {
+    javac $deps
+  }
+\end{verbatim}\indextt{pairedolder}
+Whenever \bras{} finds several targets in the same rule,
+\begin{quote}
+  it assumes that the predicate tests all targets at the same time,
+\end{quote}
+i.e.\ it suffices to evaluate the predicate once. Internally, \bras{}
+never considers more than one target at a time. However, if one target
+of a multi-target rule is considered, the result of evaluating the
+predicate is distributed over all targets of that rule. In particular:
+\begin{itemize}
+\item If the predicate says that one target is up-to-date, all of them
+  are marked up-to-date.
+\item If the predicate says that target is out-of-date, the command is
+  run and afterwards it is assumed that all of the rule's targets are
+  up-to-date. 
+\end{itemize}
+
+Extending the example above with the rule
+\begin{verbatim}
+  Make classes {[updated {A.class B.class}]} .relax.
+\end{verbatim}\indextt{.relax.}
+consider what happens when
+\begin{quote}\ttfamily
+  bras classes
+\end{quote}
+is called. The predicate \Indextt{updated} checks \texttt{A.class} and
+\texttt{B.class} in turn. Consideration of \texttt{A.class} will
+immediately mark \texttt{B.class} as either up-to-date or "just
+made". When checking \texttt{B.class}, \bras{} does not run
+\texttt{pairedolder} again --- nor the compilation --- but (re)uses the
+result already derived for \texttt{A.class}.
+
+\textbf{Note:} handling of multi-target rules is completely
+different from GNU \make. According to the documentation, (at least
+GNU) \make{} interpretes a multi-target rule as if it is a shortcut
+for writing the same rule for each of the targets.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1063,27 +1110,6 @@ suspect an already defined global, use
 \end{verbatim}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Rule Library}
-\index{rule files}
-Recently I started to collect a few generally useful pattern rules.
-Look for files with suffix \Indextt{.rule} in the distribution. To
-access them in your brasfile, use something like
-\begin{verbatim}
-  include [file join $::bras::base c2o.rule]
-\end{verbatim}
-%$
-Currently available are the following files:
-\begin{center}
-\begin{tabular}{l|l}
-file name & function\\\hline
-\texttt{c2o.rule} & compile C source into object file\\
-\texttt{cdeps.rule} & dependency maintenance for C source files\\
-\texttt{cli2ch.rule} & generate command line parser with
-  \Indextt{clig}\cite{Kir00}\\
-\texttt{o2x.rule} & compile object file(s) into executable\\
-\end{tabular}
-\end{center}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Compatibility with Older Versions}
 \indextt{Newer}\indextt{Exist}\indextt{Always}
 Up to version 0.8.x, \bras{} had a different and less flexible concept
@@ -1210,15 +1236,6 @@ Please report bugs to the author.
   recursive inclusion of many \texttt{brasfile}s will lead to
   performance problems.
 
-\item When sourcing \texttt{brasfile}s from other directories, \bras{}
-  does not construct a local scope for the variables used there. The
-  effect is that it is not possible to use the same variable name,
-  e.g.\ \texttt{SRC} and \texttt{OBJ}, in the brasfiles of all
-  subdirectories. This may be corrected in the future.
-  
-  A workaround is to use in every \texttt{brasfile} an array with a
-  name patterned after the directory to store variables.
-  
 \item Parallel execution of several commands (as gnu make's option
   \texttt{-j}) is not yet supported.
   
@@ -1451,11 +1468,77 @@ useful new predicate, send me the source.
   dependency exists as a file, its modification time is used.
 \end{Describe}
 
+%%%%%
+%%%%% pairedolder
+%%%%%
+
+\subsection{pairedolder --- is $i$'th target older than $i$'th
+  dependency?}
+\label{pred:pairedolder}
+\indextt{pairedolder}
+\begin{Describe}
+\item[Synopsis] \Tt{pairedolder} \It{targets deps}
+\item[Description] For every element of the list \textit{targets}, the
+  predicate checks if it does not exist as a file or is older than the
+  respective element in \textit{deps}. Contrast this with the
+  predicate \texttt{older} which checks \textbf{every} element of
+  \texttt{targets} against \textbf{every} element of \textit{deps}.
+  
+  All dependencies are considered before the comparison
+  starts. If a dependency is nevertheless not available as a file, the
+  report returned by the reasoning process replaces the file
+  modification time: if the
+  dependency was made, it is treated as being newer than the
+  respective target, otherwise it is supposed to be older.
+\item[Example] The main reason to introduce this predicate was to
+  support \Index{Java} compilation. 
+  \begin{quote}\index{Java}
+    \textbf{The Java case}\\
+    As of today (Feb.~2002) the typical Java Development Kit (jdk)
+    does not help in generating decent \make- or rather
+    \bras-dependency information. But even if \Indextt{jikes}' option
+    \texttt{+M} comes to the rescue, there is the problem that class
+    files can be mutually dependent. The resulting dependency loop can
+    not be handled by \bras.
+    
+    Anyway, in newsgroups it seems to be agreed upon that it is best
+    to compile all source files in one call to the Java compiler. This
+    is what is supported by \texttt{pairedolder} as demonstrated
+    below.
+  \end{quote}
+  
+  To compile all Java source files found in a directory, use:
+  \indextt{javac}
+\begin{verbatim}
+  set JAVAC javac
+  set JFLAGS ""
+  set JAVA [glob *.java]
+  regsub -all {[.]java} $JAVA .class CLASSES
+  Make $CLASSES {[pairedolder $CLASSES $JAVA]} {
+    $JAVAC $JFLAGS $deps
+  }
+\end{verbatim}%$
+  When \bras{} is asked to consider any one of the class files, it
+  will compile all source files, but only if any of them is newer than
+  the respective class file. 
+
+  It is convenient to add the following
+  shortcut target to the \brasfile:\indextt{.relax.}\indextt{updated}
+\begin{verbatim}
+  Make classes {[updated $CLASSES 0]} .relax.
+\end{verbatim}%$
+  It allows to just call
+  \begin{quote}\ttfamily
+    bras classes
+  \end{quote}
+  on the command line to compile all Java source files.
+\end{Describe}
 
 %%%%%
 %%%%% true
 %%%%%
-\subsection{true--- always returns true}
+\subsection{true --- always returns true}
+\indextt{true}
 \begin{Describe}
 %\item[Name] \Flash{true} --- always returns true}
 \item[Synopsis] \Tt{true} \It{deps}
@@ -1464,6 +1547,9 @@ useful new predicate, send me the source.
   process to make sure they are up-to-date. The are also passed to the
   command of the rule to which the predicate belongs in the variable
   \texttt{deps}.
+\item[Note] This predicate breaks the chain of reasoning because it
+  always returns 1 (\texttt{true}). Use of \texttt{updated} is
+  recommended if this is not intended.
 \end{Describe}
 
 %%%%%
@@ -1580,22 +1666,30 @@ useful new predicate, send me the source.
 \end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Predefined Pattern Rules}
-\label{sec:rules}
+\label{sec:rules}\index{rule files}
+The distribution contains a  small collection of pattern
+rules. To use them you have to include them explicitly in your rule
+file. For example to load the rule to install files, use
+\begin{verbatim}
+  include [file join $::bras::base install.rule]
+\end{verbatim}
+%$
+The following sections describe most available rules. Check the
+distribution for \Indextt{.rule}-files for recent additions not covered
+by the documentation below.
 
 %%%%%
 %%%%% c2o
 %%%%%
-\subsection{c2o --- compile C source into object file}
+\subsection{c2o --- compile \Indextt{C} source into object file}
 \label{sec:c2o}
-\index{c2o}
+\indextt{c2o}
 
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}\\
 \texttt{include [file join \$::bras::base c2o.rule]}
-\item[Description] Creates a relation between a target with suffix
-  \texttt{.o} or \texttt{.obj} and a dependency with suffix
-  \texttt{.c}. 
-\item[Target] \texttt{\{.*\char92.o(bj)?\}}
+\item[Description] Compiles \texttt{C} source files into object files.
+\item[Target] \texttt{\{.*\char92[.]o(bj)?\}}
 \item[Dependency] The dependency is derived from the target by
   replacing the target's suffix with \texttt{.c}.
 \item[Predicate] The target is checked with \texttt{dcold}
@@ -1603,6 +1697,32 @@ useful new predicate, send me the source.
   by \texttt{dcold}.
 \item[Command] \texttt{\$CC -o \$target -c \$CFLAGS [lindex \$deps 0]}
 \indextt{CC}\indextt{CFLAGS}
+\end{Describe}
+For \Indextt{C++} use \Indextt{c++2o.rule} instead.
+
+
+%%%%%
+%%%%% c++2o
+%%%%%
+\subsection{c++2o --- compile \Indextt{C++} source files}
+\indextt{c++2o}
+\begin{Describe}
+\item[Synopsis]
+\texttt{include [file join \$::bras::base c++deps.rule]}\\
+\texttt{include [file join \$::bras::base c++2o.rule]}
+\item[Description] Compiles \texttt{C++} source files into object
+  files. 
+\item[Target] \texttt{\{.*\char92[.]o(bj)?\}}
+\item[Dependency] The file \texttt{c++2o.rule} actually contains 4
+  pattern rules which relate the target to a dependency with one of
+  the suffixes \Indextt{.C}, \Indextt{.cc}, \Indextt{.cxx} or
+  \Indextt{.cpp}.
+\item[Predicate] The target is checked with \texttt{dcold}
+  (see~\ref{pred:dcold}) against its dependency cache file maintained
+  by \texttt{dcold}.
+\item[Command]
+  \texttt{\$CXX -o \$target -c \$CXXFLAGS [lindex \$deps 0]}
+  \indextt{CXX}\indextt{CXXFLAGS}
 \end{Describe}
 
 %%%%%
@@ -1614,19 +1734,52 @@ useful new predicate, send me the source.
 \begin{Describe}
 \item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}
 \item[Description] Maintains a dependency cache for a source file.
-\item[Target] \texttt{\{.*\char92.dc\}}
+\item[Target] \texttt{\{.*\char92[.]dc\}}
 \item[Dependency] The dependency is derived from the target by
   replacing the target's suffix with \texttt{.c}.
 \item[Predicate] The target is checked with \texttt{oldcache}
   (see~\ref{pred:oldcache}) against the dependency.
-\item[Command] The external command executed is
-\begin{quote}\ttfamily 
-  \$CC \$DEPOPTS \$INCLUDES [lindex \$deps 0]
-\end{quote}
-\indextt{DEPOPTS}\indextt{CC}\indextt{INCLUDES}
+\item[Command]\begin{verbatim}
+::bras::updateCacheC \
+   $target [lindex $deps 0] CC DEPOPTS CDEPEXCLUDE
+\end{verbatim}
+    \indextt{DEPOPTS}\indextt{CC}\indextt{CDEPEXCLUDE}
+    
+    Set \texttt{DEPOPTS} to the options which instruct your C compiler
+    to emit dependency information for \make. Optionally set the
+    variable \texttt{CDEPEXCLUDE} to a regular expression for
+    dependencies which need not be in the dependency list. A good
+    candidate on *NIX systems is \texttt{\^{}/usr/.*}.
+\end{Describe}
+For \Indextt{C++} use \Indextt{c++deps} instead.
 
-Set \texttt{\$DEPOPTS} to the options which instruct your C compiler
-to emit dependency information for \make.
+%%%%%
+%%%%% c++deps
+%%%%%
+\subsection{c++deps --- maintain dependency cache for \texttt{C++}
+  source files}
+\label{sec:cdeps}\indextt{c++deps}
+
+\begin{Describe}
+\item[Synopsis] \texttt{include [file join \$::bras::base c++deps.rule]}
+\item[Description] Maintains a dependency cache for a source file.
+\item[Target] \texttt{\{.*\char92[.]dc\}}
+\item[Dependency] The dependency is derived from the target by
+  replacing the target's suffix with one of the suffixes \Indextt{.C},
+  \Indextt{.cc}, \Indextt{.cxx} or \Indextt{.cpp}.
+\item[Predicate] The target is checked with \texttt{oldcache}
+  (see~\ref{pred:oldcache}) against the dependency.
+\item[Command]\begin{verbatim}
+::bras::updateCacheC \
+   $target [lindex $deps 0] CXX CXXDEPOPTS CXXDEPEXCLUDE
+\end{verbatim}
+    \indextt{CXXDEPOPTS}\indextt{CXX}\indextt{CXXDEPEXCLUDE} 
+    
+    Set \texttt{CXXDEPOPTS} to the options which instruct your
+    \texttt{C++} compiler to emit dependency information for \make.
+    Optionally set the variable \texttt{CXXDEPEXCLUDE} to a regular
+    expression for dependencies which need not be in the dependency
+    list. A good candidate on *NIX systems is \texttt{\^{}/usr/.*}.
 \end{Describe}
 
 %%%%%
@@ -1736,7 +1889,16 @@ to emit dependency information for \make.
   \indextt{CC}\indextt{CFLAGS}\indextt{LDFLAGS}\indextt{LDLIBS}
 \end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Miscellaneous procedures}
+\section{New Commands}
+
+The commands described in this section are all declared in the
+namespace \texttt{::bras}. They are all automatically imported into the
+global namespace when \bras{} starts. However, when using \bras{} as a
+package, they do not appear automatically in the global namespace and
+must be imported with \begin{quote}
+  \texttt{namespace import ::bras::*}
+\end{quote}
+after the call to \texttt{package require}.
 
 %%%%%
 %%%%% .relax.
@@ -1796,34 +1958,6 @@ to emit dependency information for \make.
   \Tt{consider} is the maintenance of dependency caches as shown in
   the distribution file \texttt{cdeps.rule}.
 \end{Describe}
-
-%%%%
-%%%% cvsknown
-%%%%
-\subsection{cvsknown --- return all files CVS knows about}
-\indextt{::bras::cvsknown}\indextt{cvsknown}
-\begin{Describe}
-%\item[Name] \Flash{cvsknown} --- return all files CVS knows about
-\item[Synopsis] \Tt{cvsknown}
-\item[Description] The procedure \texttt{cvsknown} recursively finds
-  the files \texttt{CVS/Entries} and returns the catenated list of
-  file names it finds in them. Consequently, the result is a list of
-  all files, CVS knows about in the current directory and its
-  subdirectories.
-\item[Example]
-The procedure can be used to make an archive file from a CVS-module
-only, if one of the files of the modules has changed. 
-\begin{verbatim}
-  set module [file tail [pwd]]
-  Make ${module}.tar.gz {[older $target [cvsknown]]} {
-    ## export module from CVS and pack it
-  }
-\end{verbatim}
-Only if \texttt{\$module.tar.gz} is actually considered for update the
-rather expensive procedure \texttt{cvsknown} is run. When other
-targets are considered, it is never executed.
-\end{Describe}
-
 
 %%%%%
 %%%%% dirns
@@ -2030,6 +2164,97 @@ which you are building.
   searchpath [list . ../generic ../$tcl_platform(platform)]
 \end{verbatim}
 %$
+\end{Describe}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Miscellaneous Commands}
+
+The commands described in this section are (hopefully) of general
+interest when using \bras{}. They are all defined in namespace
+\texttt{::bras} and are not automatically imported. To use them,
+either call them with their fully qualified name, e.g.\ 
+\texttt{::bras::packjar}, or import them with \texttt{namespace
+  import}.
+
+%%%%
+%%%% cvsknown
+%%%%
+\subsection{cvsknown --- return all files CVS knows about}
+\indextt{cvsknown}\indextt{::bras::cvsknown}
+\begin{Describe}
+\item[Synopsis] 
+  \Tt{::bras::cvsknown}
+\item[Description] The procedure recursively finds the files
+  \texttt{CVS/Entries} and returns the catenated list of file names it
+  finds in them. Consequently, the result is a list of all files CVS
+  knows about in the current directory and its subdirectories.
+\item[Example]
+The procedure can be used to keep an archive file of a CVS-module
+up-to-date with respect of the file in the module. 
+\begin{verbatim}
+  set module [file tail [pwd]]
+  Make ${module}.tar.gz {
+    [older $target [::bras::cvsknown]]
+  } {
+    ## export module from CVS and pack it
+  }
+\end{verbatim}
+Only if \texttt{\$module.tar.gz} is actually considered for update the
+rather expensive procedure \texttt{::bras::cvsknown} is run. When other
+targets are considered, it is never executed.
+\end{Describe}
+
+%%%%%
+%%%%% makedeps2bras
+%%%%%
+\subsection{makedeps2bras --- convert \make{} dependencies}
+\indextt{makedeps2bras}\indextt{::bras::makedeps2bras}\indextt{make}
+\begin{Describe}
+\item[Synopsis]
+  \Tt{::bras::makedeps2bras} \It{text} \It{exclude}
+\item[Description]
+  The command assumes that \textit{text} contains \make{} dependencies
+  like they are automatically generated by some compilers, e.g.\ with
+  \texttt{gcc -M} or \texttt{jikes +M}. In particular the text should
+  contain lines like
+  \begin{quote}\ttfamily
+    target: dep1 dep2\\
+    target: dep3 dep4
+  \end{quote}
+  Continuation lines are allowed. The command fetches \textbf{only}
+  the dependencies, assuming that all targets mentioned are the
+  same. If \textit{exclude} is not the empty string, it should be a
+  regular expression. Dependencies which match this expression will
+  not be included in the resulting list. An example would be
+  \texttt{\^{}/usr/.*}.
+\item[Example]
+  Take a look at the file \texttt{updateCacheC.tcl} of the
+  distribution to see how this command is used.
+\end{Describe}
+
+%%%%%
+%%%%% packjar
+%%%%%
+\subsection{packjar --- create a java archive from java packages}
+\indextt{packjar}\indextt{::bras::packjar}
+\begin{Describe}
+\item[Synopsis] 
+  \Tt{::bras::packjar} \It{jar} \It{pkgroot} \It{pkgdirs} ?\It{glob}?
+\item[Description]
+  The command creates a java archive in the file \textit{jar}. It
+  packs files matching the pattern specified in \textit{glob} in any
+  of the package directories listed in \textit{pkgdirs}. The default
+  pattern is \texttt{*.class}. Package directories are interpreted
+  relative to \textit{pkgroot}.
+
+\item[Example]
+  To pack all class files as well as all PNG-images of the package
+  \texttt{text.regexp}, use
+\begin{verbatim}
+  set PKGROOT [file dir [file dir [pwd]]]
+  set PKG [file join [split text.regexp .]]
+  ::bras::packjar Regexp.jar $PKGROOT \
+                      $PKG [list *.class *.png]
+\end{verbatim}
 \end{Describe}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
