@@ -32,22 +32,6 @@ getenv CFLAGS {}
 
 ########################################################################
 #
-# tests if target $doto is older than any of the files listed in
-# dependency cache $dc. As a side-effect, the dependency
-# cache is considered and brought up-to-date.
-#
-proc ::bras::p::dcold {doto dc} {  
-  installPredicate dc
-
-  ## First of all, the dependency cache $dc must be up-to-date
-  ::bras::consider $dc
-
-  ## The rest is trivial
-  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
-  return [older $doto $dlist]
-}    
-########################################################################
-#
 # Note that we derive the dependency cache (.dc) from $target
 # rather than from the generated dependency $d. This makes sure that if
 # the generated dependency is found along searchpath in some foreign

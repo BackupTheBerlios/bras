@@ -39,28 +39,6 @@ getenv DEPOPTS {-M -MG}		;# this for gcc
 getenv INCLUDES {}
 getenv CC cc
 
-
-########################################################################
-#
-# tests if a dependency-cache (dc) file is out of date. This is the
-# case, if
-# -- it does not exist
-# -- it is [older] than the given dotc-file
-# -- it is [older] than any of the files listed in it
-#
-proc ::bras::p::oldcache {dc dotc} {
-  installPredicate dotc
-
-  if {![file exist $dc]} {
-    append reason "\n`$dc' does not exist"
-    ::bras::lappendUnique deps $dotc
-    ::bras::lappendUnique trigger $dotc
-    return 1
-  }
-
-  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
-  return [older $dc $dlist]
-}
 ########################################################################
 PatternMake {.*\.dc} .c {[oldcache $target $d]} {
   set c [lindex $deps 0]

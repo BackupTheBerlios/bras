@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.1 $, $Date: 2000/03/05 12:37:28 $
+# $Revision: 1.2 $, $Date: 2000/03/08 22:35:37 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -69,19 +69,28 @@ proc ::bras::p::evaluate {bexp} {
 # dependencies along searchpath.
 #
 # PARAMETER
+# -- names
+# a list of variable names to be installed in namespace
+# $::bras::nspace. The name `reason' is always installed and need not
+# be mentioned. 
 # -- depvars
 # a list of variable NAMES (not values) in the calling predicate each
 # of which contains dependencies which must be expanded along the
 # searchpath.
 #
-proc ::bras::p::installPredicate { {depvars {}} } {
+proc ::bras::p::installPredicate { names {depvars {}} } {
   upvar \#0 ::bras::Opts Opts 
 
-  uplevel 1 {
-    variable trigger
-    variable deps
-    variable reason
+  ## Within the calling predicate, we install all variables listed in
+  ## $names as local variables linked to variables of the same name in 
+  ## the namespace $::bras::nspace. One additional variable called
+  ## `reason' is always installed that way.
+  foreach n $names {
+    uplevel 1 upvar \#0 $::bras::nspace\::$n $n
+    uplevel 1 "if {!\[info exist $n\]} {set $n {}}"
   }
+  uplevel 1 upvar \#0 $::bras::nspace\::reason reason
+
   if {$Opts(-d)} {::bras::dmsg "testing `[info level -1]'"}
 
   ## Expand dependencies stored in any of the varialbles noted in
@@ -108,7 +117,7 @@ proc ::bras::p::installPredicate { {depvars {}} } {
 # is considered out-of-date.
 #
 proc ::bras::p::older {targets inDeps} {
-  installPredicate inDeps
+  installPredicate {trigger deps} inDeps
 
   #puts "older:: $targets < $inDeps"
 
@@ -122,7 +131,7 @@ proc ::bras::p::older {targets inDeps} {
       ## strange stuff. We cannot test its mtime to compare with the
       ## targets but we have $x indicating if $d was just made or
       ## not. If it was made ($x==1) we set the mtime to -1 meaning
-      ## that it very new.
+      ## that it is very new.
       set mtime($d) [expr {$x?-1:0}]
     } else {
       set mtime($d) [file mtime $d]
@@ -172,7 +181,7 @@ proc ::bras::p::older {targets inDeps} {
 # tests if the given target is not an existing file (or directory)
 #
 proc ::bras::p::missing {file} {
-  installPredicate
+  installPredicate trigger
 
   if {![info exist $file]} {
     append reason "\n`$file' does not exist"
@@ -187,7 +196,7 @@ proc ::bras::p::missing {file} {
 # because of the log-information.
 #
 proc ::bras::p::true {{inDeps {}}} {
-  installPredicate inDeps
+  installPredicate deps inDeps
 
   ::bras::consider $inDeps
 
@@ -197,7 +206,7 @@ proc ::bras::p::true {{inDeps {}}} {
 }
 ########################################################################
 proc ::bras::p::changed--very-experimental-dont-use {file} {
-  installPredicate
+  installPredicate {trigger deps}
   
   set r [consider $file]
 
@@ -261,7 +270,7 @@ proc ::bras::fetchvalues {_ary file} {
 # called. Comparison is performed with a cache file named $file.vc
 #
 proc ::bras::p::newvalue {pfile varglob} {
-  installPredicate pfile
+  installPredicate {trigger deps} pfile
 
   set cache ${pfile}.vc;		# vc -- value cache
 
@@ -304,5 +313,43 @@ proc ::bras::p::newvalue {pfile varglob} {
     }
   }
   return 0
+}
+########################################################################
+#
+# tests if target $doto is older than any of the files listed in
+# dependency cache $dc. As a side-effect, the dependency
+# cache is considered and brought up-to-date.
+#
+proc ::bras::p::dcold {doto dc} {  
+  installPredicate {} dc
+
+  ## First of all, the dependency cache $dc must be up-to-date
+  ::bras::consider $dc
+
+  ## The rest is trivial
+  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
+  return [older $doto $dlist]
+}    
+########################################################################
+#
+# tests if a dependency-cache (dc) file is out of date. This is the
+# case, if
+# -- it does not exist
+# -- it is [older] than the given dotc-file
+# -- it is [older] than any of the files listed in it
+#
+proc ::bras::p::oldcache {dc dotc} {
+  installPredicate {trigger deps} dotc
+
+  if {![file exist $dc]} {
+    append reason "\n`$dc' does not exist"
+    ::bras::lappendUnique deps $dotc
+    ::bras::lappendUnique trigger $dotc
+    return 1
+  }
+
+  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
+  set dlist [concat $dotc $dlist]
+  return [older $dc $dlist]
 }
 ########################################################################
