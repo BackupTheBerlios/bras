@@ -31,7 +31,7 @@ The distribution  can be found at
 WHAT IS IT ANYWAY?
 
 Out of frustration caused by several (mis)features of make I decided
-the other day that I would like to have a tool which combines 
+quite some time ago that I would like to have a tool which combines 
 rule-based and script-like command execution. The result is bras. It
 is written in Tcl and the rule-files it uses are also pretty much
 Tcl. However, bras defines a set of new Tcl-commands which implement
@@ -45,12 +45,14 @@ o Tcl-syntax so that commands associated with rules may contain
 o dependencies in foreign directories can trigger sourcing rule files
   in that directory, recursive bras-execution is not necessary;
 o just any boolean expression can be used to define when a target is
-  out-of-date. 
-o pattern rules which deserve the name;
+  out-of-date;
+o pattern rules which allow to derive dependencies and/or commands on
+  the fly;
 o explicit invocation of the reasoning process possible;
+o reasoning engine can be used as a module in Tcl programs;
 
 Send comments and requests for enhancements to
 pifpafpuf@gmx.de .
  
 # CVS:
-# $Revision: 1.17 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.18 $, $Date: 2002/01/06 17:17:30 $
