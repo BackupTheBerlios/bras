@@ -52,7 +52,11 @@ Always install {all} {
       doc/bras.tex doc/bras.ps doc/bras.pdf COPYING-2.0 \
       doc/recu-make-cons-harm.ps.gz \
       $DOCDIR
-  
+  file copy -force \
+      examples/varchanged \
+      examples/newpredicate \
+      $DOCDIR
+
   ## to MANDIR
   file copy -force bras.1.fixed [file join $MANDIR bras.1]
 
