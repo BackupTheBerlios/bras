@@ -3,7 +3,7 @@
 # This file is part of bras, a program similar to the (in)famous
 # `make'-utitlity, written in Tcl.
 #
-# Copyright (C) 1996, 1997, 1998, 1999, 2000 Harald Kirsch
+# Copyright (C) 2002 Harald Kirsch
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,9 +20,19 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
-
-# How to compile a .c into a .o .
-
+##
+## This file contains rules to compile C++ sources to object
+## files. Supported suffixes for C++ sources are:
+##    .cxx .cpp .C .cc .c++
+##
+## You will have to set the following variables in order to use this
+## file: 
+##  CXX -- name of C++ compiler
+##  CXXFLAGS -- flags to pass to compiler
+## 
+## PREREQUISITES:
+##   These rules work with dcold, which uses a dependency-cache file
+##   which is normally updated by rules described in c++deps.rule
 ########################################################################
 #
 # Note that we derive the dependency cache (.dc) from $target
@@ -31,10 +41,21 @@
 # directory, the .dc-file will not end up over there, but instead next 
 # to the .o-file.
 #
-PatternMake {.*[.]o(bj)?} .c {[dcold $target [file root $target].dc]} {
-  $CC -o $target -c $CFLAGS [lindex $deps 0]
+PatternMake {.*[.]o(bj)?} .C {[dcold $target [file root $target].dc]} {
+  $CXX -o $target -c $CXXFLAGS [lindex $deps 0]
 }
-
+PatternMake {.*[.]o(bj)?} .cc {[dcold $target [file root $target].dc]} {
+  $CXX -o $target -c $CXXFLAGS [lindex $deps 0]
+}
+PatternMake {.*[.]o(bj)?} .cxx {[dcold $target [file root $target].dc]} {
+  $CXX -o $target -c $CXXFLAGS [lindex $deps 0]
+}
+PatternMake {.*[.]o(bj)?} .cpp {[dcold $target [file root $target].dc]} {
+  $CXX -o $target -c $CXXFLAGS [lindex $deps 0]
+}
+PatternMake {.*[.]o(bj)?} .c++ {[dcold $target [file root $target].dc]} {
+  $CXX -o $target -c $CXXFLAGS [lindex $deps 0]
+}
 ########################################################################
 ##### Local Variables: #
 ##### mode:tcl #

@@ -3,7 +3,7 @@
 # This file is part of bras, a program similar to the (in)famous
 # `make'-utitlity, written in Tcl.
 #
-# Copyright (C) 1996, 1997, 1998, 1999 Harald Kirsch
+# Copyright (C) 2002 Harald Kirsch
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,26 +19,27 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-########################################################################
-
+# $Revision: 1.1 $, $Date: 2002/02/24 10:10:44 $
 #
-# Automatically updated and cached dependencies for a C source file. 
-# Set the following variables in your brasfile:
-#  CC -- name of C compiler
-#  DEPOPTS -- option(s) which let your compiler emit make-dependencies
-#    for a given source file.
-#  CDEPEXCLUDE -- regular expression which specifies which
-#    dependencies need not be taken into account. A good start for
-#    this is {^/usr/}.
-#
-
 ########################################################################
-PatternMake {.*[.]dc} .c {[oldcache $target $d]} {
-  ::bras::updateCacheC \
-      $target [lindex $deps 0] CC DEPOPTS CDEPEXCLUDE
+##
+
+puts "now reading [info script]"
+
+## NOTE: This works with "jikes +M" too, except if you have classes
+## which mutually depend on each other. In the latter case, bras will
+## complain about a dependency loop.
+proc ::bras::updateCacheC {target src _cmd _opts _exclude} {
+  upvar $_cmd cmd
+  upvar $_opts opts
+  upvar $_exclude exclude
+  set text [eval exec "$cmd $opts $src"]
+  if {[info exist exclude]} {
+    set l [makedeps2bras $text $exclude]
+  } else {
+    set l [makedeps2bras $text ""]
+  }
+  set out [open $target w]
+  puts $out $l
+  close $out
 }
-########################################################################
-########################################################################
-##### Local Variables: #
-##### mode:tcl #
-##### End: #
