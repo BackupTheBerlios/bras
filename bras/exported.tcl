@@ -23,7 +23,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 2000/03/05 12:37:28 $
+# $Revision: 1.6 $, $Date: 2000/05/27 15:16:46 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -58,8 +58,12 @@ proc ::bras::configure {option {on {1}} } {
     -ve {
       set Opts($option) $on
       if {$on} {
-	rename exec ::bras::exec_orig
+	rename ::exec ::bras::exec_orig
 	rename ::bras::verboseExec ::exec
+      } else {
+	## we need this for the case that bras is used with wish
+	rename ::exec ::bras::verboseExec
+	rename ::bras::exec_orig ::exec
       }
     }
     default {
@@ -202,6 +206,17 @@ proc ::bras::consider {targets} {
     return -code error $err
   } else {
     return $res
+  }
+}
+########################################################################
+##
+## If bras is used as a package in a Tk-application, this can be used
+## to trigger reconsideration of some or all rules.
+## pattern: -- glob-pattern for targets to mark for reconsideration
+## dir: -- glob-pattern for the directories where this shall apply.
+proc ::bras::forget { {pattern *} {dir *} } {
+  foreach name [array names ::bras::Tinfo $pattern,$dir,done] {
+    unset ::bras::Tinfo($name)
   }
 }
 ########################################################################
