@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.18 $, $Date: 2000/03/14 20:04:18 $
+# $Revision: 1.19 $, $Date: 2000/03/15 21:34:08 $
 #
 ########################################################################
 source .version
@@ -48,7 +48,7 @@ Make $TGZ {
 		      @doc/bras.ps @doc/bras.pdf pkgIndex.tcl]]
 } {
   ship -F -d $TGZDIR -I doc/bras.ps doc/bras.pdf pkgIndex.tcl \
-      -e bras bras.spec
+      -e bras.spec
 }
 
 
@@ -69,6 +69,7 @@ Always publish-index {} {
   sed -e "s/|BRASTARGZ|/[file tail $TGZ]/g" \
       -e "s/|BRASRPM|/[file tail $RPM]/g" index.html >index.tmp
   scp index.tmp [file join $PUBDIR index.html]
+  scp dir.ttml $PUBDIR
 }
 
 Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
