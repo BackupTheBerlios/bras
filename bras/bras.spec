@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.3 $, $Date: 1998/08/11 10:26:14 $
+## version I am shipping from cvs. (kir) $Revision: 1.4 $, $Date: 1999/01/24 07:37:47 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -29,13 +29,6 @@ works in several directories.
 %setup
 
 %build
-## All we have to do is run latex on the docs
-cd doc
-latex bras.tex 
-latex bras.tex 
-latex bras.tex 
-dvips -o bras.ps bras.dvi
-
 
 %install
 ## There is an install script which understands a prefix ala configure
@@ -62,6 +55,7 @@ rm $p/bras.orig
 
 %files
 %attr(-,root,root) %doc doc/bras.ps
+%attr(-,root,root) %doc ANNOUNCE
 %attr(-,root,root) %doc README
 %attr(-,root,root) %doc CHANGES
 %attr(-,root,root) %doc doc/bras.tex
@@ -86,6 +80,7 @@ rm $p/bras.orig
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.Linux
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.SunOS
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.1
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/ANNOUNCE
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/README
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.ps
 %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.tex

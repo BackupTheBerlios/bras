@@ -8,13 +8,19 @@ I am pleased to announce a new version of bras.
 
 MAJOR CHANGES SINCE THE LAST PUBLISHED VERSION
 
-o Global variables can be set on the command line like in make, e.g.
-  bras CC=egcs
-o The `include' command now understands @-syntax, i.e.
-  include @..
-  will do a `cd ..', include the brasfile found there if it was not
-  yet read in, and will change dir to where we started.
-o Now I managed to build an rpm.
+o Syntax like prefix=/opt/jockel on the command line no longer sets
+  global variables but environment variables (env-array of Tcl).
+o The command `getenv' was introduced. A line like
+    getenv prefix /usr/local
+  in a brasfile will set `prefix' to the value of the environement
+  variable `prefix' (which itself might have been set on the command
+  line) or, if this is not available, to `/usr/local'.
+o The execution of unknown commands was changed slightly to be
+  (hopefully) the same as in plain Tcl.
+
+
+
+WHERE CAN I GET IT?
 
 The distribution  can be found at
    http://wsd.iitb.fhg.de/~kir/brashome/
@@ -22,16 +28,6 @@ The distribution  can be found at
 From there you can download the distribution, read the docs online or
 download the documentation (in PostScript). A list of changes to
 previous versions is also available.
-
-
-
-THE NAME SHALL CHANGE
-
-Since English is not my mother tongue, I managed to give this software
-a name which sound a bit strange to native english speakers. Therefore
-I would like to give it a new name.
-
-Any suggestions?
 
 
 
@@ -56,6 +52,8 @@ o new types of rules can be easily added;
 o distinction between dependencies and mere prerequisites;
 o multiple targets in one rule;
 o pattern rules which deserve the name;
+
+Send comments and requests for enhancements to kir@iitb.fhg.de .
  
 # CVS:
-# $Revision: 1.4 $, $Date: 1998/08/11 10:26:14 $
+# $Revision: 1.5 $, $Date: 1999/01/24 07:37:47 $

@@ -155,7 +155,7 @@ proc Install {} {
   exec chmod 0644 $man/bras.1
   
   ## copy documentation and example
-  exec cp README doc/bras.ps doc/bras.tex Brasfile $doc
+  exec cp ANNOUNCE README doc/bras.ps doc/bras.tex Brasfile $doc
 
   ## create convenience links
   clink $lroot/bin $clean(exe)/bras
