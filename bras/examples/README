@@ -1,0 +1,20 @@
+This directory contains examples of brasfiles. Normally you want to
+
+a) make sure you are allowed to write into that subdirectory, e.g. by
+copying it to you home directory, if you find this file installed by
+some admin,
+
+b) read the brasfile itself. They are heavily documented and point you 
+to the demonstrated features.
+
+The following examples are available:
+
+newpredicate -- 
+demonstrates how to write a new predicate (test) to use in rules.
+
+varchanged --
+demonstrates how to use the predicate [varchanged], which returns true 
+if a variable's value was changed. In addition it contains a small
+
+Have fun,
+  Harald Kirsch
