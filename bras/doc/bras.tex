@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.10 $, $Date: 1997/11/08 21:56:29 $
+% $Revision: 1.11 $, $Date: 1997/11/09 19:44:17 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -28,6 +28,26 @@ kir@iitb.fhg.de}
 \maketitle
 \tableofcontents
 
+\section{Incompleteness Remarks}
+This doc is a bit outdated. In particular the following topics do not
+reflect the current state of the software:
+\begin{itemize}
+\item The meaning of specifying more than one rule for a target has
+changed. Now only one rule is actually maintained for a
+target. Specifying more than one results in an extension of the first
+rule.
+\item The commands \texttt{ClearCmd}, \texttt{ClearDeps},
+\texttt{ClearPreqs},\texttt{GetCmd}, \texttt{GetDeps}, and
+\texttt{GetPreqs} which allow rule-base surgery are not yet described.
+\item The algorithm to find a matching pattern rule for a target was
+changed so that it is able to chain over several pattern rules without
+requiring that intermediate dependencies must exist as a file.
+\item The new rule-type \texttt{CDepend} handles the trickery of
+dependencies for object files created from \texttt{.c}-files. (See
+\texttt{cDependRule.tcl}) 
+\end{itemize}
+
+All this new stuff is not yet really tested. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Why That?}
 If you ever used \texttt{make}, you may have noticed that it has a few
@@ -406,6 +426,11 @@ An example pattern rule to make an object file from a C source file is:
     $CC -c $CFLAGS $trigger
   }
 \end{verbatim}
+
+\begin{quote}\sffamily
+WARNING: As of 1997-11-09, a pattern rule cannot have more than one
+dependency.
+\end{quote}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{How pattern rules are used to create real rules}
@@ -918,5 +943,26 @@ without stress"' is quite close to the real meaning.
 
 Well, since \texttt{brassel} is much to long for a good
 Un*x utility, I shortened it to \bras.
-    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Credits}
+
+Quite some people helped to push \bras{} into the right direction. I
+would like to thank them. 
+
+\begin{itemize}
+\item \texttt{nemo@gsyc.inf.uc3m.es} (Fco. J. Ballesteros) after
+looking at a very early version had the
+idea to allow the definition of new types of rules.
+
+\item Jason Gunthorpe \texttt{<jgg@gpu.srv.ualberta.ca>} started
+experiments to get rid of the \texttt{make/automake}-combination with
+\bras{}. This resulted in two things: The rule-base was made more
+visible and accessible to the user, and a new type of rule was
+developed to handle the dependency between \texttt{.o}- and
+\texttt{.c}-files. 
+\end{itemize}
+
+
+
 \end{document}
