@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 2000/12/30 12:13:31 $
+# $Revision: 1.7 $, $Date: 2001/03/20 20:14:20 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -258,6 +258,7 @@ proc ::bras::gobble {file} {
 ## - read brasfile
 ## And do all this with the necessary error handling.  
 ##
+## The given target *must* start with `@'!
 ## RETURN
 ##   The current directory (before cd) is returned.
 ##
@@ -265,7 +266,10 @@ proc ::bras::followTarget {target} {
   #puts "followTarget $target"
 
   set oldpwd [pwd]
-  set dir [file dir $target]
+  
+  ## The `@' in front shall not confuse [file dir]
+  set dir "@[file dir [string range $target 1 end]]"
+
   include $dir
   cd [string range $dir 1 end]
   return $oldpwd
