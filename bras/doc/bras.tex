@@ -13,7 +13,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.27 $, $Date: 2000/08/05 15:39:55 $
+% $Revision: 1.28 $, $Date: 2000/09/16 16:12:12 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1476,7 +1476,7 @@ useful new predicate, send me the source.
   files listed in itself. Here \textit{older} is meant in the sense of 
   predicate \texttt{older}. 
 
-  This predicates sets the variables \texttt{trigger} and
+  This predicate sets the variables \texttt{trigger} and
   \texttt{deps} for the command of the rule to which it belongs. The
   client file will be listed before any files it includes.
 \item[Example] See file \texttt{cdeps.rule} for an example of how to use 
@@ -1524,31 +1524,31 @@ useful new predicate, send me the source.
 \begin{Describe}
 \item[Name] \Flash{varchanged} --- did a given variable's value
   change?
-\item[Synopsis] \Tt{varchanged} \It{varnames} \It{cachefile \{\}}
+\item[Synopsis] \Tt{varchanged} \It{varnames} \It{cachefile}
 \item[Description] The predicate \texttt{varchanged} tests if any of
-  the given variables were changed since the last invocation of 
-  this predicate. This is done as follows:
+  the given variables is different from their value as found in
+  \textit{cachefile}. The list \textit{varnames} may contain names of
+  scalar variables, array elements or arrays, however in almost all
+  cases those names must be fully namespace qualified, i.e.\ they
+  must start with \texttt{::}.
+
+  The test proceeds as follows:
+  \begin{itemize}
+  \item If the \textit{cachefile} does not exist, the predicate
+    returns \textit{true}. Otherwise the file is \texttt{source}d in,
+    i.e.\ it must contain Tcl code.
+  \item If a name mentioned in \textit{varnames} is not found in
+    \textit{cachefile}, the predicate returns \textit{true}.
+  \item If the value --- or values, in case of an array name ---
+    referenced by a name in \textit{varnames} differs from what is
+    found in \textit{cachefile}, the predicate returns \textit{true}.
+  \item Otherwise, the predicate returns \textit{false}.
+  \end{itemize}
   
-  If a \textit{cachefile} is given, it is read with
-  \texttt{include} (cf.~\pageref{proc:include}). The cache file should 
-  contain code to set one or more of the given variables to an
-  \textit{old} value. However care is taken to only change the
-  internal cache of a given variable and not the variable itself.
-  
-  Then, all given variable names are considered as targets. However the
-  result of the consideration with regard to the fact whether the
-  variable was updated or not is not used. Instead,
-  \verb+[+\texttt{string compare}\verb+]+ is used to compare the
-  current value with one checked previously, or with the one which was 
-  just set by \texttt{include}ing the cache file.
-  
-  When not using a cache file, \texttt{varchanged} is mostly useless
-  within a command line invocation of \bras{}. But when \bras{} is
-  used as a package within a GUI, it is very helpful in triggering
-  computations due to variable changes from the GUI.
-  
-  Below is an example which describes how to use \texttt{varchanged}
-  together with a cache file in command line invocations of \bras.
+  All names in \textit{varnames} are considered as targets
+  \textbf{before} the test is run. Those names the values of which
+  were found to differ from those in \textit{cachefile} will show up
+  in the automatic variable \texttt{trigger}.
 
 \item[Example]
   Suppose a parameter file is used to store parameters of
@@ -1568,48 +1568,27 @@ useful new predicate, send me the source.
   \begin{quote}
     \ttfamily Make resultA ...
   \end{quote}
-  In particular it checks the
-  predicate 
+  In particular it checks the predicate 
   \begin{quote}
     \ttfamily [varchanged ::paramA \$target.cache]
   \end{quote}
   to see if variable \texttt{::paramA} has changed according to the
-  given cache file. Predicate \texttt{varchanged} first reads the
-  cache file to learn the old value of \texttt{::paramA}. It expects
-  that sourcing the cache file sets \texttt{::paramA} to the value
-  used most recently in a computation. It then copies that value into
-  its internal cache for \texttt{::paramA}. However it is also ok, if
-  \texttt{::paramA} is not set or if the cache file does not exist. 
+  given cache file. Predicate \texttt{varchanged} first
+  considers \texttt{::paramA} as a target, which allows the last rule
+  to initialize it from a parameter file (see
+  page~\pageref{pred:notinitialized} for
+  \texttt{notinitialized}). After that, the cache file, if available,
+  is read and the current value of \texttt{::paramA} is compared to
+  what is found in the cache file. If the cache file does not exist,
+  if it does not set \texttt{::paramA} or if the current value is
+  different from the stored one, \texttt{varchanged} returnes
+  \textit{true}. As a consequence, the associated script is run and
+  updates the files \texttt{resultA} and \texttt{resultA.cache}.
 
-  The cache file is only ever read once to initialize the internal
-  cache. Later invocations will use the internally cached value to
-  check if \texttt{::paramA} was changed.
-
-  After the cache file is read, a value found for \texttt{::paramA} 
-  is copied into the internal cache. Then \texttt{varchanged} triggers
-  consideration of target \texttt{::paramA}, which leads to rule
-  \begin{quote}
-    \ttfamily Make \{::paramA ::paramB\} \{[notinitialized
-    \$targets]\} ...\hspace*{-22pt}
-  \end{quote}
-  The predicate \texttt{notinitialized}
-  (p.~\pageref{pred:notinitialized}) returns \texttt{true} if it was
-  called the very first time for any one of
-  its arguments. Consequently, both parameters are initialized by
-  sourcing file \texttt{params} exactly once.
-
-  Now that the internal cache for \texttt{::paramA} as well as the
-  variable itself are initialized from files, both values are compared 
-  and if they don't agree, \texttt{varchanged} returns \texttt{true}.
-
-  Note how the cache file \texttt{resultA.cache} is written at the
-  same time as the result is created.
-  
-  If the above rules are used within a \texttt{wish}-application, the
-  second and all later considerations of \texttt{[varchanged ::paramA
-    ...]} will never again read either the cache or the parameter file
-  because it is assumed that all necessary information is already in
-  memory.
+  Note that the cache file should normally be written at the same time 
+  as the computation is performed to keep it up-to-date. Also note
+  that the cache file is of course \textbf{not} the same file as the
+  parameter file.
 \end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Miscellaneous procedures}

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.8 $, $Date: 2000/08/05 15:39:14 $
+# $Revision: 1.9 $, $Date: 2000/09/16 16:12:06 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -178,31 +178,6 @@ proc ::bras::p::true {{inDeps {}}} {
   return 1
 }
 ########################################################################
-proc ::bras::p::changed--very-experimental-dont-use {file} {
-  installPredicate {trigger deps}
-  
-  set r [consider $file]
-
-  if {![file exist $file]} {
-    append reason "\nmd5-dependency not existing"
-    lappend trigger $file
-    lappend deps $file
-    return 1
-  }
-
-  set md5 $file.md5
-  set res 0
-  if {[catch {exec md5sum --status --check $md5}]} {
-    set res 1
-    exec md5sum $file >$md5
-    append reason "\nchanged md5 of $file"
-    lappend trigger $file
-    lappend deps $file
-  }
-
-  return $res
-}
-########################################################################
 #
 # Source the given $file and return a list which contains all
 # variables and their values set in $file.
@@ -236,56 +211,6 @@ proc ::bras::fetchvalues-not-supported-dont-use {_ary file} {
     }
   }
   interp delete $ip
-}
-########################################################################
-#
-# Tests if any variable set in $pfile changed since last
-# called. Comparison is performed with a cache file named $file.vc
-#
-proc ::bras::p::newvalue-not-supported-use-varChanged {pfile varglob} {
-  installPredicate {trigger deps} pfile
-
-  set cache ${pfile}.vc;		# vc -- value cache
-
-  ## if the cache does not exist, immediately return true
-  if {![file exist $cache]} {
-    ::bras::lappendUnique trigger $pfile
-    append reason "\n$cache does not exist"
-    file copy $pfile $cache
-    return 1
-  }
-  
-  ## get the old and new values from the files
-  ::bras::fetchvalues New $pfile
-  ::bras::fetchvalues Old $cache
-
-  ## sanity check. Some vars just set should match $varglob
-  set vars  [array names New $varglob]
-  if {![llength $vars]} {
-    set msg {}; append msg \
-	"bras(warning): parameter file `$pfile' does not contain " \
-	"any variable matching `$varglob'"
-    puts stderr $msg
-  }
-    
-  ## Check if any matching variable is either not yet in the cache
-  ## file or is not the same as in the parameter file.
-  foreach v $vars {
-    if {![info exist Old($v)]} {
-      append reason "\nnew parameter `$v' found in `$pfile'"
-      ::bras::lappendUnique trigger $pfile
-      file copy -force $pfile $cache
-      return 1
-    }
-    if {"$Old($v)"!="$New($v)"} {
-      append reason "\nparameter `$v' changed from `$Old($v)' to " \
-	  "`$New($v)'"
-      ::bras::lappendUnique trigger $pfile
-      file copy -force $pfile $cache
-      return 1
-    }
-  }
-  return 0
 }
 ########################################################################
 #
@@ -325,70 +250,81 @@ proc ::bras::p::oldcache {dc dotc} {
 }
 ########################################################################
 ##
-## Tests, if the given variable was changed since the last invocation
-## of this test. The variable must be given with its full namespace
-## path, or you really know what you are doing. The variable name can
-## also be an array-element, however it cannot be a whole array.
+## Tests, if the given variable is different from a copy stored in the
+## file $oldResults. Except if you really know what you are doing, all 
+## variable names given in $varnames must be fully
+## namespace-qualified, i.e. the name starts with `::'. Arrays as well 
+## as references to array elements are also allowed. The test returns
+## true, if any of the following conditions holds:
+## 1) The file $oldResults does not exist,
+## 2) A variable reference (scalar var, array, or array element) in
+##    $varnames is not set while reading $oldResults,
+## 3) The current value referenced by a variable reference in
+##    $varnames differs from the value found in $oldResults.
 ##
-## The given variables are also considered as targets. However the
-## result of the consideration is not used. Instead the value found
-## after consideration is compared to a value which was stored when
-## this function was called earlier. If it was not called before for
-## this variable, the variable is considered to have been changed.
-##
-## Since previous values of the tested variables are only kept in
-## memory, this predicate cannot communicate the old value of a
-## variable into another invocation of bras by itself.
-##
-## Read the docs for an example of how to communicate values from one
-## invocation to the next.
-##
-proc ::bras::p::varchanged {varnames {cachefile {}} } {
+proc ::bras::p::varchanged {varnames oldResults} {
   variable varChanged
 
   installPredicate [list trigger deps] {}
 
-  ## We first read the cachefile into array varChanged. This must be
-  ## done in a manner which does not values already in the given
-  ## variables.
-  if {[file exist $cachefile]} {
-    foreach varname $varnames {
-      if {![info exist $varname]} continue
-      set keep($varname) [set $varname]
-    }
-    if {[::bras::include $cachefile]} {
-      ## it was in fact read. We must set the cache-variables and
-      ## reset the original values
-      foreach varname $varnames {
-	set varChanged($varname) [set $varname]
-	if {[info exist keep($varname)]} {
-	  set $varname $keep($varname)
-	} else {
-	  unset $varname
-	}
-      }
-    }
-    catch {unset keep}
+  ::bras::consider $varnames
+
+  ## create a new interpreter and source $oldResults into it. If the
+  ## file does not even exist, this means that all given vars are
+  ## changed.
+  if {![file exist $oldResults]} {
+    if {![llength $varnames]} {return 0}
+    append reason "\nresult file `$oldResults' does not exist"
+    return 1
   }
 
-  ## Consider the given variable name as a target. We are not
-  ## interested in the result of the consideration because we check
-  ## ourselves if the value was changed.
-  ::bras::consider $varnames
-  
-  set res 0
-  foreach varname $varnames {
-    ::bras::lappendUnique deps $varname
+  set ip [interp create]
+  $ip eval source $oldResults
 
-    if {![info exist varChanged($varname)] 
-	|| 0!=[string compare $varChanged($varname) [set $varname]]} {
-      set varChanged($varname) [set $varname]
-      ::bras::lappendUnique trigger $varname
-      append reason "\nvariable `$varname' was changed"
+  ## Now compare the current values of all listed variables with the
+  ## copies found in $ip.
+  set res 0
+  foreach v $varnames {
+    ## If $v, which can also reference an array element, does not
+    ## exist, it was obviously changed.
+    if {![$ip eval info exist [list $v]]} {
+      append reason "\nvariable `$v' was unknown before"
+      ::bras::lappendUnique trigger $v
+      set res 1
+      continue
+    }
+
+    if {[array exist $v]} {
+      # Arrays are a pain, because we have to check every index.
+      foreach x [array names $v] {
+	if {![$ip eval info exist [list $v\($x\)]]} {
+	  append reason "\nat least element `$x' of `$v' is new"
+	  ::bras::lappendUnique trigger $v
+	  set res 1
+	  break
+	}
+	  
+	set currentvalue [set $v\($x\)]
+	set storedvalue [$ip eval set [list $v\($x\)]]
+	if {"$currentvalue"=="$storedvalue"} continue
+	append reason "\nat least element `$x' of `$v' changed"
+	::bras::lappendUnique trigger $v
+	set res 1
+	break
+      }
+      continue
+    }
+
+    set currentvalue [set $v]
+    set storedvalue [$ip eval set [list $v]]
+    if {"$currentvalue"!="$storedvalue"} {
+      append reason "\n`$v' was changed"
+      ::bras::lappendUnique trigger $v
       set res 1
     }
   }
 
+  interp delete $ip
   return $res
 }
 ########################################################################
