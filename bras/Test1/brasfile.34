@@ -1,0 +1,18 @@
+puts "msg: two rules for one target: ClearDeps, ClearCmd, ClearPreqs"
+puts "expect: R S"
+puts "expect: "
+puts "expect: BB"
+puts "expect: R S"
+
+Newer X {A B} {AA}
+
+ClearDeps X
+ClearCmd X
+ClearPreqs X
+
+Newer X {R S} {BB}
+
+puts [GetDeps X]
+puts [GetCmd X]
+puts [GetPreqs X]
+exit 0

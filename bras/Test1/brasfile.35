@@ -1,0 +1,18 @@
+puts "msg: several rules for a target"
+puts "expect: deps = `a.c bla.h bli.h blu.h voodo.h turilu.h'"
+puts "expect: trigger = `a.c bla.h bli.h blu.h voodo.h turilu.h'"
+
+exec rm -f a.o
+
+Newer a.o {a.c bla.h} {}
+Newer a.o {bli.h blu.h}
+Newer a.o {voodo.h turilu.h}
+Newer a.o {} {
+  puts "deps = `$deps'"
+  puts "trigger = `$trigger'"
+}
+
+## This is a catch all rule which pretends it creates all dependencies
+## of a.o
+Exist [GetDeps a.o] {} {
+}

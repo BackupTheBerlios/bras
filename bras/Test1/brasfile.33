@@ -1,0 +1,15 @@
+puts "msg: two rules for one target: testing GetDeps, GetCmd, GetPreqs"
+puts "expect: A B R S"
+puts "expect: "
+puts "expect: AA"
+puts "expect: BB"
+puts "expect: A B R S"
+Newer X {A B} {AA}
+
+
+Newer X {R S} {BB}
+
+puts [GetDeps X]
+puts [GetCmd X]
+puts [GetPreqs X]
+exit 0

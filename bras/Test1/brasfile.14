@@ -1,7 +1,7 @@
 puts "msg: Dependency in foreign directory, nothing to do"
 puts "expect: rm file1 ../Test2/file1"
 
-
+exec rm -f file1 ../Test2/file1
 exec touch file1
 
 Always nix file1 {
