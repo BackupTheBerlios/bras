@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.11 $, $Date: 2002/01/09 21:20:09 $
+# $Revision: 1.12 $, $Date: 2002/01/20 21:44:38 $
 ########################################################################
 
 namespace eval ::bras {
@@ -64,17 +64,14 @@ proc ::bras::checkMake {rid theTarget} {
     }
 
     ## we want to run $b by expr in namespace $bns
-    set cmd [list namespace eval $bns [list expr $b]]
+    #set cmd [list namespace eval $bns [list expr $b]]
 
     ## $b contains user's code, so care must be taken when
     ## running the command.
-    if {[catch $cmd r]} {
+    if {[catch {runscript $bns [list expr $b]} r]} {
+      set emsg "checking test `$b' for target `$theTarget' in [pwd]"
       cd $currentDir
-      trimErrorInfo
-      append ::errorInfo \
-	  "\n    while checking test `$b' for " \
-	  "target `$theTarget'---SNIP---"
-      return -code error -errorinfo $::errorInfo
+      return -code error -errorinfo [fixErrorInfo 2 $emsg]
     }
     cd $currentDir
     set res [expr {$res || $r}]

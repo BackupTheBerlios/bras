@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.36 $, $Date: 2002/01/17 17:23:47 $
+% $Revision: 1.37 $, $Date: 2002/01/20 21:44:38 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1692,6 +1692,24 @@ to emit dependency information for \make.
   \texttt{::bras::install} (see section \ref{proc:install}).
 \end{Describe}
 
+%%%%%
+%%%%% lex2c
+%%%%%
+\subsection{lex2c --- (f)lex source to C source}
+\indextt{lex2c}
+\begin{Describe}
+\item[Synopsis]\texttt{include [file join \$::bras::base lex2c.rule]}
+\item[Description] Relates a C source file \texttt{*.c} to a (f)lex
+  source file \texttt{*.lex}. In particular, (f)lex is
+  called with option \texttt{-t} to make sure that the output file is
+  not called \texttt{lex.yy.c}.
+\item[Target] \verb|{.*[.]c}|
+\item[Dependency] The suffix \verb|.c| replaced by \verb|.lex|.
+\item[Predicate] \texttt{older} (see~\ref{pred:older})
+\item[Command] \begin{quote}\ttfamily
+  \$LEX \$LEXFLAGS -t [lindex \$deps 0] >\$target
+\end{quote}
+\end{Describe}
 %%%%%
 %%%%% o2x
 %%%%%

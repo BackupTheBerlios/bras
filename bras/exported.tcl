@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.15 $, $Date: 2002/01/09 21:20:09 $
+# $Revision: 1.16 $, $Date: 2002/01/20 21:44:38 $
 ########################################################################
 
 ##
@@ -42,6 +42,7 @@ proc ::bras::configure {option {on {1}} } {
 
   switch -exact -- $option {
     -d -
+    -de -
     -s -
     -k -
     -v {
@@ -184,9 +185,7 @@ proc ::bras::include {name} {
   set oldpwd [pwd]
 
   if {[catch "cd $dir" msg]} {
-    set err "bras: include of `$name' tried in directory `$oldpwd'"
-    append err " leads to non-existing directory `$dir'" \
-	"---SNIP---"
+    set err "cannot include @$name, no such directory"
     return -code error -errorinfo $err
   }
   set pwd [pwd]
@@ -197,23 +196,41 @@ proc ::bras::include {name} {
   }
   set Known([file join $pwd $file]) 1
 
-  ## If this was called with an @-name, the file must be source in
+  ## If this was called with an @-name, the file must be sourced in
   ## that directory.
   if {$haveAt} {
     ## @-names are allowed not to exist.
-    if {[file exist $file]} {
-      ## Set up the namespace for this directory
-      set Namespace($pwd) ::ns[nextID]
-      gobble $file $Namespace($pwd)
-    } else {
+    if {![file exist $file]} {
       report warn "bras warning: no `$Brasfile' found in `[pwd]'"
+      cd $oldpwd
+      return 1
     }
-    cd $oldpwd
+    ## Set up the namespace for this directory
+    set Namespace($pwd) ::ns[nextID]
+    set ns $Namespace($pwd)
   } else {
+    ## Not an @-include, so we source the file right here, even if it
+    ## has a directory part.
     cd $oldpwd
-    gobble $name ::
+    set ns ::
+    set file $name
   }
-  return 1
+
+  ## Read the file while taking care of possible exceptions
+  set code [catch {runscript $ns [list source $file]}]
+  #set code [catch "uplevel #0 {namespace eval $ns {source $file}}"]
+
+  if {!$code} {
+    ## everthing worked fine
+    if {$haveAt} {cd $oldpwd}
+    return 1
+  }
+
+  ## sourcing produced an error. We remove the entries off the error
+  ## stack which originate from source/namespace/uplevel/catch
+  set emsg "including `$file' in [pwd]"
+  if {$haveAt} {cd $oldpwd}
+  return -code error -errorinfo [fixErrorInfo 2 $emsg]
 }
 ########################################################################
 #
@@ -258,11 +275,18 @@ proc ::bras::consider {targets} {
   set res {}
   set err {}
   foreach t $targets {
-    set r [::bras::considerOne $t]
+    if {[catch {::bras::considerOne $t} r]} {
+      return -code error -errorinfo [fixErrorInfo 2 ""]
+    }
     if {$r<0} {
-      append err "don't know how to make `$t' in `[pwd]'\n"
-      if {!$Opts(-k)} break
-      set r 0
+      ## Failed to find a way to make the target
+      if {$Opts(-k)} {
+	## User requested to assume that it was made and keep going
+	set r 1
+      } else {
+	append err "don't know how to make `$t' in `[pwd]'"
+	break
+      }
     }
     lappend res $r
   }
@@ -273,8 +297,6 @@ proc ::bras::consider {targets} {
   }
 
   if {"$err"!=""} {
-    set err [string trim $err "\n"]
-    append err "---SNIP---"
     return -code error -errorinfo $err $err
   } else {
     return $res

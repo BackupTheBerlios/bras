@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.39 $, $Date: 2001/12/30 09:02:10 $
+# $Revision: 1.40 $, $Date: 2002/01/20 21:44:38 $
 ########################################################################
 
 ##
@@ -52,6 +52,7 @@ proc ::bras::usage {} {
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - show reasoning in addition to normal processing
+       -de - don't try to fix error messages (mainly to debug bras)
         -k - continue as much as possible after an error
         -n - don't execute any commands (implies -v)
         -p - print database of rules, then exit
@@ -79,6 +80,7 @@ proc ::bras::main {argc args} {
     incr i
     switch -glob -- $opt {
       -d -
+      -de -
       -s -
       -v -
       -k -
@@ -135,7 +137,9 @@ proc ::bras::main {argc args} {
 
   ## Read the rule file
   #include $::bras::Brasfile
-  include @.
+  if {[catch {include @.}]} {
+    return -code error -errorinfo [fixErrorInfo 2 ""]
+  }
 
   if {$options(-p)} {
     ::bras::dumprules
@@ -154,15 +158,19 @@ proc ::bras::main {argc args} {
   ## We (may) have to change to another directory before we start
   if {[info exist startdir]} {cd $startdir}
   if {!$::bras::Opts(-s) && !$::bras::Opts(-d)} {
-    puts "cd [pwd]"
+    report norm "cd [pwd]"
   }
 
-  ::bras::consider $targets
+  
+  if {[catch {::bras::consider $targets}]} {
+    return -code error -errorinfo [fixErrorInfo 0 ""]
+  }
 }
 ########################################################################
-if { [catch "::bras::main $argc $argv" result] } {
-  ::bras::trimErrorInfo
-  puts stderr $errorInfo
+if { [catch "::bras::main $argc $argv" result] } {  
+  puts stderr [::bras::fixErrorInfo 2 ""]
+  puts stderr "    invoked from within\n\"bras\""
+  exit 1
 }
 ########################################################################
 

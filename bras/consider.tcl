@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.20 $, $Date: 2002/01/06 15:19:08 $
+# $Revision: 1.21 $, $Date: 2002/01/20 21:44:38 $
 ########################################################################
 
 ########################################################################
@@ -124,22 +124,15 @@ proc ::bras::leaveDir {newDir} {
 }
 ########################################################################
 ##
-## This terminates Consider after cleaning up a bit.
+## Cleanup stuff necessary before considerOne can return.
 ##
-proc ::bras::returnFromConsider {target keepPWD res {code return} } {
+proc ::bras::cleanupForConsider {target keepPWD res} {
   variable Tinfo 
   variable Considering
 
-  catch {unset Considering($target,[pwd])}
-  if {"$code"=="error"} {
-    set Tinfo($target,[pwd],done) 0
-    leaveDir $keepPWD
-    return -code error -errorinfo $res
-  }
-  
+  catch {unset Considering($target,[pwd])}  
   set Tinfo($target,[pwd],done) $res
   leaveDir $keepPWD
-  return -code $code $res
 }
 ########################################################################
 ##
@@ -198,10 +191,7 @@ proc ::bras::considerOne {target} {
 
   ## check for dependeny loops
   if {[info exist Considering($target,[pwd])]} {
-    set msg {}
-    append msg \
-	"bras: dependency loop detected for `$target' in `[pwd]'" \
-	"---SNIP---"
+    set msg "dependency loop detected for `$target' in `[pwd]'" 
     leaveDir $keepPWD
     return -code error -errorinfo $msg
   }
@@ -228,15 +218,16 @@ proc ::bras::considerOne {target} {
 	if {$Opts(-d)} {
 	  dmsg "`$target' is ok, file exists and has no rule"
 	}
-	returnFromConsider $target $keepPWD 0
+	cleanupForConsider $target $keepPWD 0
+	return 0
       } else {
 	## The file does not exist, so we decide it must be remade, but
 	## we don't know how.
 	if {$Opts(-d)} {
 	  dmsg "don't know how to make, no rule and file does not exist"
 	}
-	returnFromConsider $target $keepPWD -1
-	    #"don't know how to make `$target' in `[pwd]'" error
+	cleanupForConsider $target $keepPWD -1
+	return -1
       }
     }
   } else {
@@ -269,9 +260,9 @@ proc ::bras::considerOne {target} {
   ## which may return an error. 
   ##
   if {[catch [list ::bras::checkMake $rid $target] res]} {
-    global errorInfo
     set Indent [string range $Indent 2 end]
-    returnFromConsider $target $keepPWD $errorInfo error
+    cleanupForConsider $target $keepPWD 0
+    return -code error [fixErrorInfo 4 ""]
   }
   set Indent [string range $Indent 2 end]
   
@@ -281,7 +272,9 @@ proc ::bras::considerOne {target} {
       dmsg "`$target' in `[pwd]' is up-to-date"
     }
     namespace delete $Pstack; set Pstack $keptPstack
-    returnFromConsider $target $keepPWD 0
+    #returnFromConsider $target $keepPWD 0
+    cleanupForConsider $target $keepPWD 0
+    return 0
   }
   if {$res!=1} {return -code error "this should not happen"}
 
@@ -301,7 +294,10 @@ proc ::bras::considerOne {target} {
   catch {unset [set Pstack]::reason}
 
   ## now run the stuff
-  invokeCmd $rid $target $Pstack
+  if {[catch {invokeCmd $rid $target $Pstack}]} {
+    namespace delete $Pstack; set Pstack $keptPstack
+    return -code error -errorinfo [fixErrorInfo 2 ""]
+  }
 
   ## clean up a bit
   namespace delete $Pstack; set Pstack $keptPstack
@@ -321,5 +317,7 @@ proc ::bras::considerOne {target} {
   }
 
   ## finish up and return
-  returnFromConsider $target $keepPWD 1
+  #returnFromConsider $target $keepPWD 1
+  cleanupForConsider $target $keepPWD 1
+  return 1
 }

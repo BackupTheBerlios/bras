@@ -34,25 +34,43 @@ proc ::bras::unknown args {
   set args [eval concat $args]
   #puts "would exec $args"
 
-  ## First let the original `unknown' try to do something useful, but
-  ## don't let it execute external commands.
-  set ::auto_noexec 1
-  set code [catch {uplevel 1 ::bras::unknown.orig $args} res]
-  unset ::auto_noexec
-  if {!$code} { 
-    # the original unknown worked
-    return $res
+  ## Finally I decided to not rely on the original unknown, mainly
+  ## because it does not cleanly report if it could executed the
+  ## command or not. There is no difference in error return codes
+  ## between `command not found' and `command found but returned
+  ## error'. 
+  set cmd [lindex $args 0]
+  #puts "unknown for `$cmd'"
+  if {![info exists ::auto_noload]} {
+    global ::bras::unknown_pending
+    if {[info exists ::bras::unknown_pending($cmd)]} {
+      return -code error -errorinfo \
+	  "self-referential `unknown' for `$cmd'"
+    }
+    set ::bras::unknown_pending($cmd) 1
+    set code [catch {auto_load $cmd [uplevel 1 {namespace current}]} ok]
+    unset ::bras::unknown_pending($cmd)
+    if {$code} {
+      return -code error -errorcode $::errorCode \
+	   -errorinfo $::errorInfo
+    }
+    if {$ok} {
+      ## We found and loaded the command
+      set code [catch {uplevel 1 $args} msg]
+      if {$code==1} {
+	## a true error, strip the uplevel
+	return -code error -errorcode $errorCode \
+	    -errorinfo [fixErrorInfo 0 ""] $msg
+      } else {
+	return -code $code $msg
+      }
+    }
   }
-
-  ## If we are here, the unknown.orig did not work we will proceed on
-  ## our own, but only for executables.
-  set tmp [auto_execok [lindex $args 0]]
-  if {![string length $tmp]} {
-    return -code error $res
-  }
-
-  if {[catch {eval exec <@stdin >@stdout $args} msg] } {
-    return -code error $msg
+  
+  ## Arrive here if either auto_noload is set or the command could not
+  ## be found by autoload. Note, we don't take care for auto_noexec.
+  if {[catch {uplevel 1 exec <@stdin >@stdout $args} res]} {
+    return -code error -errorinfo [::bras::fixErrorInfo 5 ""]
   }
   #eval exec <@stdin 2>@stderr >@stdout $args
 }
@@ -139,19 +157,14 @@ proc ::bras::invokeCmd {rid Target pstack} {
       report norm "\# making `$Target'"
     }
 
-    ## The following construct runs the command within its own
-    ## namespace on stacklevel #0. Well, in fact it ends up on
-    ## stacklevel #1 because [namespace] accounts for one level of
-    ## stack. 
-    set script [list catch $cmd msg]
-    set script [list namespace eval $dirns $script]
-    set result [uplevel \#0 $script]
+    ## 
+    ## Run the command
+    ##
+    set result [catch {runscript $dirns $cmd}]
     cd $currentDir
     if {$result} {
-      ::bras::trimErrorInfo
-      append ::errorInfo \
-	  "\n    while making target `$Target' in `[pwd]'---SNIP---"
-      return -code error -errorinfo $::errorInfo
+      set emsg  "running command to make `$Target' in [pwd]"      
+      return -code error -errorinfo [fixErrorInfo 2 $emsg]
     }
   }
 

@@ -132,6 +132,25 @@ Newer bras.1.fixed bras.1 {
   }
   close $out
 }
+
+Newer bras.1.html.fixed bras.1.html {
+  set out [open $target w]
+  forfile line [lindex $deps 0] {
+    if {[string match *|DOC|* $line]} {
+      regsub -all {\|DOC\|} $line $DOCDIR line
+    } elseif {[string match *|VERDATE|* $line]} {
+      regsub -all {\|VERDATE\|} $line $bras::VERDATE line
+    } elseif {[string match *|VERSION|* $line]} {
+      regsub -all {\|VERSION\|} $line $bras::VERSION line
+    }
+    puts $out $line
+  }
+  close $out
+}
+
+Always clean {} {
+  eval file delete -force bras.fixed bras.1.fixed
+}
 ########################################################################
 proc forfile {varnames filename rexp {script {}} } {
   ## If script is empty, this in fact means rexp is empty and we use
