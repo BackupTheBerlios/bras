@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.7 $, $Date: 2000/06/22 11:34:29 $
+# $Revision: 1.8 $, $Date: 2000/08/05 15:39:14 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -314,15 +314,13 @@ proc ::bras::p::dcold {doto dc} {
 proc ::bras::p::oldcache {dc dotc} {
   installPredicate {trigger deps} dotc
 
-  if {![file exist $dc]} {
-    append reason "\n`$dc' does not exist"
-    ::bras::lappendUnique deps $dotc
-    ::bras::lappendUnique trigger $dotc
-    return 1
+  if {[file exist $dc]} {
+    set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
+    set dlist [concat $dotc $dlist]
+  } else {
+    set dlist $dotc
   }
 
-  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
-  set dlist [concat $dotc $dlist]
   return [older $dc $dlist]
 }
 ########################################################################
