@@ -1,18 +1,13 @@
 #!/bin/sh
 # \
-exec tclsh8.0 "$0" ${1+"$@"}
-namespace eval ::bras {set base |SRCBASE|}
-set VERSION 0.0.0
-set VERDATE 1111-11-11
+exec tclsh "$0" ${1+"$@"}
+
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
 # `make'-utitlity, written in Tcl.
 #
-# Copyright (C) 1996 Harald Kirsch, (kir@iitb.fhg.de)
-#                    Fraunhofer Institut IITB
-#                    Fraunhoferstr. 1
-#                    76131 Karlsruhe
+# Copyright (C) 1996-2000 Harald Kirsch
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,507 +23,36 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.30 $, $Date: 1999/07/26 09:16:20 $
+# $Revision: 1.31 $, $Date: 2000/03/05 12:37:26 $
 ########################################################################
 
-namespace eval ::bras {
-  # this is not yet used for all private variables and functions, but I
-  # am migrating all of them step-by-step
+##
+## This is the driver file which tries to mimic the command line
+## behaviour of `make' as much as possible.
+##
 
-  ## base
-  ##   Directory holding files sourced in by this script, as well as
-  ##   files someone might find useful sourcing, in particular those
-  ##   with suffix .rules
-
-  ## Ideps
-  ## is a database with with information on how to generate dependency
-  ## lists. It is set up with Defdexpand. With <r> a regexp, the
-  ## indices used are 
-  ## list -- the list of regexps for which dependency expanders exist
-  ## <r>  -- name of the proc which is called to expand a dependency
-  ##         which matches <r>
-  set Ideps(list) {}
-
-  ## stores a number to generate a unique namespace name, see
-  ## ::bras::newNS 
-  variable nsid 0
-}
-########################################################################
-##
-## ---- global vars -----
-##
-## VERDATE
-##   date of the version. This is not maintained by cvs, but is edited
-##   into this file whenever I run my pack-script, so that it refers
-##   to the whole package and not only to this particular file. Does
-##   anybody know how this can be done with cvs?
-##
-## brasFile
-##   Name of the rule file. Used also for rule-files in other dirs.
-##
-## brasRule
-##     database of rules. With integer <i>, the indices are as follows
-##   <i>,type -- rule type (i.e. Newer, Exist, ...)
-##   <i>,targ -- targets
-##   <i>,deps -- dependencies
-##   <i>,cmd  -- command
-##
-##   nextID   -- next unique index to use
-set brasRule(nextID) 0
-##
-## brasTinfo
-##      array holding information about targets. With <t> a target,
-##      <d> its directory, the indices used are:
-##   <t>,<d>,rule -- index into brasRule denoting the rule for <t>,<d>
-##   <t>,<d>,done -- set, if target was already considered.
-##                   0: no need to make target
-##                   1: target will be made
-##                  -1: target needs to be made, but don't know how
-##
-## brasPrule
-##   database of pattern-rules. Pattern rules are stored and accessed in
-##   the same order as they are introduced. Therefore each one gets a
-##   number. The indices are used as follows (<i> denotes an integer):
-##   nextID     -- next unique index
-##   <i>,target -- target
-##   <i>,dep    -- the dependency of given target
-##   <i>,cmd    -- command for target/dependency pair
-##   <i>,type   -- Newer, Exist, Always ...
-##   <i>,cure   -- used by lastMinuteRule, set to 1 if CUrrently
-##                 REcursively considered.
-set brasPrule(nextID) 0
-##
-## brasSearchPath
-##   is an array indexed by [pwd] and contains for each directory the
-##   dependency search path. Elements are set by command `searchpath'.
-##
-## brasSearched
-##   is an array indexed by [pwd],<name> . If a certain index exists,
-##   <name> is the result of an expansion along brasSearchPath and it
-##   will not be expanded again.
-##
-## brasLastError
-##   If it exists, it contains the deep reason, why the main target
-##   cannot be made.
-##
-## brasKnown
-##   array with an element for all files sourced either by following
-##   an @-target or by an explicit `include'. The directory-part of
-##   the filename is always normalized by means of [pwd].
-##
-## brasTargets
-##   Either the default target, i.e. the first one found, or the list
-##   of targets from the command line
-##
-## brasOpts
-##   array holding command-line options
-##
-## brasLastInclude
-##   just before a file is included with the `include'-command, this
-##   variable is set to the name of the file. This allows the script
-##   to know its own name (on request from jgg@debian.org).
-##   (No longer supported as of 1998-07-12. He should use [info script])
-##
-## brasConsidering
-##   array with an element for every target currently (recursively)
-##   under consideration; used to detect dependency loops.
-##
-## brasCmdlist  !!!!! no longer used after 0.6.0 !!!!!!!
-##   list of commands to execute. Built up by bras.Consider. Howver,
-##   only the topmost bras.Consider called finally sets the global
-##   variable. All recursively called incarnations set the local
-##   variable of their caller.
-##
-## brasIndent
-##   string containing blanks, used for `-d'-reporting.
-##
-########################################################################
-
-set f $argv0
-set argv0 [file tail $argv0]
-
-## If this file was not truly installed, the following line contains
-## the string "|SRCBASE|".
-if { "$::bras::base"=="|SRCBASE|" } {
-  ## Nevertheless we try to find our place in the universe. Even
-  ## symbolic links shall not lead us to bad places.
-  while {[file type $f]=="link"} {
-    set t [file readlink $f]
-    # puts "$argv0 --> $t"
-    if {[file pathtype $t]=="relative"} {
-      set f [file join [file dirname $f] $t]
-    } else {
-      set f $t
-    }
-  }
-  set ::bras::base [file dirname $f]
-  catch {unset t}
-}
-if {"[file pathtype $::bras::base]"!="absolute"} {
-  set f [pwd]
-  cd $::bras::base
-  set ::bras::base [pwd]
-  cd $f
-}
-unset f
-
-#source $brasBase/../tclutil/tca.tcl
-
-
-source [file join $::bras::base evalCmds.tcl]
-source [file join $::bras::base sourceDeps.tcl]
-source [file join $::bras::base lastMinuteRule.tcl]
-source [file join $::bras::base consider.tcl]
-source [file join $::bras::base brasUtils.tcl]
-source [file join $::bras::base exported.tcl]
-source [file join $::bras::base defdexpand.tcl]
-
-## source rule types
-source [file join $::bras::base defrule.tcl]
-source [file join $::bras::base alwaysRule.tcl]
-source [file join $::bras::base existRule.tcl]
-source [file join $::bras::base newerRule.tcl]
-source [file join $::bras::base dependsFileRule.tcl]
+## This addition to auto_path does not work if `bras' is a soft link,
+## but in fact I only really want it during development.
+set auto_path [concat [file dir [info script]] $auto_path]
 
 ########################################################################
-#
-# tcl (as of 8.0b1 and previous) does execute a `cd .' thereby
-# spoiling its cache for pwd. Since bras happens to execute quite some
-# `cd .', calling pwd afterwards, I trick it myself.
-#
-rename cd _cd
-proc cd {dir} {
-  if {"$dir"=="."} return
-  _cd $dir
-}
+
+package require bras
+namespace import ::bras::\[A-Za-z\]*
+
 ########################################################################
-#
-# Depending on command line options, this replaces the normal
-# exec-command. 
-#
-proc bras.verboseExec args {
-  puts $args
-  return [eval bras.exec $args]
-}
-########################################################################
-##
-## bras.gobble
-##   a wrapper around `source $file' to handle errors gracefully
-##
-proc bras.gobble {file} {
-  global errorInfo
-
-  if [catch "uplevel #0 source $file" msg] {
-    ## strip the last 5 lines off the error stack
-    set ei [split $errorInfo \n]
-    set l [llength $ei]
-    set lastLine [lindex $ei [expr $l-6]]
-    regsub {\".*\"} $lastLine "\"[file join [pwd] $file]\"" lastLine
-    puts stderr [join [lrange $ei 0 [expr $l-7]] \n]
-    puts stderr $lastLine
-    exit 1
-  }
-}
-########################################################################
-##
-## bras.followTarget
-##  
-## Handle all what is necessary to follow an @-target to its
-## home. In particular:
-## - change directory
-## - read brasfile
-## And do all this with the necessary error handling.  
-##
-## RETURN
-##   The current directory (before cd) is returned.
-##
-proc bras.followTarget {target} {
-  global brasFile brasKnown brasTinfo
-  #puts "followTarget $target"
-
-  set oldpwd [pwd]
-  set dir [file dir [string range $target 1 end]]
-
-  ## carefully change directory
-  if [catch "cd $dir" msg] {
-    set err "bras: dependency `$target' in `"
-    append err [file join $oldpwd $brasFile]
-    append err "' leads to non-existing directory `$dir'"
-    puts stderr $err
-    exit 1
-  }
-
-  ## check, if we know already the brasfile here
-  if [info exist brasKnown([file join [pwd] $brasFile])] {
-    return $oldpwd
-  }
-
-  ## before really reading the file, mark the current dir as known,
-  ## because the file to be read may lead back here again.
-  set brasKnown([file join [pwd] $brasFile]) 1
-
-  ## If the brasfile does not exist, print a warning. There is no need
-  ## to terminate immediately, because things might be handled by
-  ## default rules.
-  if {![file exists ${brasFile}]} {
-    if {0==[llength [array names brasTinfo *,[pwd],rule]]} {
-      puts stderr \
-     "bras warning: no `$brasFile' found in `[pwd]', so hold your breath"
-    }
-  } else {
-    bras.gobble $brasFile
-  }
-  return $oldpwd
-}
-########################################################################
-##
-## bras.MatchDepDefault
-##   Default function used to match a dependency list when looking for
-##   a default command. Used implicitely by bras.defaultCommand
-##
-proc bras.MatchDepDefault {suffix deps} {
-  set res {}
-  foreach x $deps {
-    if {[string match *$suffix $x]} {
-      lappend res $x
-    }
-  }
-
-  return $res
-}
-########################################################################
-##
-## bras.GenDepDefault
-##  The default dependency generator.
-##
-proc bras.GenDepDefault {target suffix} {
-  return "[file root $target]$suffix"
-}
-########################################################################
-##
-## bras.PatternRule
-##   Declare a pattern-rule.
-##
-proc bras.PatternRule {type target dep cmd} {
-  global brasPrule argv0
-
-  ## Emtpy commands are rather useless here
-  if { ![llength $cmd] } {
-    return -code error \
-	-error "empty commands are not allowed in pattern rules"
-  }
-
-  ## enter the rule
-  set id $brasPrule(nextID)
-  incr brasPrule(nextID)
-  set brasPrule($id,target) $target
-  set brasPrule($id,dep)    $dep
-  set brasPrule($id,cmd)    $cmd
-  set brasPrule($id,type)   $type
-  set brasPrule($id,cure)   0
-
-  ## create pattern replacement commands for the dependency
-  if { 0==[llength [info commands GenDep$dep]] } {
-    proc GenDep$dep {target} \
-	[concat return "\[" bras.GenDepDefault {$target} $dep "\]"]
-  }
-  #puts [info body GenDep$dep]
-
-  ## create the depenceny matching command
-  if { 0==[llength [info commands MatchDep$dep]] } {
-    proc MatchDep$dep {target realDeps} "
-      return \[bras.MatchDepDefault $dep \$realDeps\]
-    "
-  }
-}
-########################################################################
-##
-## bras.enterRule
-##    declare a rule
-##
-proc bras.enterRule {type targets deps cmd} {
-
-  global brasRule brasTinfo brasFile brasTargets argv0
-  global brasOpts
-
-  #parray brasCmd
-  ## newline characters and semicolons are poisonous for `eval' so
-  ## they have no business being in `deps'.
-  ## I assume that semicolons are intenionally here, so they are
-  ## escaped. However newlines creep in all to easy to be taken
-  ## serious. They are removed.
-  regsub -all ";" $deps {\\;} deps
-  set deps [join $deps]
-
-  if {"[lindex [info args Check.$type] 3]"=="\#"} {
-    ## This type of rule does not use dependencies. Therefore deps
-    ## should be empty in fact.
-    if {[llength $deps]} {
-      return -code error  "$type-rules have no dependencies"
-    }
-  }
-
-  ## if this is the very first explicit rule seen, and if no target was
-  ## specified on the command line, this is the default target-list.
-  ## It suffices to put just the first element into brasTargets,
-  ## because all of them are made by the command of this rule.
-  ## We make it an @-target so that the brasfile may contain `cd here'
-  ## and `cd there' without messing things up.
-  if { ![info exist brasTargets] } {
-    set brasTargets [file join @[pwd] [lindex $targets 0]]
-  }
-
-  ## Some targets may already have a rule. If so, those must all have
-  ## the same rule.
-  set rid {}
-  foreach t $targets {
-    if [info exist brasTinfo($t,[pwd],rule)] {
-      lappendUnique rid $brasTinfo($t,[pwd],rule)
-      lappend tmp $t
-    }
-  }
-  if {[llength $rid]>1} {
-    append msg "The targets `$tmp' all have already a rule, and "\
-	"these rules are not the same."
-    return -code error -errorinfo $msg
-  }
-
-  ## If rid is not set now, initialize a rule 
-  if {[llength $rid]==0} {
-    set rid $brasRule(nextID)
-    incr brasRule(nextID)
-    foreach t $targets {
-      set brasTinfo($t,[pwd],rule) $rid
-    }
-    set brasRule($rid,type) $type
-    set brasRule($rid,targ) {}
-    set brasRule($rid,deps) {}
-    set brasRule($rid,cmd) {}
-  } else {
-    ## The type of the old rule must match the new type
-    if {"$type"!="$brasRule($rid,type)"} {
-      append msg "Ruletype `$type' for targets `$targets' "\
-	  "does not match type `$brasRule($rid,type)' "\
-	  "of a rule entered previously for this target."
-      return -code error -errorinfo $msg
-    }
-  }
-  
-
-  ## Add the new information into brasRule($rid,...)
-  concatUnique brasRule($rid,targ) $targets
-  if {"$cmd"!=""} {
-    if {[string length $brasRule($rid,cmd)] 
-	&& "$brasRule($rid,cmd)"!="$cmd"} {
-      set msg "bras(warning) in `[pwd]': overriding command "
-      append msg "`$brasRule($rid,cmd)' for target `$targets'" \
-	  " with `$cmd'"
-      puts stderr $msg
-    }
-    set brasRule($rid,cmd) $cmd
-
-    ## If this rule has a command, we want its deps to come out in
-    ## front so that [lindex $deps 0] is equivalent to make's $<
-    concatUnique deps $brasRule($rid,deps)
-    set brasRule($rid,deps) $deps
-  } else {
-    concatUnique brasRule($rid,deps) $deps
-  }
-  set brasRule($rid,run) 0
-
-
-  ## Source rule-files for dependencies necessary. This is necessary
-  ## only for dependencies starting with `@'. Since 1997-07-19, the
-  ## code below is only executed if specifically requested with option
-  ## -es (early sourcing).
-  if {!$brasOpts(-es)} return
-
-  foreach x "$deps" {
-    if ![string match @* $x] continue
-    set backHere [bras.followTarget $x]
-    cd $backHere
-  }
-}
-########################################################################
-##
-## bras.ClearList -- clear one of the lists associated with a target
-##
-proc bras.ClearList {target listName} {
-  global brasTinfo brasRule
-
-  if [info exist brasTinfo($target,[pwd],rule)] {
-    set rid $brasTinfo($target,[pwd],rule)
-    set brasRule($rid,$listName) {}
-  }
-}
-########################################################################
-##
-## ClearDeps -- remove all elements from the dependency list of the
-## given target.
-##
-## If this target shares a rule with other targets, those targets'
-## dependency list is also wiped out.
-##
-proc ClearDeps {target} {
-  bras.ClearList $target deps
-}
-########################################################################
-##
-## ClearCmd -- clear the command(-list) of the given target
-##
-## If this target shares a rule with other targets, those targets'
-## list is also wiped out.
-##
-proc ClearCmd {target} {
-  bras.ClearList $target cmd
-}
-########################################################################
-##
-## bras.GetList -- return one of the lists associated with a target's
-## rule. 
-##
-proc bras.GetList {target listName} {
-  global brasTinfo brasRule
-
-  if [info exist brasTinfo($target,[pwd],rule)] {
-    set rid $brasTinfo($target,[pwd],rule)
-    return $brasRule($rid,$listName)
-  } else {
-    return {}
-  }
-}
-########################################################################
-##
-## GetDeps, GetCmd -- get respective list of a target
-##
-proc GetDeps {target} {
-  return [bras.GetList $target deps]
-}
-proc GetCmd {target} {
-  return [bras.GetList $target cmd]
-}
-########################################################################
-##
-## debugging only!
-##
-proc bras.showCmds {cmds} {
-  foreach x $cmds {
-    puts "$x"
-  }
-}
-########################################################################
-proc bras.usage {} {
+proc ::bras::usage {} {
   global argv0 VERSION VERDATE
   puts stderr \
-      "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
+      "usage: $argv0 \[-f brasfile\] \[-d\] \[-h\] \[-n\] \[-p\]\
 \[-s\] \[-v\] \[-ve\] \[var=value]\
 \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - show reasoning in addition to normal processing
-       -es - early sourcing: read brasfiles of foreign directories as soon
-             as a @-dependency is encountered.
+        -k - continue as much as possible after an error
         -n - don't execute any commands (implies -v)
+        -p - print database of rules, then exit
         -s - don't show anything except error messages
         -v - show all commands to be executed
        -ve - use verbose version of exec
@@ -544,134 +68,99 @@ This is version $VERSION of $VERDATE.
   exit 1
 }
 ########################################################################
-proc bras.main {argc args} {
-  global env argv0 brasFile brasTargets brasPrule brasOpts
-  global brasKnown brasBase brasLastError
-  global brasIndent
-  # global brasCmdlist
+proc ::bras::main {argc args} {
+  global env
   
-  set brasOpts(-d) 0
-  set brasOpts(-es) 0
-  set brasOpts(-n) 0
-  set brasOpts(-s) 0
-  set brasOpts(-v) 0
-  set brasOpts(-ve) 0
-  set brasOpts(=) {}
+  set options(-p) 0
+  set options(=) {}
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
     incr i
     switch -glob -- $opt {
-      -d {set brasOpts(-d) 1}
-      -es {set brasOpts(-es) 1
-	puts stderr "This feature will be deleted in the near future"
-	puts stderr "Please use `include @path in your brasfile instead."
-      }
+      -d -
+      -s -
+      -v -
+      -k -
+      -n -
+      -ve {::bras::configure $opt}
+      -p {set options(-p) 1}
       -f {
 	if {$i>=$argc } {
-	  puts stderr "$argv0: missing file name after option `$opt'"
+	  puts stderr "$bras: missing file name after option `$opt'"
 	  exit 1
 	}
-	set brasFile [lindex $args $i]
+	set brasfile [lindex $args $i]
 	incr i
-      }
-      -n {set brasOpts(-n) 1}
-      -s {set brasOpts(-s) 1}
-      -v {set brasOpts(-v) 1}
-      -ve {
-	set brasOpts(-ve) 1
-	rename exec bras.exec
-	rename bras.verboseExec exec
       }
       -- {
 	for {} {$i<$argc} {incr i} {
-	  lappend brasTargets [lindex $args $i]
+	  lappend targets [lindex $args $i]
 	}
       }
       -* bras.usage
       default {
 	if [string match *=* $opt] {
-	  lappend brasOpts(=) $opt
+	  lappend options(=) $opt
 	} else {
-	  lappend brasTargets $opt
+	  lappend targets $opt
 	}
       }
     }
   }
 
-  if $brasOpts(-n) {
-    set brasOpts(-v) 1
-  }
-  if { ![info exists brasFile] } {
-    if { [file exists brasfile] } {
-      set brasFile brasfile
-    } elseif { [file exists Brasfile] } {
-      set brasFile Brasfile
-    } else {
-      puts stderr "$argv0: no brasfile found"
-      exit 1
-    }
-  }
-
   ## Set env-entries from the command line
-  foreach equ $brasOpts(=) {
+  foreach equ $options(=) {
     set var {}
     set value {}
     regexp {(.*)=(.*)} $equ dummy var value
-    if {$brasOpts(-v)} {puts "setting `env($var)' to `$value'"}
+    if {$::bras::Opts(-v)} {puts "setting `env($var)' to `$value'"}
     set env($var) $value
   }
 
-  ## Read the rule file and whatever it includes
-  if { [info exist brasFile] } {
-    set brasKnown([file join [pwd] $brasFile]) 1
-    bras.gobble $brasFile
+  ## Find out which rule file to use
+  if {![info exists brasfile]} {
+    ## option -f was not used
+    if {[file exists brasfile]} {
+      set ::bras::Brasfile brasfile
+    } elseif {[file exists Brasfile]} {
+      set ::bras::Brasfile Brasfile
+    } else {
+      puts stderr "bras: no brasfile found"
+      exit 1
+    }
+  } else {
+    set ::bras::Brasfile $brasfile
+  }
+
+  ## Read the rule file
+  include $::bras::Brasfile
+
+  if {$options(-p)} {
+    ::bras::dumprules
+    exit 0
   }
 
   ## Check if there is a target to consider
-  if ![info exist brasTargets] {
-    puts -nonewline stderr "$argv0: no target given"
-    if [info exist brasFile] {
-      puts stderr ""
-    } else {
-      puts stderr " and no brasfile found"
-    }
-    exit 1
-  }
-
-  #parray brasRules
-  #parray brasPrule
-  #global brasTinfo; parray brasTinfo
-
-  foreach target $brasTargets {
-    set brasIndent ""
-#    set brasCmdlist {}
-    set r [bras.Consider $target]
-
-    #global brasTinfo; parray brasTinfo
-    #bras.showCmds $brasCmdlist
-
-    if {$r==-1} {
-      puts "bras: cannot make $target because$brasLastError"
-      puts "      try to use -d to find out more"
+  if {![info exist targets]} {
+    if {![info exist ::bras::Targets]} {
+      puts stderr "bras: no target given"
       exit 1
     }
+    set targets $::bras::Targets
+  }
 
-#    if $brasOpts(-d) continue
-
-#     if {![llength $brasCmdlist]} {
-#       puts "$argv0: nothing to be done for `$target'"
-#     } else {
-#       bras.evalCmds $brasCmdlist
-#     }
-  } 
-
-#   if { $brasOpts(-s) } {
-#     puts stdout ""
-#   }
+  if {[catch {::bras::consider $targets} msg]} {
+    if {[info exist ::bras::lastError]} {
+      puts $::bras::lastError
+    } else {
+      puts $msg
+    }
+    puts "      use option -d to find out more"
+  }
 }
 ########################################################################
 
-if { [catch "bras.main $argc $argv" result] } {
+if { [catch "::bras::main $argc $argv" result] } {
   puts $errorInfo
 }
 ########################################################################

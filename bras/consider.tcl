@@ -22,65 +22,48 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.13 $, $Date: 1999/07/24 11:18:22 $
+# $Revision: 1.14 $, $Date: 2000/03/05 12:37:28 $
 ########################################################################
+## source version and package provide
+source [file join [file dir [info script]] .version]
 
 ########################################################################
 ##
-## bras.dmsg
+## ::bras::dmsg
 ##
-proc bras.dmsg {dind msg} {
-  regsub -all "\n" $msg "\n\#$dind" msg
-  puts "\#$dind$msg"
-}
-########################################################################
-proc ::bras::findIndirectDeps {target dep} {
-  variable Ideps
-
-  ## The expansion is not performed for @-deps since it is not at
-  ## all clear whether the resulting deps should get the @-prefix or
-  ## not. 
-  if {[string match @* $dep]} {
-    return $dep
-  }
-
-  foreach rexp $Ideps(list) {
-    if {![regexp $rexp $dep]} continue
-
-    if {[catch {$Ideps($rexp) $target $dep} msg]} {
-      global errorInfo
-      puts stderr $errorInfo
-      exit 1
-    } else {
-      return $msg
-    }
-  }
-  return $dep
+## prints a multiline message on stdout with current indentation
+##
+proc ::bras::dmsg {msg} {
+  variable Indent
+  regsub -all "\n" $msg "\n\#$Indent" msg
+  puts "\#$Indent$msg"
 }
 ########################################################################
 #
 # If a non-empty string is returned, it is an expanded dependency
-# about which something is know, i.e. it either already exists as a
-# file or there is an explicit rule describing how to make it. 
+# about which something is known, i.e. it either already exists as a
+# file or there is an explicit rule which describes how to make it. 
 #
-proc BrasSearchDependency {dep} {
-  global brasSearchPath brasSearched brasTinfo
-
-  ## Don't search for targets which are the result of a search already.
-  if {[info exist brasSearched([pwd],$dep)]} {
-    return $dep
-  }
+proc ::bras::searchDependency {dep} {
+  variable Searchpath
+  variable Searched
+  variable Tinfo
 
   ## Don't expand @-names
   if {[string match @* $dep]} {
     return $dep
   }
 
+  ## Don't search for targets which are the result of a search already.
+  if {[info exist Searched([pwd],$dep)]} {
+    return $dep
+  }
+
   ## Don't expand non-relative paths
   set ptype [file pathtype $dep]
   if {"$ptype"!="relative"} {
-    if {[file exist $dep] || [info exist  brasTinfo($dep,[pwd],rule)]} {
-      set brasSearched([pwd],$dep) 1
+    if {[file exist $dep] || [info exist Tinfo($dep,[pwd],rule)]} {
+      set Searched([pwd],$dep) 1
       return $dep
     } else {
       return {}
@@ -88,8 +71,8 @@ proc BrasSearchDependency {dep} {
   }
 
   ## If there is no searchpath, assume .
-  if {[info exist brasSearchPath([pwd])]} { 
-    set path $brasSearchPath([pwd])
+  if {[info exist Searchpath([pwd])]} { 
+    set path $Searchpath([pwd])
   } else {
     set path [list {}]
   }
@@ -98,8 +81,15 @@ proc BrasSearchDependency {dep} {
   foreach x $path {
     if {"$x"=="."} {set x {}}
     set t [file join $x $dep]
-    if {[file exist $t]} {
-      set brasSearched([pwd],$t) 1
+    ## Now it may be an @-target. We must test if the name without
+    ## leading @ exists, but then we return the name with @.
+    if {[string match @* $t]} {
+      set y [string range $t 1 end]
+    } else {
+      set y $t
+    }
+    if {[file exist $y]} {
+      set Searched([pwd],$t) 1
       return $t
     }
   }
@@ -111,61 +101,48 @@ proc BrasSearchDependency {dep} {
     set t [file join $x $dep]
     ## Now it may be an @-target
     if {[string match @* $t]} {
-      set keepPWD [bras.followTarget $t]
+      set keepPWD [followTarget $t]
       set tail [file tail $t]
-      set found [info exist brasTinfo($tail,[pwd],rule)]
+      set found [info exist Tinfo($tail,[pwd],rule)]
       cd $keepPWD
     } else {
-      set found [info exist brasTinfo($t,[pwd],rule)]
+      set found [info exist Tinfo($t,[pwd],rule)]
     }
     if {$found} {
-      set brasSearched([pwd],$t) 1
+      set Searched([pwd],$t) 1
       return $t
     }
   }
 
-  #puts "BrasExpandTarget returns $res"
   return {}
 }
 ########################################################################
-proc bras.leaveDir {newDir} {
-  global brasOpts
+proc ::bras::leaveDir {newDir} {
+  variable Opts
 
   if {"$newDir"=="."} return
 
-  if {!$brasOpts(-s)} {
+  if {!$Opts(-s) && !$Opts(-d)} {
     puts "cd $newDir"
   }
   cd $newDir
 }
 ########################################################################
-proc ::bras::listConsider {targets} {
-  set depInfo {}
-  foreach target $targets {
-    set res [bras.Consider $target]
-    if {$res<0} {
-      return -code error "$target cannot be made"
-    }
-    if {[string match @* $target]} {
-      lappend depInfo [string range $target 1 end] $res
-    } else {
-      lappend depInfo $target $res
-    }
+##
+## This terminates Consider after cleaning up a bit.
+##
+proc ::bras::returnFromConsider {target keepPWD res {code return} } {
+  variable Tinfo 
+  variable Considering
+  variable lastError
+
+  set Tinfo($target,[pwd],done) $res
+  unset Considering($target,[pwd])
+  leaveDir $keepPWD
+  if {"$code"=="error" && ![info exist lastError]} {
+    set lastError $res
   }
-
-  return $depInfo
-}
-########################################################################
-##
-## This terminates bras.Consider after cleaning up a bit.
-##
-proc bras.returnFromConsider {target keepPWD res} {
-  global brasTinfo brasConsidering
-
-  set brasTinfo($target,[pwd],done) $res
-  unset brasConsidering($target,[pwd])
-  bras.leaveDir $keepPWD
-  return -code return $res
+  return -code $code $res
 }
 ########################################################################
 ##
@@ -173,13 +150,16 @@ proc bras.returnFromConsider {target keepPWD res} {
 ##
 ## RETURN
 ## 0: no need to make target
-## 1: target will be made
-## -1: target needs to be made, but don't know how
+## 1: target was just made
+## 
+## ERRORS:
+## If a target cannot be made because it does not exist as a file and
+## has no rule, an error ist thrown.
 ##
 ## How a target is considered:
 ## Suppose target t in directory d is considered. The the following
 ## steps are performed:
-## o Run the target's rule mentioned in brasTinfo($t,$d,rule)
+## o Run the target's rule mentioned in Tinfo($t,$d,rule)
 ## Three cases are possible:
 ##   1) The rule returns -1, i.e. the target should be made, but
 ##      some of its dependencies are not available or cannot be
@@ -188,39 +168,41 @@ proc bras.returnFromConsider {target keepPWD res} {
 ##      Then 0 is returned.
 ##   3) The rule returns 1, i.e. the target must be made. Then the
 ##      steps described below are executed.
-proc bras.Consider {target} {
-  global brasRule brasTinfo argv0 brasOpts brasConsidering
-  global brasIndent brasLastError
+proc ::bras::considerOne {target} {
+  variable Opts
+  variable Tinfo
+  variable Rule
+  variable Considering
+  variable Indent
 
   ## change dir, if target starts with `@'. Save current dir in
   ## keepPWD.
   set keepPWD .
   if {[string match @* $target]} {
-    set keepPWD [bras.followTarget $target]
-    set target [file tail $target]
+    set keepPWD [followTarget $target]
+    set target [file tail [string range $target 1 end]]
     if {"$keepPWD"=="[pwd]"} {
       set keepPWD .
+    } else {
+      if {!$Opts(-s) && !$Opts(-d)} {
+	puts "cd [pwd]"
+      }
     }
   }
-
-  if {!$brasOpts(-s) && "$keepPWD"!="."} {
-    puts "cd [pwd]"
-  }
-
 
   ## check, if this target was handled already along another line of
   ## reasoning 
-  if [info exist brasTinfo($target,[pwd],done)] {
-    if {$brasOpts(-d)} {
-      bras.dmsg $brasIndent "have seen `$target' in `[pwd]' already"
+  if {[info exist Tinfo($target,[pwd],done)]} {
+    if {$Opts(-d)} {
+      dmsg "have seen `$target' in `[pwd]' already"
     }
     set pwd [pwd]
-    bras.leaveDir $keepPWD
-    return $brasTinfo($target,$pwd,done)
+    leaveDir $keepPWD
+    return $Tinfo($target,$pwd,done)
   }
 
   ## check for dependeny loops
-  if {[info exist brasConsidering($target,[pwd])]} {
+  if {[info exist Considering($target,[pwd])]} {
     puts stderr \
 	"$argv0: dependency loop detected for `$target' in `[pwd]'"
     exit 1
@@ -228,42 +210,35 @@ proc bras.Consider {target} {
 
   ## Mark the target as being under consideration to prevent
   ## dependency loops.
-  set brasConsidering($target,[pwd]) 1
-
+  set Considering($target,[pwd]) 1
 
   ## describe line of reasoning
-  if $brasOpts(-d) {
-    bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
-  }
+  if {$Opts(-d)} {dmsg "considering `$target' in `[pwd]'" }
 
   ## Prepare for further messages
-  append brasIndent "  "
+  append Indent "  "
 
   ## handle targets without rule
-  if { ![info exist brasTinfo($target,[pwd],rule)] } {
-    bras.lastMinuteRule $target $brasIndent
+  if {![info exist Tinfo($target,[pwd],rule)]} {
+    lastMinuteRule $target
 
     ## Check if there is still no rule available
-    if {![info exist brasTinfo($target,[pwd],rule)] } {
-      set brasIndent [string range $brasIndent 2 end]
+    if {![info exist Tinfo($target,[pwd],rule)]} {
+      set Indent [string range $Indent 2 end]
       if {[file exist $target]} {
 	## The target exists as a file, this is ok.
-	if $brasOpts(-d) {
-	  bras.dmsg $brasIndent \
-	      "`$target' is ok, file exists and has no rule"
+	if {$Opts(-d)} {
+	  dmsg "`$target' is ok, file exists and has no rule"
 	}
-	bras.returnFromConsider $target $keepPWD 0
+	returnFromConsider $target $keepPWD 0
       } else {
 	## The file does not exist, so we decide it must be remade, but
 	## we don't know how.
-	if $brasOpts(-d) {
-	  bras.dmsg $brasIndent \
-	      "don't know how to make, no rule and file does not exist"
+	if {$Opts(-d)} {
+	  dmsg "don't know how to make, no rule and file does not exist"
 	}
-	append brasLastError \
-	    "\ndon't know how to make `$target' in `[pwd]'"
-	
-	bras.returnFromConsider $target $keepPWD -1
+	returnFromConsider $target $keepPWD \
+	    "don't know how to make `$target' in `[pwd]'" error
       }
     }
   } else {
@@ -271,84 +246,64 @@ proc bras.Consider {target} {
     ## is called. This might even add a depenency to the front of the
     ## dependency list, which is quite right if the command found uses
     ## [lindex $deps 0].
-    set rid $brasTinfo($target,[pwd],rule)
-    if {![string length $brasRule($rid,cmd)]} {
-      bras.lastMinuteRule $target $brasIndent
+    set rid $Tinfo($target,[pwd],rule)
+    if {![string length $Rule($rid,cmd)]} {
+      lastMinuteRule $target
     }
   }
 
   ##
-  ## Find the target's rule and prepare depenencies by first expanding
-  ## them along the search path and then by invoking the indirect-list.
+  ## Find the target's rule.
   ##
-  set rid $brasTinfo($target,[pwd],rule) 
-  set deps $brasRule($rid,deps)
-  set allDeps {}
-  foreach d $deps {
-    if {"[set t [BrasSearchDependency $d]]"!=""} {
-      set d $t
-    }
-    set allDeps \
-	[concat $allDeps [::bras::findIndirectDeps $target $d]]
-  }
-
-  if {$brasOpts(-d)} {
-    bras.dmsg $brasIndent \
-	"full dependency list of `$target' is: `$allDeps'"
-  }
+  set rid $Tinfo($target,[pwd],rule) 
 
   ##
   ## Call the target's rule. [catch] is used because it is assumed
   ## that a rule calls ::bras::listConsider for the dependency list,
   ## which may return an error. 
   ##
-  set rule $brasRule($rid,type)
-  if {[catch [list Check.$rule $rid $target reason $allDeps] res]} {
-    set brasIndent [string range $brasIndent 2 end]
-    bras.returnFromConsider $target $keepPWD -1
+  if {[catch [list ::bras::checkMake $rid $target reason] res]} {
+    set Indent [string range $Indent 2 end]
+    returnFromConsider $target $keepPWD $res error
   }
-
-  set brasIndent [string range $brasIndent 2 end]
+  set Indent [string range $Indent 2 end]
 
   ## If target was up-to-date already, return (almost) immediately
   if {$res==0} {
-    if { $brasOpts(-d) } {
-      bras.dmsg $brasIndent "`$target' in `[pwd]' is up-to-date"
+    if {$Opts(-d)} {
+      dmsg "`$target' in `[pwd]' is up-to-date"
     }
-    bras.returnFromConsider $target $keepPWD 0
+    returnFromConsider $target $keepPWD 0
   }
 
   ## If target cannot be made, return (almost) immediately
   if {$res==-1} {
     ## This target cannot be made
-    if { $brasOpts(-d) } {
-      set msg "should make `$target' in `[pwd]', but can't"
-      bras.dmsg $brasIndent $msg
+    if {$Opts(-d)} {
+      dmsg "should make `$target' in `[pwd]', but can't"
     }
-    bras.returnFromConsider $target $keepPWD -1
+    returnFromConsider $target $keepPWD -1
   }
 
   ## Target was made
-  if { $brasOpts(-d) } {
+  if {$Opts(-d)} {
     regsub -all "\n" $reason "\n    " reason
-    bras.dmsg $brasIndent \
-	"made `$target' in `[pwd]' because$reason"
+    dmsg "made `$target' in `[pwd]' because$reason"
   }
 
   ## All other targets of this rule are assumed to be made now. Mark
   ## them accordingly and filter them out for a message
   set also ""
-  foreach t $brasRule($rid,targ) {
+  foreach t $Rule($rid,targ) {
     if {"$target"!="$t"} {
       lappend also $t
-      set brasTinfo($t,[pwd],done) 1
+      set Tinfo($t,[pwd],done) 1
     }
   }
-  if {"$also"!="" && $brasOpts(-d)} {
-    bras.dmsg $brasIndent \
-	"same command makes: $also"
+  if {"$also"!="" && $Opts(-d)} {
+    dmsg "same command makes: $also"
   }
 
   ## finish up and return
-  bras.returnFromConsider $target $keepPWD 1
+  returnFromConsider $target $keepPWD 1
 }

@@ -23,14 +23,50 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1999/07/24 11:18:24 $
+# $Revision: 1.5 $, $Date: 2000/03/05 12:37:28 $
 ########################################################################
+## source version and package provide
+source [file join [file dir [info script]] .version]
 
 ##
 ## This file contains commands intended to be used in brasfiles
 ## (besides rule-commands which are defined elsewhere).
 ##
 
+namespace eval ::bras {
+  namespace export configure getenv searchpath include consider dumprules
+}
+
+########################################################################
+#
+# Set or reset some flags controlling bras's operation
+#
+proc ::bras::configure {option {on {1}} } {
+  variable Opts
+
+  switch -exact -- $option {
+    -d -
+    -s -
+    -k -
+    -v {
+      set Opts($option) $on
+    }
+    -n {
+      set Opts($option) $on
+      set Opts(-v) $on
+    }
+    -ve {
+      set Opts($option) $on
+      if {$on} {
+	rename exec ::bras::exec_orig
+	rename ::bras::verboseExec ::exec
+      }
+    }
+    default {
+      return -code error "unknown options $option"
+    }
+  }
+}    
 ########################################################################
 ##
 ## This is useful to set global variables in a way that they can be
@@ -40,7 +76,7 @@
 ## Typical use:
 ## getenv prefix /usr/local
 ##
-proc getenv {_var {default {}} } {
+proc ::bras::getenv {_var {default {}} } {
   upvar $_var var
   global env
   if {[info exist env($_var)]} {
@@ -55,22 +91,22 @@ proc getenv {_var {default {}} } {
 ## Without arguments, the current path is unchanged.
 ## The new path is always returned.
 ##
-proc searchpath { {p {never used}} } {
-  global brasSearchPath
+proc ::bras::searchpath { {p {never used}} } {
+  variable Searchpath
 
   if {[llength [info level 0]]==2} {
     ## something was explicitly passed in
     if {[llength $p]} {
-      set brasSearchPath([pwd]) $p
+      set Searchpath([pwd]) $p
     } else {
-      unset brasSearchPath([pwd])
+      unset Searchpath([pwd])
       return {}
     }
-  } elseif {![info exist brasSearchPath([pwd])]} {
+  } elseif {![info exist Searchpath([pwd])]} {
     return {}
   }
 
-  return $brasSearchPath([pwd])
+  return $Searchpath([pwd])
 }
 ########################################################################
 ##
@@ -79,17 +115,17 @@ proc searchpath { {p {never used}} } {
 ##   file more than once.
 ##  
 ##   If the `name' starts with an `@' it must be a directory. In that
-##   case, the $brasFile of that directory is sourced in the same way
+##   case, the $Brasfile of that directory is sourced in the same way
 ##   as if an `@'-target had let to that directory.
 ##
 ##   If the `name' does not start with `@', it must be the name of an
 ##   existing readable file. This one is simpy sourced in.
 ##
-proc include {name} {
-  global brasKnown
+proc ::bras::include {name} {
+  variable Known
   
   if [string match @* $name] {
-    cd [bras.followTarget [file join $name .]]
+    cd [followTarget [file join $name .]]
     return
   }
 
@@ -111,31 +147,98 @@ proc include {name} {
   set pwd [pwd]
   cd $oldpwd
 
-  if [info exist brasKnown([file join $pwd $file])] return
+  if {[info exist Known([file join $pwd $file])]} return
+  set Known([file join $pwd $file]) 1
 
-  bras.gobble $name
+  gobble $name
 }
 ########################################################################
-proc consider {targets} {
-  global brasOpts brasIndent
+#
+# Consider all given targets in turn. Targets may start with an @ and
+# a directory part.
+#
+# RETURN:
+# a list of ones and zeros denoting whether a target was just made (or
+# during this run of bras) or not.
+#
+# ERRORS:
+# If a target cannot be made, an error is returned. If
+# bras-option -k is set, consider continues to the end of the list
+# after an error but still returns an error in the end.
+#
+proc ::bras::consider {targets} {
+  variable Opts
+  variable Indent
 
-  if {$brasOpts(-d)} {
+  if {![llength $targets]} {return {}}
+  
+  if {$Opts(-d)} {
     set caller [info level -1]
-    bras.dmsg $brasIndent "=> on behalf of `$caller':"
-    append brasIndent "  "
+    set procname [uplevel namespace which [lindex $caller 0]]
+    if {![string match ::bras::* $procname]} {
+      dmsg "=> on behalf of `$caller':"
+      append Indent "  "
+      set msg 1
+    }
   }
 
-  if {[catch {::bras::listConsider $targets} depInfo]} {
-#     global errorInfo
-#     puts $errorInfo
-    return -code error -errorinfo $depInfo jockel
+  set res {}
+  set err {}
+  foreach t $targets {
+    if {[catch {::bras::considerOne $t} r]} {
+      append err "\n" $r
+      if {!$Opts(-k)} break
+    } else {
+      lappend res $r
+    }
   }
 
-  if {$brasOpts(-d)} {
-    set brasIndent [string range $brasIndent 2 end]
-    bras.dmsg $brasIndent "<= done"
+  if {[info exist msg]} {
+    set Indent [string range $Indent 2 end]
+    dmsg "<= done"
   }
 
-  return $depInfo
+  if {"$err"!=""} {
+    return -code error $err
+  } else {
+    return $res
+  }
+}
+########################################################################
+proc ::bras::dumprules {} {
+  variable Known
+  variable Prule
+  variable Rule
+
+  puts "\#\# bras dumping rules"
+  puts "\#\# known files are:"
+  foreach x [array names Known] {
+    puts "\#\#   `$x'"
+  }
+  puts ""
+
+  puts "\#\# pattern rules:"
+  foreach id $Prule(all) {
+    set gd $Prule($id,gdep)
+    puts -nonewline "proc $gd {[info args ::bras::gendep::$gd]} {"
+    puts -nonewline "[info body ::bras::gendep::$gd]"
+    puts "}"
+    puts "PatternMake $Prule($id,trexp) $gd {"
+    puts "  $Prule($id,bexp)"
+    puts -nonewline "} {"
+    puts "  $Prule($id,cmd)}"
+    puts ""
+  }
+
+  puts "\#\# rules:"
+  foreach id $Rule(all) {
+    puts "Make $Rule($id,targ) {"
+    foreach {t d b} $Rule($id,bexp) {
+      puts "$b"
+    }
+    puts "} {"
+    puts "$Rule($id,cmd)"
+    puts "}"
+  }
 }
 ########################################################################

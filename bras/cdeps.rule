@@ -28,15 +28,63 @@
 #
 # Autmatically updated and cached dependencies of a C source file. 
 # If you source this file in with 
-#  include $::bras::base/cdeps.rule
+#   include $::bras::base/cdeps.rule
 # dependencies for .c-files will be automatically generated and cached
-# in a file with suffix .dc.
+# in a file with suffix `.dc'.
 #
 # Please specify in your brasfile the options which let your
 # C-compiler emit makefile-dependencies by setting DEPOPTS.
 #
 getenv DEPOPTS {-M -MG}		;# this for gcc
 getenv INCLUDES {}
+getenv CC cc
+
+
+########################################################################
+#
+# tests if a dependency-cache (dc) file is out of date. This is the
+# case, if
+# -- it does not exist
+# -- it is [older] than the given dotc-file
+# -- it is [older] than any of the files listed in it
+#
+proc ::bras::p::oldcache {dc dotc} {
+  installPredicate dotc
+
+  if {![file exist $dc]} {
+    append reason "\n`$dc' does not exist"
+    ::bras::lappendUnique deps $dotc
+    ::bras::lappendUnique trigger $dotc
+    return 1
+  }
+
+  set in [open $dc r]; set dlist [join [split [read $in]]]; close $in
+  return [older $dc $dlist]
+}
+########################################################################
+PatternMake {.*\.dc} .c {[oldcache $target $d]} {
+  set c [lindex $deps 0]
+  set l [join [eval exec "$CC $DEPOPTS $INCLUDES $c" ] \ ]
+  set res {}
+  foreach x $l {
+    if {[string match *: $x]} continue
+    if {[string match /usr/* $x]} continue
+    lappend res [string trim $x]
+  }
+
+  ## write the target
+  set out [open $target w]; 
+  puts $out $res; 
+  close $out
+}
+########################################################################
+
+
+
+
+if 0 {
+# This code was used until 0.8.0
+
 
 # The following dependency expander is called for .c-files. 
 
@@ -49,15 +97,18 @@ Defdexpand cdeps {.*\.c} target dep {
       ## use the cache after making sure it is up-to-date
       consider $dc
       set in [open $dc r]; set r [read $in]; close $in
+      puts "cdeps $target -> $r"
       return $r
     }
     *.dc {
       ## set the cache up
       if {![file exist $target]} {return $dep}
       set in [open $dc r]; set r [read $in]; close $in
+      puts "cdeps $target -> $r"
       return $r
     }
   }
+  puts "cdeps $target -> $dep"
   return $dep
 }
       
@@ -72,7 +123,7 @@ PatternNewer {.*\.dc} .c {
   }
   echo $res > $target
 }
-
+}
 ########################################################################
 ##### Local Variables: #
 ##### mode:tcl #

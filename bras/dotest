@@ -9,7 +9,7 @@ set host [exec uname -n]
 ## If you feel that you cannot live any more without running these test,
 ## then change the 1 in the `if' below to a 0.
 ##                                            You really shouldn't.
-if {1 && ("$host"!="Gauss" || "[pwd]"!="/home1/kir/work/bras")} {
+if {1 && "[pwd]"!="/home1/kir/work/bras"} {
   puts stderr "\
 \n\n\n\n\n\n\n\nHi there,
 

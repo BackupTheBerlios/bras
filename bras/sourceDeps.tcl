@@ -23,12 +23,17 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
+## source version and package provide
+source [file join [file dir [info script]] .version]
 
+namespace eval ::bras {
+  namespace export sourcedeps
+}
 ########################################################################
 ##
 ## bras.oneLine
 ##
-proc bras.oneLine {in} {
+proc ::bras::oneLine {in} {
   set line {}
   while { -1!=[set c [gets $in l]] && [string match {*\\} $l] } {
     append line $l
@@ -51,7 +56,7 @@ proc bras.oneLine {in} {
 ##   Parameter in must be a file-handle open for reading, in
 ##   particular it can be a pipe.
 ##
-proc bras.sourceDeps {in ignore _Deps} {
+proc ::bras::readDeps {in ignore _Deps} {
   upvar $_Deps Deps
 
   ## create regexp to filter unwanted dependencies
@@ -97,7 +102,7 @@ proc bras.sourceDeps {in ignore _Deps} {
 ##   dependencies that need not be included in the list. Typical
 ##   examples would be `/usr' and `/usr/local'.
 ##
-proc sourceDeps {file args} {
+proc ::bras::sourcedeps {file args} {
 
   if {![file readable $file]} {
     puts stderr \
@@ -105,7 +110,7 @@ proc sourceDeps {file args} {
     return
   }
   set in [open $file]
-  bras.sourceDeps $in $args Deps
+  readDeps $in $args Deps
   close $in
 
   foreach x [array names Deps] {

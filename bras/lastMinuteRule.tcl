@@ -23,11 +23,13 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
+## source version and package provide
+source [file join [file dir [info script]] .version]
 
 ########################################################################
 ##
-## bras.lastMinuteRule
-##   tries to create a rule from brasPrule for targets that don't
+## lastMinuteRule
+##   tries to create a rule from Prule for targets that don't
 ##   have any explicit rule.
 ##
 ## Since we don't have any dependencies available here, only the
@@ -44,23 +46,24 @@
 ##
 ## If a rule is (recursively) found, 1 is returned, otherwise 0.
 ##
-## To prevent recursive looping, brasPrule($id,cure) is set to 1 for a
+## To prevent recursive looping, Prule($id,cure) is set to 1 for a
 ## rule which initiates a recursive search.
 ##
-proc bras.lastMinuteRule {target dind} {
-  global brasPrule brasOpts brasRule brasTinfo brasSearched
+proc ::bras::lastMinuteRule {target} {
+  variable Opts
+  variable Indent
+  variable Tinfo
+  variable Rule
+  variable Prule
 
-  set lastID [expr $brasPrule(nextID)-1]
- 
+  global brasSearched
+
   ## If this was called to only generate a command, target has
-  ## already a rule and we can only use pattern-rules the type of
-  ## which matches the type of the registered rule for $target.
-  if {[info exist brasTinfo($target,[pwd],rule)]} {
+  ## already a rule
+  if {[info exist Tinfo($target,[pwd],rule)]} {
     set reason "trying to find a command to make `$target'"
-    set type $brasRule($brasTinfo($target,[pwd],rule),type)
   } else {
-    set reason "trying to make pattern rule for target `$target'"
-    set type *
+    set reason "trying to derive a rule for target `$target'"
   }
 
   ## In the first step, we check if there is a rule which matches the
@@ -69,28 +72,22 @@ proc bras.lastMinuteRule {target dind} {
   set activeRules {}
   set activeCandidates {}
 
-  for {set id $lastID} {$id>=0} {incr id -1} {
-    ## This rule might have been deleted.
-    if { ![info exist brasPrule($id,target)] } continue
-    
-    ## match the type
-    if {![string match $type $brasPrule($id,type)]} continue
-
+  foreach id $Prule(all) {
     ## match the target
-    if {![regexp "^$brasPrule($id,target)\$" $target]} continue
+    if {![regexp "^$Prule($id,trexp)\$" $target]} continue
 
     ## don't check recursively active rules
-    if {$brasPrule($id,cure)} {
+    if {$Prule($id,cure)} {
       append reason \
-	  "\n+ `$brasPrule($id,target)' <- `$brasPrule($id,dep)' " \
+	  "\n+ `$Prule($id,trexp)' <- `$Prule($id,gdep)' " \
 	  "already active"
       continue
     }
 
-    set which $brasPrule($id,dep)
+    set which $Prule($id,gdep)
 
-    ## If the dependency is empty, which may happen for
-    ## Exist-rules, this is a way to make this target.
+    ## If the dependency-generator is empty, which is not strictly
+    ## disallowed, this is a way to make this target.
     if {"$which"==""} {
       set ruleID $id
       set dep {}
@@ -99,14 +96,14 @@ proc bras.lastMinuteRule {target dind} {
     }
 
     ## generate the dependency with the pattern rule
-    set dep [GenDep$which $target]
+    set dep [::bras::gendep::$which $target]
 
     append reason \
 	"\n+ with `$dep' " \
-	"derived from `$brasPrule($id,target)' <- `$brasPrule($id,dep)'"
+	"derived from `$Prule($id,trexp)' <- `$Prule($id,gdep)'"
  
     ## Expand the dependency along the search path
-    if {"[set t [BrasSearchDependency $dep]]"!=""} {
+    if {"[set t [searchDependency $dep]]"!=""} {
       ## good one, use it
       set ruleID $id
       set dep $t
@@ -117,18 +114,19 @@ proc bras.lastMinuteRule {target dind} {
     lappend activeRules $id $dep
   }
 
-  if {$brasOpts(-d) && ""!="$reason"} {bras.dmsg $dind $reason}
+  if {$Opts(-d) && ""!="$reason"} {dmsg $reason}
 
   ## If we did not find a rule-id yet, go recursive
   if {$ruleID==-1} {
-    if {$brasOpts(-d) && [llength $activeRules]} {
-      bras.dmsg $dind "+ no success, going recursive"
+    if {$Opts(-d) && [llength $activeRules]} {
+      dmsg "+ no success, going recursive ($activeRules)"
     }
     foreach {id dep} $activeRules {
-      #set dep [GenDep$brasPrule($id,dep) $target]
-      set brasPrule($id,cure) 1
-      set ok [bras.lastMinuteRule $dep "$dind  "]
-      set brasPrule($id,cure) 0
+      set Prule($id,cure) 1
+      append Indent "  "
+      set ok [lastMinuteRule $dep]
+      set Indent [string range $Indent 2 end]
+      set Prule($id,cure) 0
       if {$ok} {
 	set ruleID $id
 	break
@@ -137,25 +135,30 @@ proc bras.lastMinuteRule {target dind} {
   }
 
   if {$ruleID==-1} {
-    if {$brasOpts(-d)} {
-      bras.dmsg $dind "nothing found"
-    }
+    if {$Opts(-d)} {dmsg "nothing found"}
     return 0
   }
 
   ## If we arrive here, ruleID>=0 denotes the rule to use.  
-  bras.enterRule $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
-
-  if $brasOpts(-d) {
-    if {"$type"!="*"} {
-      set msg "adding command to $brasPrule($id,type)-rule "
+  if {$Opts(-d)} {
+    if {[info exist Tinfo($target,[pwd],rule)]} {
+      set oldt $Rule($Tinfo($target,[pwd],rule),targ)
+      foreach {t d b} $Rule($Tinfo($target,[pwd],rule),bexp) {
+	lappend oldb $b
+      }
+      set msg {}; append msg \
+	  "adding command to rule `$oldt'<-`$oldb'\n" \
+	  "+ as well as expression `$Prule($id,bexp)'"
     } else {
-      set msg "creating $brasPrule($id,type)-rule "
+      set msg "creating rule `$target' <- `$Prule($id,bexp)' "
     }
-    append msg "`$target' <- `$dep'"
-    bras.dmsg $dind $msg
+	
+    dmsg $msg
   }
-      
+
+  ## Enter the rule into the database
+  ::bras::enterRule $target $dep $Prule($id,bexp) $Prule($id,cmd)
+
   return 1
 }
 ########################################################################

@@ -23,16 +23,16 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
+## source version and package provide
+source [file join [file dir [info script]] .version]
 
-proc ::bras::newNS {} {
-  variable nsid
-  
-  incr nsid
-  return "::bras::s$nsid"
-}
 ########################################################################
+#
+# REMEMBER: This proc looks like it will work insides namespace
+# ::bras. However when it is actually called, it will have been
+# renamed to ::unknown. See invokeCmd for the details.
+#
 proc ::bras::unknown args {
-  global brasOpts
 
   #puts "unknown: `$args'"
 
@@ -55,31 +55,31 @@ proc ::bras::unknown args {
     return -code error $res
   }
 
-  if {$brasOpts(-ve)} {
-    puts $args
-    set exec bras.exec
-  } else {
-    set exec exec
-  }
-  if {[catch {eval $exec <@stdin 2>@stderr >@stdout $args} msg] } {
+#   if {$::bras::Opts(-ve)} {
+#     puts $args
+#     set exec ::bras::exec_orig
+#   } else {
+#     set exec exec
+#   }
+  if {[catch {eval exec <@stdin 2>@stderr >@stdout $args} msg] } {
     return -code error $msg
   }
 
 }
 ########################################################################
 proc ::bras::invokeCmd {rid Target Deps Trigger} {
-
-  global brasRule brasOpts brasIndent
+  variable Rule
+  variable Opts
 
   ## find the command to execute
-  set cmd $brasRule($rid,cmd)
+  set cmd $Rule($rid,cmd)
   if {""=="$cmd"} {
     puts -nonewline stderr \
 	"bras(warning) in `[pwd]': no command found to make `$Target' "
     puts stderr "from `$Deps' (hope that's ok)"
     return 1
   }
-  set brasRule($rid,run) 1
+  set Rule($rid,run) 1
 
 
   if {"[info command ::bras::unknown.orig]"=="::bras::unknown.orig"} {
@@ -91,14 +91,19 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
     rename ::bras::unknown ::unknown
   }
   
-  ## set up the context for the command
-  set nspace [newNS]
+  ## Set up a namespace within which the command will be executed. The 
+  ## main reason for this is that we want to have the variables
+  ## targets, target, trigger and deps to be unique for this
+  ## command. They cannot be global because the command may call
+  ## `consider', thereby invoking another command which also wants to
+  ## have these variables.
+  set nspace "::bras::s[nextID]"
   namespace eval $nspace [list variable target $Target]
-  namespace eval $nspace [list variable targets $brasRule($rid,targ)]
+  namespace eval $nspace [list variable targets $Rule($rid,targ)]
   namespace eval $nspace [list variable trigger $Trigger]
   namespace eval $nspace [list variable deps $Deps]
 
-  if {$brasOpts(-v)} {
+  if {$Opts(-v)} {
     namespace eval $nspace {
       puts "\# -- running command --"
       puts "\#  target = `$target'"
@@ -109,26 +114,28 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
     puts [string trim $cmd "\n"]
   }
  
-  if {!$brasOpts(-n)} {
+  if {!$Opts(-n)} {
 
-    if {!$brasOpts(-v) && !$brasOpts(-ve) &&
-	!$brasOpts(-d) && !$brasOpts(-s)} {
+    if {!$Opts(-v) && !$Opts(-ve) &&
+	!$Opts(-d) && !$Opts(-s)} {
       puts  "\# making `$Target'";
     }
 
     set wearehere [pwd]
 
-    set script [list uplevel \#0 $cmd]
-    namespace eval $nspace "variable bras.cmd {$cmd}"
-    namespace eval $nspace {
-      if {[catch ${bras.cmd} msg]} {
+    ## The following construct runs the command within its own
+    ## namespace on stacklevel #0. Well, in fact it ends up on
+    ## stacklevel #1 because [namespace] accounts for on level of
+    ## stack. 
+    namespace eval $nspace [list variable c $cmd]
+    uplevel \#0 namespace eval $nspace {{
+      if {[catch "unset c; $c" msg]} {
 	global errorInfo
 	puts stderr $errorInfo
 	puts stderr "    while making target `$target' with command"
-	puts stderr "{${bras.cmd}}"
 	exit 1
       }
-    }
+    }}
 	
     cd $wearehere
     namespace delete $nspace
