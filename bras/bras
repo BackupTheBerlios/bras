@@ -28,7 +28,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.28 $, $Date: 1999/07/24 11:18:21 $
+# $Revision: 1.29 $, $Date: 1999/07/24 17:09:34 $
 ########################################################################
 
 namespace eval ::bras {
@@ -163,6 +163,12 @@ if { "$::bras::base"=="|SRCBASE|" } {
   }
   set ::bras::base [file dirname $f]
   catch {unset t}
+}
+if {"[file pathtype $::bras::base]"!="absolute"} {
+  set f [pwd]
+  cd $::bras::base
+  set ::bras::base [pwd]
+  cd $f
 }
 unset f
 
@@ -348,8 +354,11 @@ proc bras.enterRule {type targets deps cmd} {
   #parray brasCmd
   ## newline characters and semicolons are poisonous for `eval' so
   ## they have no business being in `deps'.
+  ## I assume that semicolons are intenionally here, so they are
+  ## escaped. However newlines creep in all to easy to be taken
+  ## serious. They are removed.
   regsub -all ";" $deps {\\;} deps
-  regsub -all "\n" $deps {\\\n} deps
+  set deps [join $deps]
 
   if {"[lindex [info args Check.$type] 3]"=="\#"} {
     ## This type of rule does not use dependencies. Therefore deps
@@ -409,8 +418,9 @@ proc bras.enterRule {type targets deps cmd} {
   ## Add the new information into brasRule($rid,...)
   concatUnique brasRule($rid,targ) $targets
   if {"$cmd"!=""} {
-    if {[string length $brasRule($rid,cmd)]} {
-      set msg "bras(warning): overriding command "
+    if {[string length $brasRule($rid,cmd)] 
+	&& "$brasRule($rid,cmd)"!="$cmd"} {
+      set msg "bras(warning) in `[pwd]': overriding command "
       append msg "`$brasRule($rid,cmd)' for target `$targets'" \
 	  " with `$cmd'"
       puts stderr $msg
