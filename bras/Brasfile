@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.4 $, $Date: 1997/11/09 19:43:16 $
+# $Revision: 1.5 $, $Date: 1997/11/22 19:57:25 $
 #
 ########################################################################
 
@@ -22,19 +22,10 @@
 ## WWW-server. The directory I want to prepare is set here.
 set BRASHOME brashome
 
-## My favorite versioning of whole packages uses the current date. It
-## is guaranteed to be always fresh and does not collide with the
-## versions of individual files managed by cvs. The distribution I am
-## going to publish will have the version $VERDATE. It looks like
-## 1997-01-31. 
-set VERDATE [clock format [clock seconds] -format %Y-%m-%d]
+## My most recent shipment program knows the .tar.gz it will create
+set BRASTARGZ [exec ship -f -n]
 
-
-## The directory published on the web shall contain a .tar.gz-file
-## with the bras-distribution for downloading.
-set BRASTARGZ bras.$VERDATE.tar.gz
-
-## Within $BRASHOME I want several files. I collect there names here
+## Within $BRASHOME I want several files. I collect their names here
 ## in the variable TARGETS
 foreach x "$BRASTARGZ CHANGES brasfile.exa index.html 
            bras.ps.gz manual/bras.html" {
@@ -49,17 +40,14 @@ set env(CVSROOT) [glob ~/CVS]
 ## Since I don't know how to ask cvs directly which files it knows
 ## something about, we must do it the hard way. These files are the
 ## files which go into the distribution. The following lines set the
-## variable DISTFILES from the lines of the files CVS/Entries found in
+## variable CVSFILES from the lines of the files CVS/Entries found in
 ## all subdirectories managed by CVS.
 foreach x [exec find . -name Entries -print] {
-  set subdir {}
-  regexp {\.(.*)/CVS.*} $x dummy subdir
+  set subdir [file dir [file dir $x]]
   foreach name [exec awk {BEGIN {FS="/";} {print $2}} $x] {
-    lappend DISTFILES .$subdir/$name
+    lappend CVSFILES $subdir/$name
   }
 }
-## a slight correction
-regsub {\./doc/bras.ps} $DISTFILES @doc/bras.ps DISTFILES  
 
 ########################################################################
 # 
@@ -67,36 +55,41 @@ regsub {\./doc/bras.ps} $DISTFILES @doc/bras.ps DISTFILES
 #                                        (Hier kommt die Maus.)
 ########################################################################
 
-## This rule is easy. It make sure, all targets are made.
+## This rule is easy. It makes sure, all targets are made.
 Always all $TARGETS {
   puts "Done."
 }
 
 ## This rule make sure that the destination directory exists. Its
 ## command is only executed if $BRASHOME does not exist. The rule is
-## invoked by must of the rules which follow. 
+## invoked by most of the rules which follow. 
 Exist $BRASHOME {} {
   mkdir -p $target
 }
 
 ## The distribution's .tar.gz-file is made here. It depends on
-## $DISTFILES, i.e. it is constructed, if one of those is newer than
+## $CVSFILES, i.e. it is constructed, if one of those is newer than
 ## the .tar.gz. The notatation `// $BRASHOME' tells bras that
-## $BRASHOME is needed to execute the command `pack ...', but that its
+## $BRASHOME is needed to execute the command `ship ...', but that its
 ## last modification time can never be a reason to let the
-## .tar.gz-file be out-of-date. (The pack-command is my personal
+## .tar.gz-file be out-of-date. (The ship-command is my personal
 ## distribution packer. If you are interested in it, I can send it to
 ## you.)
-Newer $BRASHOME/$BRASTARGZ "$DISTFILES // $BRASHOME" {
-  pack -f -d $BRASHOME bras
+## The notation @doc/bras.ps tells bras that it can find the rules to
+## make doc/bras.ps in directory doc.
+Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
+  ship -d $BRASHOME -I doc/bras.ps
 }
 
 ## This rule works along the same lines as the one above. (The program
 ## `digestLog' is again a little script which formats and sorts cvs
 ## log-information.)
-Newer $BRASHOME/CHANGES "$DISTFILES // $BRASHOME" {
-  digestLog >$target
+Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
+  cd $BRASHOME
+  set x [file root [file root $BRASTARGZ]]
+  tar xvzfO $BRASTARGZ $x/CHANGES >CHANGES
 }
+
 
 ## The following three rules are all similar to the two above.
 
