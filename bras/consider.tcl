@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 1997/07/19 17:39:44 $
+# $Revision: 1.6 $, $Date: 1997/11/08 21:59:19 $
 ########################################################################
 
 ########################################################################
@@ -85,18 +85,17 @@ proc bras.ConsiderPreqs {rid} {
 ## How a target is considered:
 ## Suppose target t in directory d is considered. The the following
 ## steps are performed:
-## o Run the predicates of all rules listed in brasTinfo($t,$d,rule)
-## one after another. The loop stops as soon as a predicate returns 0
-## or 1 (i.e not -1). Three cases are possible:
-##   1) All predicates return -1, i.e. the target should be made, but
+## o Run the target's rule mentioned in brasTinfo($t,$d,rule)
+## Three cases are possible:
+##   1) The rule returns -1, i.e. the target should be made, but
 ##      some of its dependencies are not available or cannot be
 ##      made. In this case, -1 is returned.
-##   2) The loop stops with 0, i.e. one predicate decided that the
-##      target is up-to-date. Then 0 is returned.
-##   3) The loop stops with 1. Then, the the steps
-##      described below are executed.
-## o All prerequisites and all dependencies of the rule are all
-##   considered. Two cases are then possible:
+##   2) The rule returns 0, i.e. the target is up-to-date.
+##      Then 0 is returned.
+##   3) The rule returns 1, i.e. the target must be made. Then the
+##      steps described below are executed.
+## o All prerequisites of the rule are all considered. Two cases are
+##   then possible: 
 ##   1) One of them must be made, but cannot, i.e. we receive
 ##      -1. Then -1 is immediately returned.
 ##   2) All of them are ok or can be made. Then the command is
@@ -177,25 +176,25 @@ proc bras.Consider {target} {
     }
   }
 
-  ## Call all predicates for the target in turn
+  ##
+  ## Call the target's rule
+  ##
   append brasIndent "  "
-  foreach rid $brasTinfo($target,[pwd],rule) {
-    set pred $brasRule($rid,type)
-    set deps $brasRule($rid,deps)
-    set newer {}
-    set brasCmdlist {}
-    set reason ""
-    #puts ">>$P<<, >>$deps<<"
-    set res [Check.$pred $target $deps newer reason]	;###<<<- HERE
-    if {$res==-1} continue
-    if {$res==0} break
+  set rid $brasTinfo($target,[pwd],rule) 
+  set rule $brasRule($rid,type)
+  set deps $brasRule($rid,deps)
+  set newer {}
+  set brasCmdlist {}
+  set reason ""
+  #puts ">>$P<<, >>$deps<<"
+  set res [Check.$rule $target $deps newer reason]	;###<<<- HERE
 
+  if {$res==1} {
     ## target must be made, but we have to check, if all prerequisites
     ## are ok.
     set res [bras.ConsiderPreqs $rid]
     if {$res==1} {
       set brasLastError ""
-      break
     }
   }
   set brasIndent [string range $brasIndent 2 end]

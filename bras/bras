@@ -26,7 +26,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.14 $, $Date: 1997/11/05 21:36:46 $
+# $Revision: 1.15 $, $Date: 1997/11/08 21:59:19 $
 ########################################################################
 
 ########################################################################
@@ -62,7 +62,7 @@ set brasRule(nextID) 0
 ## brasTinfo
 ##      array holding information about targets. With <t> a target,
 ##      <d> its directory, the indices used are:
-##   <t>,<d>,rule -- list of rules where the target is mentioned
+##   <t>,<d>,rule -- index into brasRule denoting the rule for <t>,<d>
 ##   <t>,<d>,done -- set, if target was already considered.
 ##                   0: no need to make target
 ##                   1: target will be made
@@ -131,6 +131,7 @@ source $brasBase/sourceDeps.tcl
 source $brasBase/lastMinuteRule.tcl
 source $brasBase/defaultCmd.tcl
 source $brasBase/consider.tcl
+source $brasBase/brasUtils.tcl
 
 ## source rule types
 source $brasBase/defrule.tcl
@@ -242,7 +243,7 @@ proc bras.PatternRule {type target deps cmd} {
   ## Emtpy commands are rather useless here
   if { ![llength $cmd] } {
     return -code error \
-	-error "empty commands are not allowed in suffix rules"
+	-error "empty commands are not allowed in pattern rules"
   }
 
   ## make sure, no dependency is equal to the target
@@ -305,29 +306,59 @@ proc bras.enterRule {type targets deps cmd} {
     set brasTargets [lindex $targets 0]
   }
 
-  ## Enter the rule into the database
-  set rid $brasRule(nextID)
-  incr brasRule(nextID)
-  set brasRule($rid,type) $type
-  set brasRule($rid,targ) $targets
-  set brasRule($rid,deps) $deps
-  set brasRule($rid,cmd)  $cmd
-  set brasRule($rid,preq) $preq
-  set brasRule($rid,run)  0
-
-  ## Append the rule's id to every target's rule list
+  ## Some targets may already have a rule. If so, those must all have
+  ## the same rule.
+  set rid {}
   foreach t $targets {
-    if {![info exist brasTinfo($t,[pwd],rule)]} {
-      set brasTinfo($t,[pwd],rule) {}
+    if [info exist brasTinfo($t,[pwd],rule)] {
+      lappendUnique rid $brasTinfo($t,[pwd],rule)
+      lappend tmp $t
     }
-    lappend brasTinfo($t,[pwd],rule) $rid
+  }
+  if {[llength $rid]>1} {
+    append msg "The targets `$tmp' all have already a rule, and "\
+	"these rules are not the same."
+    return -code error -errorinfo $msg
   }
 
-  ## source rule-files for dependencies and prerequisites if
+  ## If rid is not set now, initialize a rule 
+  if {[llength $rid]==0} {
+    set rid $brasRule(nextID)
+    incr brasRule(nextID)
+    foreach t $targets {
+      set brasTinfo($t,[pwd],rule) $rid
+    }
+    set brasRule($rid,type) $type
+    set brasRule($rid,targ) {}
+    set brasRule($rid,deps) {}
+    set brasRule($rid,preq) {}
+    set brasRule($rid,cmd) {}
+  } else {
+    ## The type of the old rule must match the new type
+    if {"$type"!="$brasRule($rid,type)"} {
+      append msg "Ruletype `$type' for targets `$targets' "\
+	  "does not match type `$brasRule($rid,type)' "\
+	  "of a rule entered previously for this target."
+      return -code error -errorinfo $msg
+    }
+  }
+  
+
+  ## Add the new information into brasRule($rid,...)
+  concatUnique brasRule($rid,targ) $t
+  concatUnique brasRule($rid,deps) $deps
+  concatUnique brasRule($rid,preq) $preq
+  if {"$cmd"!=""} {
+    append brasRule($rid,cmd) "\n$cmd"
+  }
+  set brasRule($rid,run) 0
+
+
+
+  ## Source rule-files for dependencies and prerequisites if
   ## necessary. This is necessary only for dependencies starting with
-  ## `@'. Most of the code below is error-checking.
-  ## Since 1997-07-19, the code below is only executed if specifically
-  ## requested with option -es (early sourcing).
+  ## `@'. Since 1997-07-19, the code below is only executed if
+  ## specifically requested with option -es (early sourcing).
   if {!$brasOpts(-es)} return
 
   foreach x "$deps $preq" {
@@ -335,6 +366,77 @@ proc bras.enterRule {type targets deps cmd} {
     set backHere [bras.followTarget $x]
     cd $backHere
   }
+}
+########################################################################
+##
+## bras.ClearList -- clear one of the lists associated with a target
+##
+proc bras.ClearList {target listName} {
+  global brasTinfo brasRule
+
+  if [info exist brasTinfo($target,[pwd],rule)] {
+    set rid $brasTinfo($target,[pwd],rule)
+    set brasRule($rid,$listName) {}
+  }
+}
+########################################################################
+##
+## ClearDeps -- remove all elements from the dependency list of the
+## given target.
+##
+## If this target shares a rule with other targets, those targets'
+## dependency list is also wiped out.
+##
+proc ClearDeps {target} {
+  bras.ClearList $target deps
+}
+########################################################################
+##
+## ClearCmd -- clear the command(-list) of the given target
+##
+## If this target shares a rule with other targets, those targets'
+## list is also wiped out.
+##
+proc ClearCmd {target} {
+  bras.ClearList $target cmd
+}
+########################################################################
+##
+## ClearPreqs -- clear the list of prerequisites of the given target
+##
+## If this target shares a rule with other targets, those targets'
+## list is also wiped out.
+##
+proc ClearPreqs {target} {
+  bras.ClearList $target preq
+}
+########################################################################
+##
+## bras.GetList -- return one of the lists associated with a target's
+## rule. 
+##
+proc bras.GetList {target listName} {
+  global brasTinfo brasRule
+
+  if [info exist brasTinfo($target,[pwd],rule)] {
+    set rid $brasTinfo($target,[pwd],rule)
+    return $brasRule($rid,$listName)
+  } else {
+    return {}
+  }
+}
+########################################################################
+##
+## GetDeps, GetPreqs, GetCmd -- get respective list of a target
+##
+proc GetDeps {target} {
+  return [bras.GetList $target deps]
+}
+proc GetPreqs {target} {
+  return [bras.GetList $target preq]
+}
+proc GetCmd {target} {
+  return [bras.GetList $target cmd]
 }
 ########################################################################
 ##
