@@ -1,6 +1,13 @@
 \documentclass[12pt]{article}
 \usepackage{a4}
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% $Revision: 1.7 $, $Date: 1997/05/01 14:54:27 $
+%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 \title{\textsf{bras}\\
 another kind of `make'\\
 \small \copyright 1996,1997 Harald Kirsch}
@@ -88,38 +95,40 @@ example.
   }
 \end{verbatim}
 
-The \textit{target} of the rule, \texttt{fft.o} in the example, is,
-what a rule is all about. The ultimate goal of writing a rule is to
-describe what has to be done under certain conditions to bring the
-target up-to-date (at least in \bras{}, not
-in \make{}). The meaning of up-to-date very much depends on the
-type of the rule. The example shows a \texttt{Newer}-rule, so
-up-to-date means that the target \texttt{fft.o} is a file
-which must be newer than the files \texttt{fft.c} and \texttt{fft.h}.
-Other rules implement other meanings of up-to-date.
+The file \texttt{fft.o} is called the \textit{target} of the rule. The
+ultimate goal of writing a rule is to describe what has to be done
+under certain conditions to bring the target up-to-date. The meaning
+of up-to-date depends on the type of the rule (at least in
+\bras{}, not in \make{}). The example shows a \texttt{Newer}-rule, so
+up-to-date means that the target \texttt{fft.o} is a file which must
+be newer than the files \texttt{fft.c} and \texttt{fft.h}.  Other
+types of rules implement other meanings of up-to-date.
 
 Usually the notion of the target being up-to-date depends on other
 targets, which is why they are called \textit{dependencies} in this
-context. In the example, \texttt{fft.c} and \texttt{fft.h} are the
-dependencies. In general, dependencies are additional parameters
-necessary to check whether the target is up-to-date or not.
+context.\footnote{From Webster's entry \textit{dependency} I conclude
+that this is a misnomer. But it is well known in the context of
+\make{}, so I stick to it.} In the example,
+\texttt{fft.c} and \texttt{fft.h} are the dependencies. In general,
+dependencies are parameters necessary to check whether the
+target is up-to-date or not.
 
 The next ingredient of a rule is the \textit{command} deemed suitable
 to bring the target up-to-date with regard to the rule's particular
-meaning of up-to-date. In fact, \bras{} always assumes that the target
+meaning of up-to-date. \Bras{} assumes that the target
 is up-to-date as soon as it has executed the command without error. In
 the example, the command specifies a call to the C compiler to compile
 \texttt{fft.c} into \texttt{fft.o}.
 
-Finally, there is one additional ingredient to a rule which can be
-easily confused with the dependencies (as is the case in \make{}) and
-which I call \texttt{prerequisites}. While a dependency can render a
-target out-of-date, a prerequisite is something which is necessary only
-to execute the command, but which is not needed for the out-of-date
-test of the target. A typical example is shown in the following rule:
+There is one additional ingredient to a rule which can be easily
+confused with the dependencies. While a dependency can render a target
+out-of-date, there might be files necessary to execute the rule's
+command, but don't influence the target's being up-to-date.
+They are called \texttt{prerequisites}. As an example consider the
+following rule:
 
 \begin{verbatim}
-  Exist /usr/local/blarilu-2.17 /usr/local {
+  Exist /usr/local/blarilu-2.17 {/usr/local} {
     mkdir $target
   }
 \end{verbatim}
@@ -127,31 +136,39 @@ test of the target. A typical example is shown in the following rule:
 In an \texttt{Exist}-rule, the target is only out-of-date, if it does
 not exist.\footnote{A \texttt{DirExist}-rule is not yet implemented,
 but can be easily added.} The rule shown specifies that the
-\texttt{mkdir}-command shall be executed if the target
+\texttt{mkdir}-command must be executed if the target
 \texttt{/usr/local/blarilu-2.17} does not exist.
 Because \texttt{/usr/local} is not a
 parameter of the up-to-date test for the target, it is a merely a
-prerequisite, necessary to execute the \texttt{mkdir}-command; it is
-not a dependency.
+prerequisite and not a dependency.
 
-Since the distinction between dependencies and prerequisites is rather
+The distinction between dependencies and prerequisites is rather
 academic most of the time, which I derive from the fact that \make{}
-is quite succesful, although it totally ignores it, \bras{} makes no
-distinction between the two --- most of the time. However, if it is
-really necessary, the distinction can be made explicit. The practical
-treatment of this academic distinction is laid out in
-section~\ref{SecPreq}. 
+is quite successful, although it totally ignores this
+distinction. \Bras{} on the other hand allows to explicitely specify
+prerequisites. In the \texttt{Exist}-rule above, \texttt{/usr/local}
+is understood as both, a dependency and a prerequisite. To mark it as
+prerequisite only, we must write:
 
+\begin{verbatim}
+  Exist /usr/local/blarilu-2.17 {// /usr/local} {
+    mkdir $target
+  }
+\end{verbatim}
+
+The double-slash (\texttt{//}), if present, marks the end of the
+dependency list. All names behind it are understood as mere
+prerequisites. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Standard Rules of Bras}
-
+\label{SecStandardRules}
 As mentioned in the previous section, \bras{} distinguishes between
-several different meanings of \textit{up-to-date}. While historic
+different meanings of \textit{up-to-date}. While historic
 \make{} has only one notion of up-to-date, i.e. the target must exist
-and must be newer than its dependencies, \bras{} implements four
-different meanings of up-to-date, and others can be added easily. The
-current distribution contains four types of rules
+and must be newer than its dependencies, \bras{} currently implements
+three different meanings of up-to-date. Others can be added
+easily. The current distribution contains three types of rules:
 
 \begin{itemize}
 \item 
@@ -165,14 +182,10 @@ The \texttt{Always}-rule considers the target to be never
 up-to-date, i.e.\ the rule's commands are always executed if
 \bras{} is asked to bring this target up-to-date.
 \item
-The \texttt{Command}-rule in contrast considers its target to be always
-up-to-date, i.e. it never gives a reason to update its target. It is
-used to associate a command with a target in a neutral way. The
-command can then be share by other rules for the same target.
 \end{itemize}
 
-Certainly someone can come up with an application which still cannot
-be handled by these types of rules. How about a rule which rebuilts
+Certainly someone can come up with an application requiring other
+types of rules. How about a rule which rebuilts
 the target only if \textbf{all} dependencies are newer than the
 target, one that rebuilts if a dependency-file is longer than the
 target-file, one which rebuilts only, if the moon is in a certain
@@ -185,9 +198,10 @@ The general form of a rule is
 \textit{Rulename} \textit{targets} \textit{dependencies} \textit{command}
 \end{quote}
 where \textit{Rulename} is one of \texttt{Newer}, \texttt{Exist},
-\texttt{Always}, \texttt{Command} or the name of an additionally
+\texttt{Always}, or the name of an additionally
 implemented rule. 
 
+\paragraph{Targets:}
 The list \textit{targets} contains one or more targets for the rule. A
 rule with more than one target behaves very similar to a list of rules
 which are identical except for the targets. However pooling the
@@ -196,18 +210,37 @@ command will generate all the targets immediately, so that the command
 is executed only once, even if during the course of reasoning two or
 more targets of the rule are found to be out-of-date.
 
-The meaning of the elements of the list \textit{dependencies} very
-much depends on the type of rule. It is described in the following
-sections. Some rules allow the list to be empty.
+\paragraph{Dependencies:}
+The list \textit{dependencies} contains dependencies as well as
+prerequisites for the rule's command. If it does not contain a
+double-slash (\texttt{//}), all elements are dependencies as
+well as prerequisites. Otherwise the elements in front of the
+double-slash are dependencies and those behind it are prerequisites.
 
-Finally, the optional \texttt{command} is a Tcl-script to be executed
-if \bras{} reckons that one or more of the rule's targets need to be
-updated. It is possible for a target to show up in the target list of
-several rules, but at most one of them may have a non-empty
-command. Put another way, \bras{} strictly assumes that there can only
-be one way to bring a target up-to-date, even if there are several
-different and independent reasons why this has to be done. If no
-command is given, it is defined to be emtpy.
+Please note that the double-slash must be a Tcl-word on its own as
+shown in this example dependency list.
+\begin{verbatim}
+  {a.c a.h ../lib/x.h // /usr/local/bla /where/do/you/want/to/wait/today}
+\end{verbatim}
+It must be separated from neighbour words by white-space to make sure
+it cannot be confused with a double-slash which crept into a pathname.
+
+
+\paragraph{Prerequisites:}
+While the meaning of dependencies, i.e. the words in front of the
+double-slash, depends on the rule-type, prerequisites are treated the
+same for all rules. They don't influence the reasoning mechanism which
+decides if a rule fires or not. Only after the rule-interpreter
+decided for a rule to fire, it recursively considers all
+preqrequisites in turn as targets to make sure they are available
+before the rule's command is run.
+
+\paragraph{Command:}
+The optional \texttt{command} is a Tcl-script to be executed if
+\bras{} reckons that one or more of the rule's targets need to be
+updated. If no command is given, it is defined to be emtpy. Empty
+commands are replaced by default rules as explained in
+section~\ref{secSuffixAsDefCmd}. 
 
 A command is \textit{empty}, if it is exactly the empty string,
 i.e. \verb+{}+ or \verb+""+. Using a string of some blanks on the
@@ -215,9 +248,7 @@ other hand is a way to specify a command which does nothing and may
 not be replaced by a default command.\footnote{Given that I flame
 \make{} for using tabs as a syntactical element, this is probably not
 the final solution. I am about to introduce an explicit do-nothing
-command called
-\texttt{relax} to be used instead of the string of blanks. (No, I do
-not steal the name from \TeX, I only borrow it \texttt{:-)}}
+command}.
 
 The following sections describe the four types of rules in detail.
 
@@ -248,11 +279,24 @@ rebuild one or more of them.
 \end{itemize}
 
 If the target does not exist, the \texttt{Newer}-rule can immediately
-decide that the target must be rebuild --- without even looking at the
-dependencies. However, the rule considers all dependencies to also be
-prerequisites (cf.\ section~\ref{SecDefTerms}) and therefore always
-considers all of them, regardless of when the decision to remake the
-target is made.
+decide that it must be rebuild --- without even looking at the
+dependencies. But if it does not look at the dependencies, they might
+not be correctly built before the rule's command is executed. ``Hold
+on'', you say, ``didn't I read in section~\ref{SecStandardRules} that
+all dependencies are by default prerequisites if the list does not
+contain a double-slash? So they are at least considered right before
+the command is executed!'' Yes, but suppose there are explicit
+dependencies, like in
+\begin{verbatim}
+  Newer ../bin/a {a.o b.o c.o // ../bin} 
+    cc -o $target $deps
+  }
+\end{verbatim}
+Then the \texttt{.o}-files are not also prerequisites. However, it is
+still not necessary to list the \texttt{.o}-files also in the list of
+prerequisites, because the \texttt{Newer}-rule \textbf{always
+considers all its dependencies, independent on when it finds out that
+the target has to be rebuilt.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{The \texttt{Exist}-rule}
@@ -261,7 +305,7 @@ One thing that often annoys me using \make{} is the impossibility to
 write a decent rule to manage the existence of a directory. Therefore
 I introduced the \texttt{Exist}-rule:
 \begin{quote}
-  \texttt{Exist} \textit{targets} \textit{dependencies} \textit{command}
+  \texttt{Exist} \textit{targets} \{// \textit{prerequisites}\} \textit{command}
 \end{quote}
 An example is
 \begin{verbatim}
@@ -270,17 +314,19 @@ An example is
   }
 \end{verbatim}
 If the rule is invoked for one of its targets, the \textit{command} is
-executed only if there is no file (or directory) with that name. If
-\textit{dependencies} are given, they can never trigger the
-rule, i.e. they are rather prerequisites, and all of them are brought
-up-to-date, \textbf{before} the \textit{command} is executed.
+executed only if there is no file (or directory) with that name.
+Since the \texttt{Exist}-rule never looks at its dependencies, it is
+of no use to specify any. Either you put no double-slash into the
+dependency list with the effect, that all elements are by default also
+prerequisites, or you put the double-slash in front of the list, as
+shown above. Anything in front of the double-slash is ignored.
 
 As and example, the following rules make sure that
 \texttt{/usr/local} is not accidently created by \texttt{mkdir -p} if
 it does not yet exist.
 
 \begin{verbatim}
-  Exist /usr/local/bras-0.1 {/usr/local} {
+  Exist /usr/local/bras-0.1 {// /usr/local} {
     mkdir -p $target
   }
   Exist /usr/local {} {
@@ -303,122 +349,19 @@ is terminated.
 The \texttt{Always}-rule has the form:
 
 \begin{quote}
-  \texttt{Always} \textit{targets} \textit{dependencies} \textit{command}
+  \texttt{Always} \textit{targets} \{// \textit{prerequisites}\} \textit{command}
 \end{quote}
 
 An example is
 \begin{verbatim}
-  Always clean {@lib/clean @src/clean @doc/clean} {
-    puts "Everbody's clean now"
+  Always clean {// @lib/clean @src/clean @doc/clean} {
+    puts "Oh, what a dirty job."
   }
 \end{verbatim}
 
 If the rule is invoked for one of its targets, the \textit{command} is
-always executed. As with the \texttt{Exist}-rule, the
-\texttt{dependencies} are rather prerequisites, i.e. \textbf{before}
-\textit{command} is executed, all
-of them are brought up-to-date.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{The \texttt{Command}-rule}
-\label{SecCommandRule}
-The \texttt{Command}-rule has the form:
-
-\begin{quote}
-  \texttt{Command} \textit{targets} \textit{dependencies} \textit{command}
-\end{quote}
-
-Whenever the rule is invoked for one of its targets, the
-\texttt{command} is \textbf{not} executed. Yes, really! The
-purpose of a \texttt{Command}-rule is to bind a command to a target
-and specify in the dependency-list the prerequisites needed to
-executed the command. In fact, if there are no other rules for the
-targets, the rule is useless.
-
-An example use of the \texttt{Command}-rule is as follows: Suppose
-a target-file \texttt{userguide.doc} is created be a program
-\texttt{blurb} which insists on finding a temporary directory
-\texttt{~{}/temp} to work with. Without
-\texttt{Command}-rules you would write something like.
-\begin{verbatim}
-  Newer userguide.doc {userguide.in $(HOME)/temp} {
-    blurb userguide.in >userguide.doc
-  }
-  Exist $(HOME)/temp {} {
-    mkdir $target
-  }
-\end{verbatim}
-
-However, every change in directory \texttt{~{}/temp} results in it
-being newer than \texttt{userguide.doc} and triggers the
-\texttt{Newer}-rule the next time \bras{} is run. Leaving
-\texttt{~{}/temp} out of the dependency list on the other hand is no
-good either, because the directory might then be missing, the next
-time \texttt{blurb} is run.
-
-The solution with the \texttt{Command}-rule looks like this:
-\begin{verbatim}
-  Command userguide.doc {$(HOME)/temp} {
-    blurb >userguide.doc
-  }
-
-  Newer userguide.doc {userguide.in}
-
-  Exist $(HOME)/temp {} {
-    mkdir $target
-  }
-\end{verbatim}
-
-The use of \texttt{Newer} as well as \texttt{Command} effectivly
-separates the dependendy \texttt{userguide.in} from the prerequisite
-\texttt{~{}/temp}. If \texttt{userguide.in} is newer than
-\texttt{userguide.doc}, the \texttt{blurb}-command is executed after
-making sure that \texttt{~{}/temp} is up-to-date.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsection{Multiple rules for a target}
-In the discussion of section~\ref{SecCommandRule} it was already
-mentioned, that there can be several rule of different types for a
-target. However, at most one of them may have a nonempty command. Put
-another way, \bras{} assumes that there is at most one way to bring a
-target up-to-date, but that there may be several independent reasons
-why this is necessary. This section describes the lines of \bras'
-reasoning for a target with more than one rule.
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The Reasoning Process}
-All that said, \bras's reasoning can be described easily.  After
-reading in the brasfile, the target of the very first rule or the
-targets given on the command line is considered. For each target it
-is decided whether it is up-to-date or not, which is trivial for
-\texttt{Always}-rules and easy for \texttt{Exist}-rules, but a bit
-elaborate for \texttt{Newer}-rules. If the target is not up-to-date,
-\bras\ considers all dependencies in turn and brings them
-up-to-date. Then the rule's command is executed and whenever it
-finishes without error, \bras\ assumes that the target is
-up-to-date. In particular, \bras\ does not check whether a file with
-the target's name was produced or not.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+always executed. As with the \texttt{Exist}-rule,
+dependencies are ignored.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -428,16 +371,17 @@ Pattern rules extend on the idea of \make's suffix (or implicit)
 rules and serve two purposes:
 
 \begin{enumerate}
-\item If there is no rule for a target under consideration, \bras\
+\item If there is no rule for a target under consideration, \bras{}
 tries to find a matching pattern rule and creates a real rule from it on
 the fly. The matching process is described in
 section~\ref{secSuffixToReal}.
-\item If a rule with an empty command is triggered, \bras\ tries
+\item If a rule with an empty command is triggered, \bras{} tries
 to find a matching pattern rule to substitute its command as a default.
 \end{enumerate}
 
-Every rule type has its corresponding pattern rule type. They
-are called
+Every rule type has its corresponding pattern rule type. 
+For a rule with name \textit{Type} the pattern rule has the name
+\texttt{Pattern}\textit{Type}. For the build-in rules the names are
 \texttt{PatternNewer}, \texttt{PatternExist} and
 \texttt{PatternAlways}.
 
@@ -449,8 +393,8 @@ The general form of pattern rules is
 where 
 
 \begin{description}
-\item[\textit{Type}] is either \texttt{Newer}, \texttt{Exist} or
-\texttt{Always},
+\item[\textit{Type}] is \texttt{Newer}, \texttt{Exist},
+\texttt{Always}, or the name of an additionally implemented rule,
 \item[\textit{regexp}] is a regular expression selecting the targets
 for which this rule will be used,
 \item[\textit{depproc}] is a list of Tcl-procedures that generate
@@ -461,7 +405,6 @@ rule or as a default command.
 
 The details about \textit{regexp} and \textit{depprocs} are described
 in sections~\ref{secSuffixToReal} and~\ref{secSuffixAsDefCmd}.
-
 An example pattern rule to make an object file from a C source file is:
 \begin{verbatim}
   SuffixNewer .*\.o .c {
@@ -485,7 +428,7 @@ sure that the whole word matches, regular expressions of pattern rules
 get an implicit \verb+^+ and \texttt{\$} prefixed and suffixed. Put
 another way: If \texttt{target} is the variable containing the target
 under consideration and \texttt{rexp} is the regular expression of a
-pattern rule, \bras\ executes an equivalent of
+pattern rule, \bras{} executes an equivalent of
 \begin{verbatim}
     regexp "^$rexp\$" $target
 \end{verbatim}
@@ -495,14 +438,14 @@ Suppose a candidate pattern rule is found for a target named
 \texttt{bla.o}. Then two more steps are necessary
 to test whether the candidate can really be used.
 The first step derives possible dependencies
-from \texttt{bla} by calling
+from \texttt{bla.o} by calling
 an equivalent of
 \begin{quote}
     \texttt{Dep}$d$ \texttt{\$target}
 \end{quote}
 for every element $d$ of the \textit{depprocs}-list of the candidate
 pattern rule. For example if \textit{depprocs} contains \texttt{.c}
-and \texttt{.s}, \bras\ calls
+and \texttt{.s}, \bras{} calls
 \begin{verbatim}
     Dep.c $target
     Dep.s $target
@@ -511,23 +454,22 @@ to derive possible dependency names. If the procedure \texttt{Dep$d$}
 was not defined in a brasfile, the following
 default is used:
 \begin{quote}
-    \verb|proc Dep|$d$\verb|{target} {|\\
+    \verb|proc Dep|$d$ \verb|{target} {|\\
     \texttt{\hspace*{2em}return [file root \$target]$d$}\\
     \verb|}|
 \end{quote}
-It simply strips the file extension from the target and suffixes the
-result with $d$. More elaborate
-procedures can be defined as needed.
+It strips the file extension from the target and suffixes the
+result with $d$. More elaborate procedures can be defined as needed.
 
 The second step checks if one of
 the derived dependencies denotes an existing file.
-If the answer is yes, \bras\ creates a real rule with
+If the answer is yes, \bras{} creates a real rule with
 \begin{itemize}
 \item the target under consideration as the rule target,
-\item the file found as the only dependency and
-\item the command of the pattern rule as the rule's command,
+\item the file found as the only dependency/prerequisite and
+\item the command of the pattern rule as the rule's command.
 \end{itemize}
-and then proceeds as if there had never been a search for a pattern
+It then proceeds as if there had never been a search for a pattern
 rule.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -540,11 +482,11 @@ defined with an empty command.
 I would like to point out that the two uses of pattern rules are
 totally unrelated, and that one could as well have introduced the
 concept of default commands explicitly. While creation of a new rule
-from a pattern rule happens while \bras\ is reasoning about which rules
+from a pattern rule happens while \bras{} is reasoning about which rules
 must be triggered in which order, the extraction of default commands
 happens later when the rules are actually triggered. 
 
-Whenever \bras\ triggers a rule with an empty command, it tries to
+Whenever \bras{} triggers a rule with an empty command, it tries to
 find a pattern rule in much the same way as described in
 section~\ref{secSuffixToReal}, except that in the last step it does
 not try to find a file, but instead tests if one of the derived
@@ -567,96 +509,189 @@ because the default dependency procedure \texttt{Dep.s} returns
 \texttt{hack.s} if called with argument \texttt{hack.o}.
 
 To prevent \bras\ from looking for a default command, use a command
-which is \textit{almost} empty, i.e. one which contains only blank
+which is \textit{almost} empty, i.e.\ one which contains only blank
 space. It is most convenient to write something like
 \begin{verbatim}
   Newer hack.o {hack.c} {
   }
 \end{verbatim}
-to prevent \bras\ from looking for default commands.
+to prevent \bras{} from looking for default commands.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Implementing New Types of Rules}
-\label{secNewRules}
-As mentioned previously, there might be situations where the standard
-rule-types are not sufficient to describe the reasoning necessary to
-decide whether a target needs to be made or not. In these special
-cases, a new rule-type must be implemented, which is particularly easy
-with \bras{}. \Bras{} has a procedure called \texttt{Defrule} which is
-used similar to Tcl's \texttt{proc} to define the reasoning to be
-used by the rule to be defined.
+\section{Dependencies in Other Directories}
 
-\begin{quote}\bf
-More to come later. For the moment have a look at the implementations
-of the Exist- and Newer-Rules in files existRule.tcl and newerRule.tcl
-\end{quote}
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Dependencies in Foreign Directories}
-
-Most annoying to me using \make\ is its unwieldy handling of
-dependencies in other directories. The usual solution is to call
-\make\ recursively after changing to the foreign directory. But this
+Most annoying to me using \make{} is its unwieldy handling of
+dependencies in other directories. Calling \make{}
+recursively after changing to the foreign directory
 breaks the chain of reasoning, because there is no communication
 between parent- and child-make as to whether any target was build or
 whether all targets were up-to-date.
 
-This is different with \bras. Whenever a dependency starts with
-\texttt{@} and points to another directory, \bras\ expects
-a \texttt{brasfile} in that directory which describes how the
-dependency --- if considered as a target --- has to be constructed.
-The following excerpt from a \texttt{brasfile} is an example:
+\Bras{} allows a different solution. Whenever a dependency starts with
+\texttt{@} and does not belong to the current directory, \bras{] expects
+a \texttt{brasfile} in the directory where the dependency belongs
+to. It uses the rules found there to reason about the dependency ---
+if considered as a target.  The following excerpt from a
+toplevel \texttt{brasfile} is an example:
 
 \begin{verbatim}
-  Always clean {@lib/clean @src/clean @doc/clean} {
+  Always clean {// @lib/clean @src/clean @doc/clean} {
     puts "Cleaning done."
   }
 \end{verbatim}
 
-The rule might typically be contained in a top-level
-\texttt{brasfile}. Whenever 
-\begin{verbatim}
-    bras clean
-\end{verbatim}
+Whenever the command \texttt{bras clean}
 is called, the rule is considered, and consequently all
 dependencies in turn are considered as a target. For example
-\texttt{@lib/clean} tells \bras\ that there is a subdirectory
+\texttt{@lib/clean} tells \bras{} that there is a subdirectory
 \texttt{lib} with a \texttt{brasfile} which
 describes how to handle the target \texttt{clean}. To learn
-the rule, \bras\ reads \texttt{lib/brasfile} and acts accordingly.
-In particular \bras\ changes to directory \texttt{lib}
+the rule, \bras{} reads \texttt{lib/brasfile} and acts accordingly.
+In particular \bras{} changes to directory \texttt{lib}
 before executing any command associated with a rule in
 \texttt{lib/brasfile}. The other targets are handled similarly.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{How Commands are Executed}
+\section{Execution of \Bras}
+
+There are three major phases of operation performed strictly in
+sequence.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Reading \texttt{brasfile}}
+The first phase comprises reading and executing the
+\texttt{brasfile}. Here \textit{executing} 
+denotes execution in the sense of Tcl. Every rule is actually a
+Tcl-\texttt{proc} which \textbf{only records} the rule in an internal
+database. In particular, no commands specified in a rule are yet
+executed. 
+
+But rules are not totally passive in the first phase. If a dependency
+or prerequisite starts with \texttt{@}, \bras{} temporarily changes to the
+directory of the dependency and sources the \texttt{brasfile} it finds
+there. It reports an error, if there is no \texttt{brasfile} with the
+same name as the primary \texttt{brasfile}. Even several dependencies
+of different rules lead to the same directory, the \texttt{brasfile}
+is sourced only once.
+
+Beside rules, any Tcl-command can be used in a \texttt{brasfile}. They
+are executed as in every other Tcl-script. Useful examples are setting
+of global variables or \texttt{if}-statements including or excluding
+system-specific rules.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Reasoning Process}
+Either the targets given on the command line or the targets of the
+very first rule found in \texttt{brasfile} are considered in
+turn. Considering a target can have three different results. 
+\begin{enumerate}
+\item
+The target is up-to-date.
+\item
+The target is not up-to-date and there is a way to built it.
+\item
+The target is not up-to-date, but something necessary for building it
+is missing and cannot be build.
+\end{enumerate}
+Checking a target is a recursive process. It requires consideration of
+the target's dependencies and of the selected rule's
+prerequisites. The exact order and interpretation of recursive calls
+of the reasoning process are described below.\footnote{The most
+precise description of what \bras{} does is of course contained in the
+source file \texttt{consider.tcl}. I do my best to match it as close
+as possible.}
+
+$\bullet$ If the target was considered already along another line of
+reasoning, it is not checked again. Instead the result computed before
+is immediately returned.
+
+$\bullet$ If the target starts with the character \texttt{@}, it leads
+to another directory and the \texttt{brasfile} of that directory
+contains the relevant rules. Therefore \bras{} changes to that
+directory and restricts the applicable rules to those found in that
+directory's \texttt{brasfile}.
+
+$\bullet$ If no rule is applicable for the target, \bras{} tries to
+make one as desribed in section~\ref{secSuffixToReal}. If none can be
+constructed, the reasoning process returns immediately with one of two
+results: If the target denotes an existing file, it reports that the
+target is up-to-date. Otherwise it reports that the target is not
+up-to-date and cannot be built.
+
+$\bullet$ Now all rules which contain the target in their target list
+are checked in the order they were introduced in
+\texttt{brasfile}. 
+
+If a rule reports that the target is up-to-date,
+the reasoning process immediately returns this to its calling parent.
+
+If a rule decides that the target is out-of-date \textbf{and} if
+considering all prerequisites of the rule returns that they are all
+up-to-date or can be build, then this rule's command is selected to
+update the target.
+
+If all rules report problems either with dependencies or
+prerequisites, the reasoning process returns to its parent the result
+that the target needs an update, but that it cannot be build.
+
+\textbf{Hint:} The method of trying out one rule after another for a target allows it
+to specify fallback-rules. If a rule is knows to fail sometimes
+because of missing files, a second rule can be specified which
+constructs the target from other dependencies.
+
+$\bullet$ The selected command is added to the list of commands to be
+exectuted, except if it was already added to the command
+list for another target of that rule.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Command Execution}
 \label{secCmdExec}
 
-All commands derived from rules are executed on the global level
-so that they have access only to all global variables. In addition
-to the global variables defined in the
-\texttt{brasfile}, \bras\ sets the variables \texttt{target},
-\texttt{deps} and \texttt{trigger} respectively to the rule's target, its
-dependencies and the dependencies that are newer than the target. If
-the target does not exist, all dependencies are considered newer and
-\texttt{deps} and \texttt{trigger} will contain the same value(s).
+After collecting all commands in a large command list, \bras{} moves
+to the execution phase. All commands derived from rules are executed
+on the global level so that they have access to all global
+variables. Before executing a command, \bras{} additonally sets the
+following variables:
 
-Non-internal commands are automatically executed
-via \texttt{exec}. But please remember that \bras\ is basically
-Tcl and unlike \texttt{sh}, \texttt{tclsh} and therefore \bras\ does no
-globbing on the command line. Consequently, the rule
+\begin{description}
+\item[\texttt{targets}] 
+contains the list of targets for that rule,
+
+\item[\texttt{target}] 
+is the name of the target for which the rule
+was invoked.
+
+\item[\texttt{deps}] 
+is the list of the rule's dependencies,
+
+\item[\texttt{preq}] 
+is the list of the rule's prerequisites,
+
+\item[\texttt{trigger}]
+contains those elements of \texttt{deps} which rendered the target
+out-of-date. The contents of this variable depend on the type of
+rule. For a \texttt{Newer}-rule it contains all dependencies which are
+newer than the target, and all dependencies, if the target does not
+exist. \texttt{Exist}- and \texttt{Always}-rules set this variable to
+the empty list. For additionally implemented rules, the documentation
+of that rule must specify what it puts into \texttt{trigger}.
+\end{description}
+
+After setting those variables and changing to the right directory, a
+rule's command list is executed. Non-internal commands are
+automatically passed to \texttt{exec}. But please remember that
+\bras{} is basically Tcl and unlike \texttt{sh}, it does no globbing
+on the command line. Consequently, the rule
 \begin{verbatim}
-    Always clean {
-      rm *.o *.a *~
+    Always clean {} {
+      rm -f *.o *.a *~
     }
 \end{verbatim}
 does not work as expected. You have to resort to
 \begin{verbatim}
-   Exist clean {
-      rm [glob -nocomplain -- *.o *.a *~]
+   Always clean {}
+      rm -f [glob -nocomplain -- *.o *.a *~]
     }
 \end{verbatim}
     
@@ -681,7 +716,7 @@ which calls \texttt{cc} with just 3 arguments resulting effectively in
     cc "-g -Wall" -c whatever.c
 \end{verbatim}
 
-To make it work, \bras\ actually does
+To make it work, \bras{} actually does
 
 \begin{verbatim}
     eval exec cc $CFLAGS -c $target
@@ -689,22 +724,126 @@ To make it work, \bras\ actually does
 
 but beware of unwanted flattening in commands containing braces: Due
 to \texttt{eval} one level of braces
-disappears so that
+disappears and
 
 \begin{verbatim}
     sed -e {s/^[/]*//} bla >bli
 \end{verbatim}
 
-after \texttt{eval} is actually called as
+is flattened byr \texttt{eval} to
 
 \begin{verbatim}
     exec -e s/^[/]*// bla >bli
 \end{verbatim}
 
-resulting in tcl complaining about the unknown command in
+resulting in complaints about the unknown command in
 \texttt{[/]}. The remedy is an extra level of braces. While this might
 seem clumsy, I find it still much more elegant than the backslashing
 necessary in makefiles.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementing New Types of Rules}
+\label{secNewRules}
+As mentioned previously, there are situations where the standard
+rule-types are not sufficient to describe necessary reasoning. Then a
+new rule-type must be implemented, which is particularly easy with
+\bras{}. \Bras{} has a procedure called
+\texttt{Defrule} to define new rule types. Itis used similar to Tcl's
+\texttt{proc}.
+
+The use of \texttt{Defrule} is probably most easily described along a
+running example. Suppose we need a rule which updates its target, if
+it either does not exist or is shorter than one of its dependencies.
+
+\begin{verbatim}
+  Defrule Longer {target deps _trigger _reason} {
+    upvar $_trigger trigger
+    upvar $_reason reason
+    ...
+  }
+\end{verbatim}
+
+The first paremeter of \texttt{Defrule} is the name of the
+rule. The name \texttt{Longer} was choosen in favor of \texttt{Shorter}
+to stick to the naming scheme introduced by \texttt{Exist} and
+\texttt{Newer}, where the rule-name denotes the condition under which
+the target is up-to-date./footnote{The \texttt{Always}-rule does not
+fit into this naming scheme, but the rule name \texttt{Never} looks
+quite irritating}.
+
+\texttt{Defrule} installs a Tcl-\texttt{proc} called
+\texttt{Check.Longer} which is called by the reasoning process to
+check whether a target is out of date according to this rule. I must
+always have 4 parameters. The name of these parameters are given in
+the 2nd argument to \texttt{Defrule}. Their meaning is described below.
+
+The 3rd argument is the body of \texttt{Check.Longer}. It uses the 4
+parematers to communicate with the resoning process.
+
+The four parameters have the following meaning:
+
+\begin{description}
+\item[\texttt{target}]
+is the target for which the check has to be
+performed. 
+
+\item[\texttt{deps}]
+is the list of dependencies (not prerequisites)
+specified in the \texttt{Longer}-rule which is invoked for the target.
+
+\item[\texttt{trigger}]
+is an output variable. Whatever is put into it can be found by the
+rule's command in the variable \texttt{trigger}, as described in
+section~\ref{secCmdExec}. Its intended use is to communicate those
+dependencies which render the target out of
+date. \texttt{Check.Longer} will enter all dependencies which are
+longer than the target.
+
+\item[\texttt{reason}] should be set to descriptive text explaining
+why the target is out-of-date. It is printed by the reasoning process
+if \bras{} was called with option \texttt{-d}. The output is best
+formatted, if \texttt{reason} contains short lines of text
+\textbf{preceeded} by a newline character and without leading
+whitespace.
+\end{description}
+
+
+
+\begin{quote}\sffamily
+Now I should give the implementation, but it occurs to me that there
+is problem with \texttt{Longer}-rules. The idea is of course, that
+they check the target against up-to-date dependencies. However this is
+currently not possible, because the strict distinction between
+reasoning-phase and command execution-phase. Even if
+\texttt{Check.Longer} considers a dependency it is not rebuilt
+immediately. Instead, if a rebuilt is necessary, the commands are only
+recorded in a list and will be executed only after all reasoning is
+done.
+
+As far as I know, this is the same in \make{}, but I must admit that I
+never understood why it is that way. I think I have to find out before
+I proceed.
+
+There are several possibilities:
+\begin{itemize}
+\item
+Execute commands as soon as they are derived. This might lead to
+superflous execution of commands, if a rule ultimately cannot make a
+target and another rule must be invoked instead.
+\item 
+Introduce a command to allow rule-checkers to explicitely initiate the
+execution of all commands already on the command list. The same
+problem as the one above pops up, maybe with reduced severity.
+\end{itemize}
+
+In any case, if commands are executed early, rule-checkers work on
+intermediate states. They don't reason on the static state of affairs
+in existance right before \bras{} is called. This may break
+option \texttt{-d} because in some cases (in particular with rules
+like longer), the corret result can only be derived after executing
+some commands --- which contradicts the intention of \texttt{-d}.
+\end{quote}
 
 
 
@@ -743,6 +882,22 @@ there. The effect is that it is not possible to use the same variable
 name, e.g.\ \texttt{SRC} and \texttt{OBJ}, in the brasfiles
 of all subdirectories. This may be corrected in the future by using a
 separate interpreter in every directory.
+
+A workaround is to use in every \texttt{brasfile} an array with a name
+patterned after the directory to store variables.
+
+\item 
+Parallel execution of several commands (as gnu make's option
+\texttt{-j}) is not yet supported.
+
+\item
+A hack to translate \texttt{makefile}s to \texttt{brasfile}s is not
+yet available.
+
+\item
+As normal in Tcl, parameters of \texttt{exec} are not passed through
+\texttt{glob}, which may lead to surprising error messages about
+non-existing files like \texttt{*.o}.
 
 \end{enumerate}
 

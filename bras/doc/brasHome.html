@@ -1,0 +1,102 @@
+<TITLE>bras -- another kind of `make'</TITLE>
+<!-- Changed by: Harald Kirsch,  1-May-1997 -->
+<body bgcolor=gold>
+
+Welcome to
+<center>
+<H1> bras </H1>
+<H2> another kind of `make' </H2>
+(C) 1996, 1997 Harald Kirsch <br>
+(kir@iitb.fhg.de)
+</center>
+<p>
+
+Although it is one of the best tools around,
+sometimes I find working with <TT>make</TT> a bit annoying, and I
+assume everbody knows his or her most disliked misfeatures of
+<TT>make</TT>, so I will not repeat them here.
+<p>
+
+If you know the talking, you can immediately download
+<A HREF="ftp://www.iitb.fhg.de/pub/kir/bras.tar.gz">
+bras.tar.gz (~100k)
+</A>,
+read the
+<A HREF="onlinedoc/Bras.html">online
+documentation</A>
+or download the
+<A HREF="Bras.ps">documentation</A> alone.
+<p>
+
+Otherwise you may want to have a look at the <B>main features</B>
+first.
+<blockquote><em>REMARK: Some of the features mentioned below are not yet
+available in the version you can download. They are however already 
+implemented. I am testing the new release and updating the docs.
+</em></blockquote>
+<UL>
+<li> rule-controlled command execution, similar to make;
+<LI> totally written in Tcl, no compilation required;
+<li> Tcl-syntax, so if you like Tcl, you will like bras;
+<li> dependencies in foreign directories are handled nicely;<br>
+
+<blockquote>
+If a dependency starts with <TT>@</TT> and contains a pathname, the
+rule file of this directory is automatically read, assuming that it
+contains the rules for making the dependency. In particular, no
+recursive call of bras is necessary, i.e. the chain of reasoning is
+not broken.
+</blockquote>
+
+<li> more than one type of rule;
+<blockquote>
+A reason for making a target is usually that it is older than its
+dependencies. However bras has several types of rules implementing
+other reasons. The <TT>Exist</TT>-rule fires only, if the target does
+not exist. The <TT>Always</TT>-rule fires always.
+</blockquote>
+
+<li> new types of rules can be easily added;
+<blockquote>
+If the standard-types of rules are not enough, bras allows to define
+new types of rules. Maybe you need a rule that makes its target if it
+is <EM>smaller</EM> than a dependency.
+</blockquote>
+
+<li> clear distinction between dependencies and mere prerequisites;
+<blockquote>
+Sometimes the command to update a target needs additional files beside
+the dependencies which have otherwise nothing to do with the
+target. In particular, they should not cause the rule to fire. Those
+files can be clearly differentiated from the dependencies.
+</blockquote>
+
+<li> multiple targets in one rule;
+<blockquote> 
+This is typically necessary, if a command creates more
+than one file.
+</blockquote>
+
+<li> multiple rules for a target;
+<blockquote>
+If one rule fails because a dependency cannot be made, maybe the next
+one works.
+</blockquote>
+
+<li> pattern rules which deserve the name;
+<blockquote>
+The target of a pattern rule is a regular expression. To derive the
+dependency in case the target matches, any Tcl-proc can be called.
+</blockquote>
+</UL>
+
+Bras is new and therefore not yet fully developed. Features
+which are currently missing are:
+<ul>
+<li>parallel execution of commands (like gnu make's -j option);
+<li>automatic conversion of makefiles;
+<li>private variable scope for rule-files in different directories;
+<li>application of pattern rules in a way which allows to bridge
+several missing links; 
+</ul>
+
