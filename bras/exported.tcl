@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 2000/12/30 12:13:31 $
+# $Revision: 1.10 $, $Date: 2001/07/29 14:54:42 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -199,8 +199,13 @@ proc ::bras::consider {targets} {
   if {![llength $targets]} {return {}}
   
   if {$Opts(-d)} {
-    set caller [info level -1]
-    set procname [uplevel namespace which [lindex $caller 0]]
+    if {1==[info level]} {
+      set caller [info script]
+      set procname ""
+    } else {
+      set caller [info level -1]
+      set procname [uplevel namespace which [lindex $caller 0]]
+    }
     if {![string match ::bras::* $procname]} {
       dmsg "=> on behalf of `$caller':"
       append Indent "  "
