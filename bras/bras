@@ -27,7 +27,7 @@ set VERSION 0.0.0
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.20 $, $Date: 1998/07/12 14:34:13 $
+# $Revision: 1.21 $, $Date: 1998/07/12 15:47:11 $
 ########################################################################
 
 ########################################################################
@@ -501,11 +501,14 @@ proc bras.showCmds {cmds} {
 proc usage {} {
   global argv0 VERDATE VERSION
   puts stderr \
-      "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
-\[-N\] \[-r\] \[-s\] \[-ss\] \[-v\] \[--\] \[target ...\]
+      "usage: $argv0 \[-f brasfile\] \[-d\] \[-e\] \[-es\] \[-h\] \[-n\]\
+\[-N\] \[-r\] \[-s\] \[-ss\] \[-v\] \[var=value]\
+\[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
         -d - execute nothing, show reasoning
+        -e - variables from the environment have precedence over
+             variables in brasfiles
        -es - early sourcing: read brasfiles of foreign directories as soon
              as a @-dependency is encountered.
         -N - don't execute external commands (precludes -s, -ss)
@@ -516,6 +519,8 @@ construct files based on a rule-file
         -v - show all commands
         -- - use the rest of the command-line as target list
              (necessary, if a target starts with `-')
+ var=value - just before starting to evaluate rules, global variable
+             var ist set to value
     target - target to be rebuilt (default: the target of the first
              rule in brasfile)
 
@@ -524,12 +529,21 @@ This is version $VERSION, packed on $VERDATE.
   exit 1
 }
 ########################################################################
+proc bras.mapEnvironment {} {
+  global env
+  foreach name [array names env] {
+    global $name
+    set $name $env($name)
+  }
+}
+########################################################################
 proc bras.main {argc args} {
   global argv0 brasFile brasTargets brasPrule brasOpts
   global brasKnown brasBase brasLastError
   global brasIndent brasCmdlist
   
-  set brasOpts(-d) 0 
+  set brasOpts(-d) 0
+  set brasOpts(-e) 0
   set brasOpts(-es) 0
   set brasOpts(-n) 0
   set brasOpts(-N) 0
@@ -537,11 +551,13 @@ proc bras.main {argc args} {
   set brasOpts(-s) 0
   set brasOpts(-ss) 0
   set brasOpts(-v) 0
+  set brasOpts(=) {}
   for {set i 0} {$i<$argc } {} {
     set opt [lindex $args $i]
     incr i
     switch -glob -- $opt {
       -d {set brasOpts(-d) 1}
+      -e {set brasOpts(-e) 1}
       -es {set brasOpts(-es) 1}
       -f {
 	if {$i>=$argc } {
@@ -564,7 +580,11 @@ proc bras.main {argc args} {
       }
       -* usage
       default {
-	lappend brasTargets $opt
+	if [string match *=* $opt] {
+	  lappend brasOpts(=) $opt
+	} else {
+	  lappend brasTargets $opt
+	}
       }
     }
   }
@@ -587,6 +607,7 @@ proc bras.main {argc args} {
     }
   }
 
+  ## If not suppressed with -r, read default rule files
   if { !$brasOpts(-r) } {
     set sys $brasBase/rules.[exec uname -s]
     if ![file readable $sys] {
@@ -597,11 +618,18 @@ proc bras.main {argc args} {
     }
   }
 
+  ## If not postponed with -e, map environment now
+  if { !$brasOpts(-e) } {
+    bras.mapEnvironment
+  }
+
+  ## Read the rule file and whatever it includes
   if { [info exist brasFile] } {
     set brasKnown([pwd]/$brasFile) 1
     bras.gobble $brasFile
   }
 
+  ## Check if there is a target to consider
   if ![info exist brasTargets] {
     puts -nonewline stderr "$argv0: no target given"
     if [info exist brasFile] {
@@ -610,6 +638,21 @@ proc bras.main {argc args} {
       puts stderr " and no brasfile found"
     }
     exit 1
+  }
+
+  ## If so requested, map environment now
+  if { $brasOpts(-e) } {
+    bras.mapEnvironment
+  }
+
+  ## Set global variables from the command line
+  foreach equ $brasOpts(=) {
+    set var {}
+    set value {}
+    regexp {(.*)=(.*)} $equ dummy var value
+    if {$brasOpts(-v)} {puts "setting `$var' to `$value'"}
+    global $var
+    set $var $value
   }
 
   #parray brasRules

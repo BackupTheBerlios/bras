@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.13 $, $Date: 1998/07/12 14:34:06 $
+% $Revision: 1.14 $, $Date: 1998/07/12 15:47:07 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -709,17 +709,36 @@ standard Tcl-command \texttt{info script}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Execution of \Bras}
 
-There are three major phases of operation performed strictly in
+There are the following major phases of operation performed strictly in
 sequence.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Read Default Rule Files}
+If not suppressed with option \texttt{-r}, a default rule file is read
+to create default pattern rules and to set reasonable defaults to some
+global variables like \texttt{CC}, etc.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Set Global Variables from the Environment}
+
+Before any \texttt{brasfile} is read, all elements of the global array
+\texttt{env}, which is equivalent to the program's environment
+variables, are made into global variables. That way, a definition like
+\texttt{CC=mycc} in your environment can override any settings in the
+default rule files.
+
+If however option \texttt{-e} was given on the command line, this step
+is postponed to occur right after reading \texttt{brasfile}, to have
+the environment even override settings made therein.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reading \texttt{brasfile}}
-The first phase comprises reading and executing the
-\texttt{brasfile}. Here \textit{executing} 
-denotes execution in the sense of Tcl. Every rule is actually a
-Tcl-\texttt{proc} which \textbf{only records} the rule in an internal
-database. In particular, no commands specified in a rule are
-executed. 
+
+After that, reading and executing the \texttt{brasfile} is performed.
+Here \textit{executing} denotes execution in the sense of Tcl. Every
+rule is actually a Tcl-\texttt{proc} which \textbf{only records} the
+rule in an internal database. In particular, no commands specified in
+a rule are executed.
 
 But rules are not always totally passive in the first phase. 
 If called with option \texttt{-es} (for \textbf{e}arly
@@ -741,6 +760,15 @@ Beside rules, any Tcl-command can be used in a \texttt{brasfile}. They
 are executed as in every other Tcl-script. Useful examples are setting
 of global variables or \texttt{if}-statements including or excluding
 system-specific rules.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Set Global Variables from the Command Line}
+After the \texttt{brasfile} and included files have been read,
+global variables are set from the command line.
+
+All definitions like \texttt{var=value} found on the command
+line are interpreted to make \texttt{var} a global variable with the
+given \texttt{value}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning Process}
