@@ -1,0 +1,366 @@
+\documentclass[12pt]{article}
+\usepackage{a4}
+
+\title{\textsf{bras}\\
+another kind of `make'\\
+\small \copyright 1996 Harald Kirsch}
+\author{\relax
+Harald Kirsch\\
+kir@iitb.fhg.de}
+
+\newcommand{\bras}{\texttt{bras}}
+\newcommand{\make}{\texttt{make}}
+\newcommand{\brasfile}{\texttt{brasfile}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			   \begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\maketitle
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Why That?}
+If you ever used \texttt{make}, you may have noticed that it has a few
+odd features. Most annoying to me are
+\begin{itemize}
+\item the crazy syntax (tabs as a structuring element!),
+\item the way variables are expanded,
+\item the inability to handle dependencies in foreign directories,
+\item the inability to distinguish between targets that merely need to
+  exist and those that must be newer than their dependencies,
+\item the lack of file-targets that must always be build,
+\item the lack of control structures and 
+\item the lack of decent pattern matching.
+\end{itemize}
+
+It is however undisputable that \textbf{the} feature of \texttt{make},
+the rule based command execution, is most helpful in many situations;
+in particular in those were it seems to be applied most often:
+conditional compilation of large programs.
+
+My idea was to combine the key features of \texttt{make} with all the
+niceties of a command language, while at the same time improve the
+handling of targets in foreign directories. Since I personally like
+Tcl, not the least for its well defined handling of a command line
+(see \texttt{Tcl(n)} and no flames, please), I
+ended up with the present solution. A similar solution might be
+possible with other command languages.
+
+The following sections assume that you have a rough idea what \make\
+is all about and what it does. The other day I might plagiate an
+introductory section from a \make\ manual here, but until then \ldots.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Rule Commands}
+
+Rule based command execution was the feature that made \make\ so
+popular and distinguishes it from shells. And the rules are what
+\bras\ is all about, because without the rules, \bras\ is identical to
+\texttt{tclsh}. A \textit{rule} is defined by three components: A
+\textit{target}, a list of \textit{dependencies} and a list of
+\textit{commands}. Such a rule specifies two things:
+\begin{itemize}
+\item execution of the commands will bring the target up-to-date
+(whatever that means, see below),
+\item the commands can only be executed, if all dependencies are
+up-to-date.
+\end{itemize}
+
+Now what does \textit{up-to-date} mean? Historic \make\ has only one
+notion of \textit{up-to-date}: The target is up-to-date, if it exists
+and is newer than all its dependencies. Here \bras\
+implements a different approach. It distinguishes three different
+meanings of \textit{up-to-date}:
+
+\begin{itemize}
+\item The \texttt{Newer}-rule most closely resembles \make's notion of
+\texttt{up-to-date}.
+\item The \texttt{Exist}-rule considers a target \texttt{up-to-date},
+if a file of that name exists, independent of its creation date.
+\item The \texttt{Always}-rule considers the target to be never
+\texttt{up-to-date}, i.e.\ the rule's commands are executed whenever
+\bras\ is asked to bring this target up-to-date.
+\end{itemize}
+
+Obviously, with \texttt{Newer}-rules (and with \make's rules) the
+dependencies serve two purposes. On the one hand, they are potential
+inputs used by the commands and must be up-to-date before the commands
+can be executed. On the other hand they trigger the rule if they are
+newer than the target. I could barely resist to implement in \bras\ a
+construct to make these two facets of dependencies explicit, but
+finally decided that the distinction is mainly academic.
+
+All that said, \bras's reasoning can be described easily. Given a
+target, \bras\ uses the first rule it finds for this target to decide
+whether it is up-to-date or not. This is trivial for
+\texttt{Always}-rules and easy for \texttt{Exist}-rules but a bit
+elaborate for \texttt{Newer}-rules. If the target is not up-to-date,
+\bras\ considers all dependencies in turn and brings them
+up-to-date. Then the rule's commands are executed and whenever they
+finish without error, \bras\ assumes that the target is up-to-date. In
+particular, \bras\ does not check whether a file with the target's
+name was produced or not.
+
+The following sections describe the three types of rules in detail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The \texttt{Newer}-rule}
+\label{secNewer}
+The most familiar rule for \make\ users is probably the
+\texttt{Newer}-rule. It has the form:
+\begin{quote}
+  \texttt{Newer} \textit{target} \textit{dependencies} \textit{command}
+\end{quote}
+An example is
+\begin{verbatim}
+  Newer yummy.o {yummy.c yummy.h} {
+    cc $CFLAGS -o $target $deps
+  }
+\end{verbatim}
+As with \make, the command is executed whenever either one of the
+following conditions hold:
+\begin{itemize}
+\item No file of name \textit{target} exists in the current directory.
+\item A file with name \textit{target} exists but is older than an
+existing file containd in the dependency list.
+\item Considering each dependency in turn results in the decision to
+rebuild one or more of them.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The \texttt{Exist}-rule}
+
+One thing that often annoyed me with \make\ was, that it is not
+possible to write a decent rule to manage the existance of a
+directory. Therefore I introduced the \texttt{Exist}-rule:
+\begin{quote}
+  \texttt{Exist} \textit{target} \textit{dependencies} \textit{command}
+\end{quote}
+It defines a rule which checks for the existance of the target and
+executes the command, if the target does not exist.
+An example is
+\begin{verbatim}
+  Exist /usr/local/bras-0.1 {} {
+    mkdir -p $target
+  }
+\end{verbatim}
+There are no dependencies here. However if one wants to make
+sure that this command does not accidently create \texttt{/usr/local}
+if it does not exist, (s)he could write the following rules:
+\begin{verbatim}
+  Exist /usr/local/bras-0.1 {/usr/local} {
+    mkdir -p $target
+  }
+  Exist /usr/local {} {
+    puts "Sorry, /usr/local must exist before I can proceed."
+    exit 1
+  }	
+\end{verbatim}
+The first rule now has the dependency \texttt{/usr/local}. The effect
+is, that if the target of the rule, i.e.\ \texttt{/usr/local/bras-0.1}
+does not exist, first the dependencies, in this case only
+\texttt{/usr/local}, are considered. The second rule checks
+whether it exists. If this is the case, it does nothing and the first
+rule proceeds with the \texttt{mkdir}-command. But if
+\texttt{/usr/local} does not exist, the message is printed and \bras\
+is terminated.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The \texttt{Always}-rule}
+
+The \texttt{Always}-rule has the same form as the other rules:
+
+\begin{quote}
+  \texttt{Always} \textit{target} \textit{dependencies} \textit{command}
+\end{quote}
+
+As the name implies, the \texttt{command} is always executed,
+independent of the existence of the target or the modification dates
+of any dependencies. The dependencies are rather prerequisites here,
+because the command is only executed after considering every
+dependency as a target and executing the associated commands, if
+appropriate.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Suffix Rules}
+Similar to \make\, you can specify rule-patterns which come into play
+if there is no explicit rule for a target. Rule-patterns are defined
+with suffix rules. Like a normal rule, a suffix rule has one target
+and zero or more dependencies. 
+
+\begin{quote}\sffamily
+The matching of targets against suffixes is not yet settled. More to
+come later.
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The \texttt{SuffixNewer}-rule}
+
+\begin{quote}
+   \texttt{SuffixNewer} \texttt{target} \texttt{dependencies}
+   \texttt{command}
+\end{quote}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The \texttt{SuffixExist}-rule}
+
+\begin{quote}
+   \texttt{SuffixExist} \texttt{target} \texttt{dependencies}
+   \texttt{command}
+\end{quote}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dependencies in foreign directories}
+
+Most annoying to me using \make\ is its unwieldy handling of
+dependencies in other directories. The usual solution is to call
+\make\ recursively after changing to the foreign directory. But this
+breaks the chain of reasoning, because there is no communication
+between parent- and child-make as to whether any target was build or
+whether all targets were up-to-date.
+
+This is different with \bras. Whenever a dependency starts with
+\texttt{@} and points to another directory, \bras\ expects
+a \texttt{brasfile} in that directory which describes how the
+dependency --- if considered as a target --- has to be constructed.
+The following excerpt from a \texttt{brasfile} is a simple example:
+
+\begin{verbatim}
+  Always clean {@lib/clean @src/clean @doc/clean} {
+    puts "Cleaning done."
+  }
+\end{verbatim}
+
+This rule might typically be contained in a top-level
+\texttt{brasfile}. Whenever 
+\begin{verbatim}
+    bras clean
+\end{verbatim}
+is called, the rule is considered, and consequently all
+dependencies in turn are considered as a target. For example
+\texttt{@lib/clean} tells \bras\ that there is a subdirectory
+\texttt{lib} with a \texttt{brasfile} which
+describes how to handle the target \texttt{clean}. To learn
+the rule, \bras\ reads \texttt{lib/brasfile} and acts accordingly.
+In particular \bras\ changes to directory \texttt{lib}
+before executing any command associated with a rule in
+\texttt{lib/brasfile}. The other targets are handled similarly.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{How commands are executed}
+
+All commands derived from rules are executed on the global level.  In
+particular they have access only to all global variables. In addition
+to the global variables defined in the
+\texttt{brasfile}, \bras\ sets the three variables \texttt{target},
+\texttt{deps} and \texttt{newer} respectively to the rule's target, its
+dependencies and the dependencies that are newer than the target. If
+the target does not exist, all dependencies are considered newer and
+\texttt{dpes} and \texttt{newer} will contain the same value(s).
+
+Similar to the behaviour of \texttt{tclsh} if used
+interactively, non-internal commands are executed
+via \texttt{exec}. But please remember that \bras\ is basically
+Tcl. Unlike \texttt{sh}, \texttt{tclsh} and therefore \bras\ does no
+globbing on the command line. Consequently, the rule
+\begin{verbatim}
+    Always clean {
+      rm *.o *.a *~
+    }
+\end{verbatim}
+does not work as expected. You have to resort to
+\begin{verbatim}
+   Exist clean {
+      rm [glob -nocomplain -- *.o *.a *~]
+    }
+\end{verbatim}
+    
+A delicate problem is how variable substitution is actually handled
+for external commands. Suppose you set \texttt{CFLAGS} to 
+\texttt{"-g -Wall"} and have a command like 
+\begin{verbatim}
+    cc $CFLAGS -c $target
+\end{verbatim}
+If external commands were only exec'ed you couldn't expect this to
+work, because it were equivalent to the tcl-script
+\begin{verbatim}
+    exec cc $CFLAGS -c $deps
+\end{verbatim}
+which calls \texttt{cc} with just 3 arguments, i.e.\
+\begin{verbatim}
+    cc "-g -Wall" -c whatever.c
+\end{verbatim}
+To make it work, \bras\ actually does
+\begin{verbatim}
+    eval exec cc $CFLAGS -c $target
+\end{verbatim}
+but beware of unwanted flattening: The eval lets one level of braces
+disappear so that
+\begin{verbatim}
+    sed -e {s/^[/]*//} bla >bli
+\end{verbatim}
+after \texttt{eval} is called like
+\begin{verbatim}
+    exec -e s/^[/]*// bla >bli
+\end{verbatim}
+and tcl complains about the unknown command in \texttt{[/]}.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exploitation of automatically generated dependencies}
+
+Most C-compilers are able to generate makefile-dependencies for
+source files by determining which files are included with
+\texttt{\#include}. For example \texttt{gcc} use \texttt{-M} and the
+Solaris C-compiler uses \texttt{-xM}. Since this is a valuable feature,
+\bras\ has the ability to read and understand this restricted type of
+\make-dependencies. The command
+\begin{quote}
+  \texttt{sourceDeps} \textit{file}
+\end{quote}
+reads a dependency file created by the C-compiler and creates the
+appropriate \texttt{Newer}-rules. The command silently ignores it, if
+the given file does not exist.
+   
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Limitations and Known Bugs}
+
+
+\begin{enumerate}
+\item
+Since I did not yet test \bras\ with a really big project like say
+\texttt{Xemacs} or \texttt{Tcl/Tk}, I don't know if the recursive
+inclusion of many \texttt{brasfile}s will lead to performance
+problems.
+
+\item
+When sourcing \texttt{brasfile}s from other directories, \bras\
+currently does not construct a local scope for the variables used
+there. The effect is that it is not possible to use the same variable
+name, e.g.\ \texttt{SRC} and \texttt{OBJ}, in the \texttt{brasfiles}s
+of all subdirectories. I don't know if this could be done
+better with itcl, but I would prefer a Tcl-only solution to keep
+\bras\ more portable.
+
+\item
+If you want to get into trouble, use targets and/or dependencies
+containing semicolons. I did not yet try it but I am afraid you need a
+handful of backslashes to quote them.
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Name of the Game}
+
+First I wanted to call it \texttt{brassel} which is the imperative of
+\texttt{brasseln}, a word you probably won't find in the
+dictionary. You may 
+need to ask someone from around K\"oln to get the answer that (s)he
+knows what it means but cannot explain it. Well, since \texttt{brassel} is
+much to long for a good Un*x utility, I shortened it to \texttt{bras}.
+    
+\end{document}

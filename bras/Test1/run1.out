@@ -1,0 +1,14 @@
+cd /home1/kir/tcl/bras/Test1
+touch cNewer
+touch somefile
+touch cExist
+touch somefile
+cp cSuffixNewer.y cSuffixNewer.x
+ls -l cSuffixExist.s >cSuffixExist.r
+touch otherfile
+touch cNewerBad
+sleep 1
+touch otherfile
+cd /home1/kir/tcl/bras/Test2
+echo Test2 >/dev/null
+cd /home1/kir/tcl/bras/Test1
