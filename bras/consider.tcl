@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.19 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.20 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 
 ########################################################################
@@ -130,7 +130,7 @@ proc ::bras::returnFromConsider {target keepPWD res {code return} } {
   variable Tinfo 
   variable Considering
 
-  unset Considering($target,[pwd])
+  catch {unset Considering($target,[pwd])}
   if {"$code"=="error"} {
     set Tinfo($target,[pwd],done) 0
     leaveDir $keepPWD
@@ -168,6 +168,7 @@ proc ::bras::considerOne {target} {
   variable Rule
   variable Considering
   variable Indent
+  variable Pstack
 
   ## change dir, if target starts with `@'. Save current dir in
   ## keepPWD.
@@ -254,41 +255,58 @@ proc ::bras::considerOne {target} {
   ##
   set rid $Tinfo($target,[pwd],rule) 
 
+
+  ## Set up a namespace in which predicates, by means of
+  ## installPredicate will leave values (like trigger, deps) later
+  ## made available to the command to be run. 
+  set keptPstack $Pstack
+  set Pstack ::bras::ns[nextID]
+  namespace eval $Pstack {}
+
   ##
   ## Call the target's rule. [catch] is used because it is assumed
   ## that a rule calls ::bras::listConsider for the dependency list,
   ## which may return an error. 
   ##
-  if {[catch [list ::bras::checkMake $rid $target reason] res]} {
+  if {[catch [list ::bras::checkMake $rid $target] res]} {
     global errorInfo
     set Indent [string range $Indent 2 end]
     returnFromConsider $target $keepPWD $errorInfo error
   }
   set Indent [string range $Indent 2 end]
-
+  
   ## If target was up-to-date already, return (almost) immediately
   if {$res==0} {
     if {$Opts(-d)} {
       dmsg "`$target' in `[pwd]' is up-to-date"
     }
+    namespace delete $Pstack; set Pstack $keptPstack
     returnFromConsider $target $keepPWD 0
   }
+  if {$res!=1} {return -code error "this should not happen"}
 
-  ## If target cannot be made, return (almost) immediately
-  if {$res==-1} {
-    ## This target cannot be made
-    if {$Opts(-d)} {
-      dmsg "should make `$target' in `[pwd]', but can't"
-    }
-    returnFromConsider $target $keepPWD -1
-  }
-
-  ## Target was made
+  ## if someone wants to call consider explicitly for the same target
+  ## in the command of the rule, let him/her do so
+  unset Considering($target,[pwd])
+  
+  ## announce running command
   if {$Opts(-d)} {
-    regsub -all "\n" $reason "\n    " reason
-    dmsg "made `$target' in `[pwd]' because$reason"
+    if {![info exist [set Pstack]::reason]} {
+      set reason "\n    (no reason given by condition)"
+    } else {
+      regsub -all "\n" [set [set Pstack]::reason] "\n    " reason
+    }
+    dmsg "making `$target' in `[pwd]' because$reason"
   }
+  catch {unset [set Pstack]::reason}
 
+  ## now run the stuff
+  invokeCmd $rid $target $Pstack
+
+  ## clean up a bit
+  namespace delete $Pstack; set Pstack $keptPstack
+
+  
   ## All other targets of this rule are assumed to be made now. Mark
   ## them accordingly and filter them out for a message
   set also ""

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.13 $, $Date: 2001/12/30 09:02:10 $
+# $Revision: 1.14 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 
 ##
@@ -200,9 +200,6 @@ proc ::bras::include {name} {
     if {[file exist $file]} {
       ## Set up the namespace for this directory
       set Namespace($pwd) ::ns[nextID]
-      ##set Namespace($pwd) ::[file tail $pwd]
-      uplevel \#0 namespace eval $Namespace($pwd) \
-	  [list namespace import ::bras::p::*]
       gobble $file $Namespace($pwd)
     } else {
       report warn "bras warning: no `$Brasfile' found in `[pwd]'"
@@ -220,8 +217,8 @@ proc ::bras::include {name} {
 # a directory part.
 #
 # RETURN:
-# a list of ones and zeros denoting whether a target was just made (or
-# during this run of bras) or not.
+# a list of ones and zeros denoting whether a target was just made
+# (during this run of bras) or not.
 #
 # ERRORS:
 # If a target cannot be made, an error is returned. If

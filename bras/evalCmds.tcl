@@ -57,8 +57,8 @@ proc ::bras::unknown args {
   #eval exec <@stdin 2>@stderr >@stdout $args
 }
 ########################################################################
-proc ::bras::invokeCmd {rid Target nspace} {
-
+proc ::bras::invokeCmd {rid Target pstack} {
+  variable Namespace
   variable Rule
   variable Opts
 
@@ -73,18 +73,14 @@ proc ::bras::invokeCmd {rid Target nspace} {
 	"bras(warning) in `[pwd]': no command found to " \
 	"make `$Target' for `$l' (hope that's ok)"
     report warn $msg
-    return 1
+    return
   }
   
   ## silently ignore commands which contain nothing but .relax.,
   ## possibly surrouned by whitespace.
-  set xcmd [string trim $cmd]
-  if {".relax."=="$xcmd"} {
-    return 1
-  }
+  if {".relax."=="[string trim $cmd]"} return
 
   set Rule($rid,run) 1
-
 
   if {"[info command ::bras::unknown.orig]"=="::bras::unknown.orig"} {
     ## Someone called `consider' within a rule's command
@@ -94,6 +90,7 @@ proc ::bras::invokeCmd {rid Target nspace} {
     rename ::unknown ::bras::unknown.orig
     rename ::bras::unknown ::unknown
   }
+
   
   ## Set up a namespace within which the command will be executed. The 
   ## main reason for this is that we want to have the variables
@@ -101,27 +98,40 @@ proc ::bras::invokeCmd {rid Target nspace} {
   ## command. They cannot be global because the command may call
   ## `consider', thereby invoking another command which also wants to
   ## have these variables.
-  #set nspace "::bras::s[nextID]"
-  namespace eval $nspace [list variable target $Target]
-  namespace eval $nspace [list variable targets $Rule($rid,targ)]
-#   foreach name [array names values] {
-#     if {![info exist $name]} continue
-#     if {$isary($name)} {
-#       namespace eval $nspace [list variable $name]
-#       namespace eval $nspace [list array set $name $values($name)]
-#     } else {
-#       namespace eval $nspace [list variable $name $values($name)]
-#     }
-#   }
+
+  # The namespace in which the command is run is bound to the current
+  # directory. We now set up some additional variables in that
+  # namespace, namely target, targets and whatever was communicated by
+  # the predicates in the namespace given by $pstack. Because a
+  # command may call [consider] recursively, we have to backup and
+  # later restore the variables we are going to overwrite.
+  set currentDir [pwd]
+  set dirns $Namespace($currentDir)
+
+  set ptails {}
+  foreach x [info vars [set pstack]::*] {
+    lappend ptails [namespace tail $x]
+  }
+  vbackup store [concat $ptails {target targets}] [set dirns]::
+
+  namespace eval $dirns [list variable target $Target]
+  namespace eval $dirns [list variable targets $Rule($rid,targ)]
+  foreach ptail $ptails {
+    catch {unset [set dirns]::$ptail}
+    ## Sorry, currently only scalars are supported, mainly because
+    ## $pstack should normally only contain scalars (see
+    ## initialization of vars in installPredicate)
+    set [set dirns]::$ptail [set [set pstack]::$ptail]
+  }
 
   if {$Opts(-v)} {
     report -v "\# -- running command --"
-    foreach name [info vars $nspace\::*] {
+    foreach name [info vars [set dirns]::*] {
       set tail [namespace tail $name]
       if {[string match reason $tail]} continue
       report -v "\# $tail = `[set $name]'"
     }
-    report -v [string trim $cmd "\n"]
+    report -v  [string trim $cmd \n]
   }
  
   if {!$Opts(-n)} {
@@ -130,30 +140,27 @@ proc ::bras::invokeCmd {rid Target nspace} {
       report norm "\# making `$Target'"
     }
 
-    set wearehere [pwd]
-
     ## The following construct runs the command within its own
     ## namespace on stacklevel #0. Well, in fact it ends up on
     ## stacklevel #1 because [namespace] accounts for one level of
     ## stack. 
     set script [list catch $cmd msg]
-    set script [list namespace eval $nspace $script]
+    set script [list namespace eval $dirns $script]
     set result [uplevel \#0 $script]
+    cd $currentDir
     if {$result} {
-      #namespace eval $nspace {puts <<<$msg>>>}
-      cd $wearehere
       ::bras::trimErrorInfo
       append ::errorInfo \
 	  "\n    while making target `$Target' in `[pwd]'---SNIP---"
       return -code error -errorinfo $::errorInfo
     }
-    cd $wearehere
   }
+
+  vrestore store
 
   if {!$haveUnknown} {
     rename ::unknown ::bras::unknown
     rename ::bras::unknown.orig ::unknown
   }
 
-  return 1
 }

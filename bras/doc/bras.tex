@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.33 $, $Date: 2001/12/30 09:02:10 $
+% $Revision: 1.34 $, $Date: 2002/01/06 15:19:08 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -228,10 +228,10 @@ describes predicates in detail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Predicates}\index{predicate}
 
-Predicates are test-procedures conveniently used to formulate the
-conditions under which a target is up-to-date. The standard predicates
-of \bras{} are described in appendix~\ref{sec:predicates}.  Here we
-describe how a predicate works and how new predicates can be written.
+Predicates are test-procedures implementing the conditions under which
+a target is up-to-date. The standard predicates of \bras{} are
+described in appendix~\ref{sec:predicates}.  Here we describe how a
+predicate works and how new predicates can be written.
 
 Consider the example
 \begin{verbatim}
@@ -251,7 +251,7 @@ the predicate \texttt{older}.
 In general a predicate can register a list of variables with the
 reasoning engine to be passed to the command. It depends on the
 predicate, which information might be useful for the command. However
-the variables are used by most predicates:
+these variables are used by most predicates:
 \begin{description}
 \item[\Indextt{deps}] is the list of files (or other objects) on which
   the target --- or the predicate test --- depends, i.e.\ these files
@@ -273,17 +273,17 @@ a look at the file \Indextt{predicates.tcl} which is part of \bras.
 \begin{center}
 \begin{listing}[1]{1}
   proc ::bras::p::true {{inDeps {}}} { 
-    installPredicate deps inDeps
+    installPredicate [list deps] inDeps
     
     ::bras::consider $inDeps
     
     append reason "\nmust always be made" 
-    ::bras::concatUnique deps
+    ::bras::concatUnique deps [stripAt $inDeps]
     $inDeps return 1
   }
 \end{listing}
-\end{center}
-
+\end{center}%$ 
+ 
 First of all, every predicate should be defined in the namespace
 \texttt{::bras::p}\index{namespace!::bras::p@\texttt{::bras::p}}. If
   you choose a different namespace, you are on your own. It might work
@@ -321,7 +321,9 @@ useful to combine a list of targets into one (pseudo)-target like in
 \end{verbatim}
 %$
 where target \texttt{all} triggers the built-process for
-\texttt{all-libs} and \texttt{all-docs}.
+\texttt{all-libs} and \texttt{all-docs}.\footnote{A better way to
+  combine several targets under one name makes use of the predicate
+  \texttt{updated}, described in section~\ref{pred:updated}.}
 
 The procedure \texttt{::bras::consider} returns a list of zeros and
 ones with one entry for every dependency. The result indicates that a
@@ -639,11 +641,12 @@ as a target. In particular \texttt{@../libfasel/lib\-fasel.a} tells
 \label{secInclude}
 
 As described in section~\ref{secForeignDeps}, \bras{} automatically
-sources the rule file in other directories if an \texttt{@}-dependency
-leads there. But this mechanism is not very useful to source a file
-with global definitions. Instead, the Tcl-builtin command
-\Indextt{source} could be used, but it has the disadvantage that it
-does not guard against sourcing the same file twice.
+sources the rule file in other directories if an
+\texttt{@}-dependency\index{"@-dependency} leads there. But this
+mechanism is not very useful to source a file with global definitions.
+Instead, the Tcl-builtin command \Indextt{source} could be used, but
+it has the disadvantage that it does not guard against sourcing the
+same file twice.
 
 To make sure a file is sourced exactly once, use the
 \Indextt{include}-command. It takes as its only parameter the file to
@@ -653,7 +656,7 @@ Thats the simple truth, but consider the following setup. The main
 directory of application \texttt{bla} has a \texttt{brasfile} and also
 several subdirectories like \texttt{lib}, \texttt{extrabla},
 \texttt{nobla}, the targets of which are called from the main
-\texttt{brasfile} by means of \texttt{@}. Now, what happens, if you
+\texttt{brasfile} by means of \texttt{@}. What happens, if you
 intend to solely work in directory \texttt{lib} for some time?  What
 is the best way within \texttt{bla/lib/brasfile} to get access to all
 those global definitions\index{global definition!include} in
@@ -661,19 +664,20 @@ those global definitions\index{global definition!include} in
 
 Using \texttt{include ../brasfile} will not work, because all
 rules of \texttt{bla/brasfile} would be interpreted relative to
-\texttt{bla/lib}, which is usually wrong. The correct solution would
-be:
+\texttt{bla/lib}, which is usually wrong. A workaround might be:
 \begin{verbatim}
   cd ..
   include brasfile
   cd bla
 \end{verbatim}
-Since this is tedious to type, you may use
+But this does not set the namespace correctly for the included
+\brasfile. To execute a \brasfile\ in the same context as it would be
+executed when called implicitly by an \texttt{@}-target, use e.g.
 \begin{verbatim}
   include @..
 \end{verbatim}
 \indextt{"@..}
-which does the right thing.
+
 
 In general, \texttt{include} has one argument which is either a
 filename or is of the form \texttt{@}\textit{dir}, where \textit{dir}
@@ -901,9 +905,10 @@ below.\footnote{The most precise description of what \bras{} does is
   in the source file \Indextt{consider.tcl}. I do my best to match it
   as closely as possible.}
 
-$\bullet$ If the target starts with the character \Indextt{@}, \bras{}
-changes to the directory of the target and reads the \texttt{brasfile}
-found there. Any directory part is removed from the targets name.
+$\bullet$ If the target starts with the character
+\texttt{@}\index{"@-target}, \bras{} changes to the directory of the
+target and reads the \texttt{brasfile} found there. Any directory part
+is removed from the targets name.
 
 $\bullet$ If the target was considered already along another line of
 reasoning, it is not checked again. Instead the result computed before
@@ -1027,6 +1032,35 @@ is flattened by \texttt{eval} to
 resulting in complaints about the unknown command in
 \texttt{[/]}. The remedy is an extra level of braces.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{A note on namespaces}
+\index{namespace}
+As mentioned above, every \brasfile\ is executed in its own
+autogenerated namespace. This shields \brasfile{}s in different
+directories from each other. In particular, variables set and
+read without namespace qualification normally reference instances
+local to the namespace. 
+
+However, it is easy to forget that variables set globally,
+e.g.
+\begin{verbatim} 
+  set ::CFLAGS -g
+\end{verbatim}
+can be seen in every namespace. This is \textbf{true also for
+  subsequently setting the variable}. If, for example, the above is
+executed in one \brasfile\ and another \brasfile\ later calls
+\begin{verbatim} 
+  set CFLAGS -O2
+\end{verbatim}
+the \textbf{global variable is changed}\index{global
+  variable}\index{variable!global} because it existed before. To
+explictly reference the namespace-local variable in cases where you
+suspect an already defined global, use
+\begin{verbatim}
+  variable CFLAGS
+  set CFLAGS -O2
+\end{verbatim}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Rule Library}
@@ -1257,6 +1291,37 @@ useful new predicate, send me the source.
 \item[Example] See file \texttt{c2o.rule} for an example of how to use 
   \texttt{dcold}.
 \end{Describe}
+
+
+%%%%%
+%%%%% md5older
+%%%%%
+
+\subsection{md5older --- did the md5sum of a dependency change?}
+\begin{Describe}
+\item[Synopsis] \Tt{md5older} \It{target deps}
+\item[Description] The predicate \texttt{md5older} maintains for the
+  given target a cache file which contains the md5sums of the given
+  dependencies. It returns true if either the cache file does not
+  exist or if at least one of the dependencies has an md5sum not
+  listed or different from the one in the cache file. These
+  dependencies will be communicated to the rule's command in variable
+  \texttt{trigger}. If the cache file does not exist, all dependencies
+  will show up in \texttt{trigger}. The list of all dependencies can
+  be picked up in \texttt{deps}.
+
+  The name of the cache file is \textit{target}\texttt{.md5}. 
+
+  \textbf{Note:} Unlike predicate \texttt{older}, \texttt{md5older}
+  does not test whether the target does exist as a file. Consequently,
+  if you run \bras\ and then delete the target, it will not be rebuilt
+  automatically if you only use \texttt{md5older}. Instead use a
+  condition like \begin{verbatim}
+  [or [md5older ...] [missing ...]]
+\end{verbatim}
+    
+\end{Describe}
+
 
 %%%%%
 %%%%% missing
@@ -1794,18 +1859,25 @@ overridden by calling \bras{} like
 \begin{Describe}
 %\item[Name] \Flash{include} --- source a specified file or the
 %  \brasfile{} of a given directory, but only once
-\item[Synopsis] \Tt{include} \It{file}\\
-  \Tt{include} \Tt{@}\It{dir}
-\item[Description] Basically, \Tt{include} is an alias for source
-  which makes sure, no file is read more than once. 
+\item[Synopsis] \Tt{include} \Tt{@}\It{dir} \\
+\Tt{include} \It{file}
+\item[Description] Like \texttt{source}, \Tt{include} reads and
+  executes a Tcl-file. In contrast to \texttt{source},
+  \Tt{include} makes sure to source every file only once.
   
-  If the paramter is the name of a directory prefixed with \Tt{@}, the
+  If the parameter is the name of a directory prefixed with \Tt{@}, the
   \brasfile{} of the given directory is sourced in the same way as if
-  \bras{} had followed an \Tt{@}-target to that directory. The name of
-  the \brasfile{} used depends on the name of the file where this
-  command is found in. In particular, if \bras{} was called with
-  option \Tt{-f} specifying a special name, that name is also used in
-  the destination directory.
+  \bras{} had followed an \Tt{@}-target to that directory. In
+  particular, the file is sourced within its own namespace.
+  
+  The name of the \brasfile{} used depends on the name of the file
+  where this command is found in. If \bras{} was called with option
+  \Tt{-f} specifying a special name, that name is also used in the
+  destination directory.
+  
+  If the parameter given does not start with \texttt{@}, the file is
+  sourced in the global namespace.
+
 \item[Example]
   The form
   \begin{verbatim}
@@ -1825,7 +1897,7 @@ overridden by calling \bras{} like
 \label{proc:install}
 \begin{Describe}
 \item[Synopsis] \Tt{install} \It{target} \It{source} 
-  \It{\texttt{\{}perm \texttt{\{\}\}}}
+  \texttt{\{}\It{perm} \texttt{\{\}\}}
 \item[Description] Installs a file \textit{source} as a file
   \textit{target}. Before file \textit{source} is copied onto the
   \textit{target}, the targets directory is made with with the command 
@@ -1929,6 +2001,6 @@ H.~Kirsch:
 
 \end{thebibliography}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%\adfasdf
 \printindex
 \end{document}

@@ -5,7 +5,7 @@
 #
 #
 # (C) 2000 Harald Kirsch (kirschh@lionbioscience.com)
-# $Id: brasfile,v 1.3 2001/12/30 08:55:41 pifpafpuf Exp $
+# $Id: brasfile,v 1.4 2002/01/06 15:19:08 pifpafpuf Exp $
 ########################################################################
 
 ## We initialize ::CFLAGS from either the environment or the command
@@ -40,18 +40,8 @@ Newer hello {hello.o} {
 ## necessary, to ensure the existance of ::CFLAGS even if the
 ## [older]-call already returns 1.
 ##
-proc ::showns {t} {
-  set ns [uplevel 1 namespace current]
-  foreach x [info vars [set ns]::*] {
-    catch {puts "$x='[set $x]'"}
-  }
-  puts "target='$t'"
-  return 0
-}
 Make hello.o {
-  [or [older $target hello.c] [showns $target] \
-       [varchanged ::CFLAGS $target.cache]\
-       [showns $target]]
+  [or [older $target hello.c] [varchanged ::CFLAGS $target.cache]]
 } {
   ## compile the thing
   cc -o $target -c $CFLAGS hello.c

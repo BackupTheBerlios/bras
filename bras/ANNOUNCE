@@ -3,26 +3,21 @@
 			     --- bras ---
 		     Rule Based Command Execution
 
-I am pleased to announce version 2.0.
+I am pleased to announce version 2.1.
 
 WHAT'S NEW?
 
-Every brasfile managing the built-targets of a directory now operates
-in its own namespace. This should make it even more easy to use bras
-for projects distributed over a large directory tree.
+A new predicate md5older was introduced. It checks if a target is out
+of by considering only the md5sums of the dependencies.
 
-INCOMPATIBILITY NOTE:
-
-The feature described above is an incompatible change over previous
-versions. If, in a multi-directory project, one brasfile
-refers to a global variable set in another directory's
-brasfile, you will have to adapt that. Read the section about
-[linkvar] and [dirns] to find out how.
+Recently (2.0) individiual namespaces for every directory where
+introduced. The implementation of the mechanism was buggy and had
+to be rewritten.
 
 
 STABILITY:
 
-The new namespace encapsulation is not yet very well tested. I am not
+The new namespace encapsulation is still not fully tested. I am not
 yet sure if it really helps on multi-directory projects or if it
 rather is in the way. Let me know.
 
@@ -55,7 +50,7 @@ o pattern rules which deserve the name;
 o explicit invocation of the reasoning process possible;
 
 Send comments and requests for enhancements to
-kirschh@lionbioscience.com .
+pifpafpuf@gmx.de .
  
 # CVS:
-# $Revision: 1.16 $, $Date: 2001/12/30 09:39:22 $
+# $Revision: 1.17 $, $Date: 2002/01/06 15:19:08 $

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.10 $, $Date: 2001/12/30 09:02:10 $
+# $Revision: 1.11 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 ##
 ## This files contains 
@@ -125,13 +125,13 @@ namespace eval ::bras {
   ## ::ns123 used as an execution environment for the Brasfile from
   ## [pwd]. 
   
-  ## nspace
+  ## Pstack
   ##   internal variable holding the name of the namespace used for
-  ##   the next set of predicates and commands. A namespace of this
-  ##   name is set up in checkMake, just before the condition of a
-  ##   rule is evaluated. All variables a predicate set for the
-  ##   command to find later must be set in this namespace.
-  variable nspace {}
+  ##   predicates to leave values like deps and trigger for the next
+  ##   command to run (see installPredicate). The initial value is
+  ##   never used except if someone feels like calling a predicate by
+  ##   hand instead of via consider.
+  variable Pstack ::
 }
 
 ########################################################################
@@ -153,6 +153,64 @@ proc ::bras::lappendUnique {_list elem} {
   
   if {-1==[lsearch -exact $list $elem]} {
     lappend list $elem
+  }
+}
+########################################################################
+#
+# stores a backup copy of the variables listed in vars. The
+# backup is stored in the array with the name $_store in the calling
+# frame. The listed variables can be unset, scalar or array. Their
+# state and content can be restored later with vrestore.
+#
+# The prefix $p is prefixed on every variable name in vars before
+# it is used. A typical prefix can be a namespace, like ::X::. Note
+# the trailing `::' necessary for correctly putting plain names into
+# the namespace.
+#
+proc ::bras::vbackup {_store vars {p {}}} {
+  upvar $_store store
+
+  foreach varname $vars {
+    if {[info exist store(T${p}$varname)]} {
+      return -code error \
+	  "a variable with name ${prefix}$varname is already stored"
+    }
+  }
+  foreach varname $vars {
+    upvar ${p}$varname var
+    if {[array exist var]} {
+      set store(T${p}$varname) a
+      set store(V${p}$varname) [array get var]
+    } elseif {[info exist var]} {
+      set store(T${p}$varname) s
+      set store(V${p}$varname) $var
+    } else {
+      set store(T${p}$varname) u
+    }
+  }
+}
+proc ::bras::vrestore {_store} {
+  upvar $_store store
+
+  foreach ele [array names store T*] {
+    set varname [string range $ele 1 end]
+    #if {![info exist store(T$varname)]} continue
+    upvar $varname var
+    catch {unset var}
+    switch $store(T$varname) {
+      a {
+	array set var $store(V$varname)
+      }
+      s {
+	set var $store(V$varname)
+      }
+      u {
+	# just leave unset
+      }
+      * {
+	error "this cannot happen"
+      }
+    }
   }
 }
 ########################################################################

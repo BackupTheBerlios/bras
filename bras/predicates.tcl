@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.12 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.13 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 
 ########################################################################
@@ -31,7 +31,7 @@
 ########################################################################
 namespace eval ::bras::p {
   namespace export older updated missing true dcold oldcache \
-      varchanged or notinitialized
+      varchanged or notinitialized md5older
 }
 ########################################################################
 #
@@ -52,17 +52,17 @@ namespace eval ::bras::p {
 proc ::bras::p::installPredicate { names {depvars {}} } {
   upvar \#0 ::bras::Opts Opts 
 
+  if {$Opts(-d)} {::bras::dmsg "testing \[[info level -1]\]"}
+
   ## Within the calling predicate, we install all variables listed in
   ## $names as local variables linked to variables of the same name in 
   ## the namespace $::bras::nspace. One additional variable called
   ## `reason' is always installed that way.
   foreach n $names {
-    uplevel 1 upvar \#0 $::bras::nspace\::$n $n
+    uplevel 1 [list upvar \#0  [set ::bras::Pstack]::$n $n]
     uplevel 1 "if {!\[info exist $n\]} {set $n {}}"
   }
-  uplevel 1 upvar \#0 $::bras::nspace\::reason reason
-
-  if {$Opts(-d)} {::bras::dmsg "testing \[[info level -1]\]"}
+  uplevel 1 [list upvar \#0 [set ::bras::Pstack]::reason reason]
 
   ## Expand dependencies stored in any of the varialbles noted in
   ## depvars along the searchpath. The result is put into these
@@ -129,9 +129,14 @@ proc ::bras::p::older {targets inDeps} {
     foreach d $inDeps {
       if {$mtime($d)<0} {
 	## Yes, $d was just made (yet does not exist)
+	set res 1
 	lappend fresh $d
 	::bras::lappendUnique trigger $d
       } elseif {$ttime<$mtime($d)} {
+	## NOTE: The test above *must* feature '<' not '<=' because on
+	## a fast computer, dependencies and the target can easily be
+	## made all within one second. This would cause this rule to
+	## trigger over and over again.
 	set res 1
 	lappend older $d
 	::bras::lappendUnique trigger $d
@@ -385,4 +390,60 @@ proc ::bras::p::notinitialized {names} {
     set res 1
   }
   return $res
+}
+########################################################################
+#
+# Test if any of the listed dependencies has a different md5sum than
+# the one stored in the cache file $target.md5. If that file does not
+# exist or if a md5sum is not listed in there, the target is also
+# out-of-date.
+#
+proc ::bras::p::md5older {target inDeps} {
+  installPredicate {trigger deps} {}
+
+  ## Consider all dependencies in turn
+  set results [::bras::consider $inDeps]
+
+  ## potential @ in deps no longer needed after consider
+  set inDeps [stripAt $inDeps]
+
+  ## create array of new md5sums. Care must be taken to interprete the
+  ## output of md5sum. It does not escape funny characters in
+  ## filenames. In fact it cannot handle itself file names containing
+  ## e.g. newlines.
+  set text [eval exec md5sum $inDeps]
+  foreach line [split $text \n] {
+    set s [string range $line 0 31]
+    set name [string range $line 34 end]
+    set sum($name) $s
+  }
+
+  set md5 $target.md5
+
+  if {[file exist $md5]} {
+    set in [open $md5]
+    array set old [read $in]
+    close $in
+
+    set res 0
+    foreach d $inDeps {
+      ::bras::lappendUnique deps $d
+      if {[info exist old($d)] && $old($d)==$sum($d)} continue
+      set res 1
+      ::bras::lappendUnique trigger $d
+      append reason "\nmd5sum of `$d' changed"
+    }
+  } else {
+    set res 1
+    append reason "\nmd5 cache `$md5' did not exist"
+    foreach x $inDeps {::bras::lappendUnique deps $x}
+  }
+
+  if {!$res} {return 0}
+
+  set out [open $md5 w]
+  puts $out [array get sum]
+  close $out
+
+  return 1
 }

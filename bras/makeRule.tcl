@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 2001/12/30 09:02:10 $
+# $Revision: 1.10 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 
 namespace eval ::bras {
@@ -38,53 +38,36 @@ proc ::bras::PatternMake {trexp gendep bexp cmd} {
   ::bras::enterPatternRule $trexp $gendep $bexp $cmd
 }
 ########################################################################
-proc ::bras::checkMake {rid theTarget _reason} {
-  variable Rule
-  variable nspace
-  variable Namespace
-
-  upvar $_reason reason
-  #puts "Make: bexp=`$bexp'"
-
+proc ::bras::checkMake {rid theTarget} {
   set currentDir [pwd]
-  set dirns $Namespace($currentDir)
+  set dirns $::bras::Namespace($currentDir)
 
-  ## Set up a scratch namespace where installPredicate will implement
-  ## variables on behalf of the predicates. These variables contain
-  ## information which the predicates want to communicate to the
-  ## command. If these variables directly entered into the
-  ## namespace where the command is run in ($dirns as defined above),
-  ## we cannot control in here which are these vars. But we have to
-  ## know them in order to clear them before a new condition is tested.
-  set keptNspace $nspace
-  set nspace ::ns[nextID]
-  namespace eval $nspace {}
-
-  ## The condition will itself be run in $dirns. For it to be able to
-  ## expand $target, $targets and $d, we have to set them in
-  ## $dirns. However, since [consider] can be called recursively, we
-  ## have to make sure not to permanently overwrite value set
-  ## already. Therefore we keep those values locally.
-  foreach n {target targets d} {
-    catch {set stack($n) [set [set dirns]::$n]}
+  ## This namespace is soleley set up to run the boolean
+  ## expressions. This helps people to remember not to run predicates
+  ## by hand. Doing so messes up the variable scopes I try to
+  ## maintain. 
+  set bns ::bras::ns[nextID]
+  namespace eval $bns {namespace import ::bras::p::*}
+  foreach x [info vars [set dirns]::*] {
+    namespace eval $bns [list upvar $x [namespace tail $x]]
   }
 
   set res 0
-  foreach {targets d b} $Rule($rid,bexp) {
-    ## transfer values into directory's namespace
-    set [set dirns]::target $theTarget
-    set [set dirns]::targets $targets
-    set [set dirns]::d $d    
-    if 0 {
-      set cmd [concat uplevel \#0 \
-		   [list namespace inscope $Namespace($currentDir) \
-			expr [list $b]]]
+  foreach {targets d b} $::bras::Rule($rid,bexp) {
+    ## transfer values into $bns
+    set [set bns]::target $theTarget
+    set [set bns]::targets $targets
+    if {""=="$d"} {
+      catch {unset [set bns]::d}
     } else {
-      # does this work without the uplevel stuff?
-      set cmd [list namespace eval $dirns [list expr $b]]
+      set [set bns]::d $d    
     }
+
+    ## we want to run $b by expr in namespace $bns
+    set cmd [list namespace eval $bns [list expr $b]]
+
     ## $b contains user's code, so care must be taken when
-    ## running it.
+    ## running the command.
     if {[catch $cmd r]} {
       cd $currentDir
       trimErrorInfo
@@ -96,41 +79,7 @@ proc ::bras::checkMake {rid theTarget _reason} {
     cd $currentDir
     set res [expr {$res || $r}]
   }
-
-  ## Reset stacked values in $dirns to orignal
-  foreach n {target targets d} {
-    unset [set dirns]::$n
-    catch {set [set dirns]::$n $stack($n)}
-  }
-
-  ## If we got some reasons, keep them
-  if {[info exist ::[set nspace]::reason]} {
-    set reason [set ::[set nspace]::reason]
-    unset ::[set nspace]::reason
-  } else {
-    set reason "\n(condition gives no reason)"
-  }
-
-  ## Now run the command.
-  if {$res} {
-    ## Put variables set by installPredicate in $nspace into $dirns.
-    ## Note that 'reason' was purged already above to not contaminate
-    ## $dirns now.
-    foreach var [info vars [set nspace]::*] {
-      set v [namespace tail $var]
-      namespace eval $dirns [list upvar \#0 [set nspace]::$v $v]
-    }
-    set res [::bras::invokeCmd $rid $theTarget $dirns]
-
-    ## Reset variables in $dirns
-    foreach var [info vars [set keptNspace]::*] {
-      set v [namespace tail $var]
-      namespace eval $dirns [list upvar \#0 [set keptNspace]::$v $v]
-    }
-    
-  }
-  namespace delete $nspace
-  set nspace $keptNspace
+  namespace delete $bns
 
   return $res
 }

@@ -38,7 +38,7 @@
 #   MAKE A if B holds, and do it by running CMD
 #
 # (C) 2001 Harald Kirsch
-# $Revision: 1.1 $, $Date: 2001/07/29 14:52:02 $
+# $Revision: 1.2 $, $Date: 2002/01/06 15:19:08 $
 ########################################################################
 
 ## The default first rule directs bras to make both platforms. Note
@@ -125,12 +125,14 @@ consider [list plt1/brasfile plt2/brasfile]
 
 ########################################################################
 ##
-## These serve only for demonstration purposes since the probably
+## These serve only for demonstration purposes since they probably
 ## don't work on  anything but a *NIX like system.
 ##
 include [file join $::bras::base c2o.rule]
 include [file join $::bras::base cdeps.rule]
 include [file join $::bras::base o2x.rule]
 
+## The default rule for the C compiler wants this:
+set INCLUDES {}
 
 ########################################################################
