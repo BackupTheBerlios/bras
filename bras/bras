@@ -28,7 +28,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.29 $, $Date: 1999/07/24 17:09:34 $
+# $Revision: 1.30 $, $Date: 1999/07/26 09:16:20 $
 ########################################################################
 
 namespace eval ::bras {
@@ -521,7 +521,7 @@ proc bras.usage {} {
   global argv0 VERSION VERDATE
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
-\[-r\] \[-s\] \[-v\] \[-ve\] \[var=value]\
+\[-s\] \[-v\] \[-ve\] \[var=value]\
 \[--\] \[target ...\]
 construct files based on a rule-file
   brasfile - rule-file to use (defaults: Brasfile or brasfile)
