@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.22 $, $Date: 2000/09/16 16:10:50 $
+# $Revision: 1.23 $, $Date: 2000/12/30 16:34:26 $
 #
 ########################################################################
 rename package X; proc package args {}
@@ -64,7 +64,7 @@ Make rpm {[true $RPM]} {
 ## equivalent to `Make ... {[older $target ...]} 
 Newer $RPM $TGZ {
   cd [glob ~/tmp]
-  rpm -tb --target noarch $TGZ
+  rpm -tb --quiet --target noarch $TGZ
 }
 
 ## This target copies index.html to a target directory after sed'ing it
