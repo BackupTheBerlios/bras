@@ -68,7 +68,7 @@ foreach line [split [package ifneeded bras $::bras::VERSION] \;] {
 foreach f [concat pkgIndex.tcl [glob *.rule]] {
   lappend LIBTARGETS [file join $LIBDIR $f 0644]
 }
-puts $LIBTARGETS
+#puts $LIBTARGETS
 ## Collect targets to got to DOCDIR
 foreach f {bras.tex bras.ps bras.pdf COPYING-2.0 \
 	       recu-make-cons-harm.ps.gz} {
@@ -85,16 +85,16 @@ searchpath {. doc}
 
 ########################################################################
 
+## rpm and stow support:
+## We need a target which merely fixes
+## bras and bras.1 by entering some paths. This supports installation
+## schemes where building is performed with a different prefix than
+## installation, like rpm and stow.
+Make all {[updated {bras.fixed bras.1.fixed}]} .relax.
+
 ## Delegate work to every target to be installed by means of the
 ## pattern rule for installation loaded above from install.rule
 Make install {[updated $ALLTARGETS]} .relax.
-
-## rpm BUILD_ROOT support:
-## We need a target which merely fixes
-## bras and bras.1 by entering some paths. This supports building of
-## an rpm where the built is run with different paths than the
-## install, which uses BUILD_ROOT.
-Make all {[updated {bras.fixed bras.1.fixed}]} .relax.
 
 ## Here we create bras.fixed, a version of bras only used during
 ## installation. It will have $LIBDIR edited into the right place.
