@@ -1,5 +1,6 @@
 %\documentclass[11pt,a4paper]{article}
-\documentclass[11pt]{scrartcl}
+%\documentclass[11pt]{scrartcl}
+\documentclass[11pt,bibtotoc,idxtotoc]{scrreprt}
 
 \usepackage{helvetic}
 \usepackage{courier}
@@ -15,17 +16,23 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.31 $, $Date: 2001/08/04 16:19:13 $
+% $Revision: 1.32 $, $Date: 2001/09/09 16:42:10 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
+\titlehead{\copyright 1996--2001 Harald Kirsch}
 
 \title{bras\\
 another kind of `make'\\[2mm]
-\small \copyright 1996--2001 Harald Kirsch}
+\raisebox{0.5\baselineskip}{\rule{4cm}{1pt}}\\
+\LARGE\textsf{User Manual \& Reference}}
+
 \author{\relax
 Harald Kirsch\\
-\texttt{kirschh@lionbioscience.com}}
+\texttt{kirschh@lionbioscience.com}
+}
+\lowertitleback{\copyright 1996--2001 Harald Kirsch}
+
 
 \newcommand{\bras}{\texttt{bras}}
 \newcommand{\Bras}{\texttt{Bras}}
@@ -46,13 +53,12 @@ Harald Kirsch\\
                            \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \maketitle
-
 \tableofcontents
-\clearpage
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Why That?}
+\chapter{User Manual}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
 If you ever used \texttt{make}, you may have noticed that it has a few
 odd features. Most annoying to me are
 
@@ -563,7 +569,7 @@ section~\ref{secMultipleRules}\footnote{algorithm stolen from \make{}}.
 
 In particular the new condition is put in front of all conditions
 already known for the rule. Because it will be evaluated first, its
-dependencies will be in front of \Indextt{\$deps} when the command is
+dependencies will be in front of \texttt{\$deps} \indextt{deps} when the command is
 executed, which is usually a good thing. Read section~\ref{sec:depd}
 for further details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -773,8 +779,8 @@ date.
 
 \Bras{} allows to update the dependency list as necessary. An example
 how this can be done for the dependence of object files on C source
-files can be found in the files \Indextt{c2o.rule} and
-\Indextt{cdeps.rule}. To use them, include them both into your
+files can be found in the files \Indextt{c2o.rule} (\ref{sec:c2o}) and
+\Indextt{cdeps.rule} (\ref{sec:cdeps}). To use them, include them both into your
 \brasfile{} with
 \begin{quote}
   \verb|include $::bras::base/c2o.rule|\\
@@ -787,7 +793,7 @@ schemes can be implemented. (Send me your patches, please!)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Explicitely Calling the Reasoning Process}
-\index{consider!explicitly calling}
+\index{consider@\texttt{consider}!explicitly calling}
 \label{secConsider}
 
 Normally the reasoning process is invoked automagically for the first
@@ -1118,14 +1124,14 @@ somewhere at the beginning of your script to be able to use \bras'
 commands \Indextt{Make}, \texttt{consider} and so on. Most command line 
 options of \bras{} can be set by calling \Indextt{::bras::configure}.
 
-If you use \bras{} in a Tk-application, call the command
+If you use \bras{} in a Tk-application, call the command \indextt{forget}
 \Indextt{::bras::forget} (p.~\pageref{proc:forget}) before
 reconsidering targets. Otherwise \bras{} knows that it considered them
 before and thinks there is nothing to do.
 
 You may also want to redefine the procedure \Indextt{::bras::report}
-(p.~\pageref{proc:report} to redirect all kinds of output which
-normally goes to the console into a widget.
+\indextt{report} (p.~\pageref{proc:report}) to redirect all kinds of
+output into a widget.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
 \index{bugs}
@@ -1202,10 +1208,9 @@ idea to allow the definition of new types of rules.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\clearpage
-\appendix
+\chapter{Reference Guide}
 
-\section{Quick Reference Guide}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newcommand{\Tt}[1]{\texttt{#1}}
 \newcommand{\It}[1]{\textit{#1}}
 \newcommand{\Flash}[1]{\fbox{\bfseries #1}}
@@ -1218,7 +1223,7 @@ idea to allow the definition of new types of rules.
 {\end{list}\pagebreak[2]}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Predefined predicates}
+\section{Predefined predicates}
 \label{sec:predicates}
 
 \Bras{} comes with a set of predicates which cover the most common
@@ -1228,7 +1233,8 @@ useful new predicate, send me the source.
 %%%%
 %%%% dcold
 %%%%
-\subsubsection{dcold --- is a target older than a dependency cache?}
+\subsection{dcold --- is a target older than a dependency cache?}
+\label{pred:dcold}
 \begin{Describe}
 %\item[Name] \Flash{dcold} --- is a target old with respect to its
 %  dependency cache?
@@ -1251,7 +1257,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% missing
 %%%%%
-\subsubsection{missing --- is a file missing?}
+\subsection{missing --- is a file missing?}
 \begin{Describe}
 %\item[Name] \Flash{missing} --- does the given file not exist?
 \item[Synopsis] \Tt{missing} \It{name}
@@ -1271,7 +1277,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% notinitialized
 %%%%%
-\subsubsection{notinitialized --- was a target not yet called?}
+\subsection{notinitialized --- was a target not yet called?}
 \label{pred:notinitialized}
 \begin{Describe}
 %\item[Name] \Flash{notinitialized} --- returns \texttt{true} only, if
@@ -1300,7 +1306,8 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% oldcache
 %%%%%
-\subsubsection{oldcache --- is a dependency cache out-of-date?}
+\subsection{oldcache --- is a dependency cache out-of-date?}
+\label{pred:oldcache}
 \begin{Describe}
 %\item[Name] \Flash{oldcache} --- is a dependency cache old?
 \item[Synopsis] \Tt{oldcache} \It{cache client}
@@ -1326,7 +1333,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% older
 %%%%%
-\subsubsection{older --- are targets older than dependencies?}
+\subsection{older --- are targets older than dependencies?}
 \label{pred:older}
 \begin{Describe}
 %\item[Name] \Flash{older} --- are targets older than dependencies?}
@@ -1349,7 +1356,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% true
 %%%%%
-\subsubsection{true--- always returns true}
+\subsection{true--- always returns true}
 \begin{Describe}
 %\item[Name] \Flash{true} --- always returns true}
 \item[Synopsis] \Tt{true} \It{deps}
@@ -1363,7 +1370,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% updated
 %%%%%
-\subsubsection{updated --- does a target need an update?}
+\subsection{updated --- does a target need an update?}
 
 \label{pred:updated}
 \begin{Describe}
@@ -1402,7 +1409,7 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% varChanged
 %%%%%
-\subsubsection{varchanged --- did a variable's value change?}
+\subsection{varchanged --- did a variable's value change?}
 \begin{Describe}
 %\item[Name] \Flash{varchanged} --- did a given variable's value
 %  change?
@@ -1473,13 +1480,154 @@ useful new predicate, send me the source.
   parameter file.
 \end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Miscellaneous procedures}
+\section{Predefined Pattern Rules}
+\label{sec:rules}
+
+%%%%%
+%%%%% c2o
+%%%%%
+\subsection{c2o --- compile C source into object file}
+\label{sec:c2o}
+\index{c2o}
+
+\begin{Describe}
+\item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}\\
+\texttt{include [file join \$::bras::base c2o.rule]}
+\item[Description] Creates a dependence between a target with suffix
+  \texttt{.o} or \texttt{.obj} and a dependency with suffix
+  \texttt{.c}. 
+\item[Target] \texttt{\{.*\char92.o(bj)?\}}
+\item[Dependency] The dependency is derived from the target by
+  replacing the target's suffix with \texttt{.c}.
+\item[Predicate] The target is checked with \texttt{dcold}
+  (see~\ref{pred:dcold}) against its dependency cache file maintained
+  by \texttt{dcold}.
+\item[Command] \texttt{\$CC -o \$target -c \$CFLAGS [lindex \$deps 0]}
+\indextt{CC}\indextt{CFLAGS}
+\end{Describe}
+
+%%%%%
+%%%%% cdeps
+%%%%%
+\subsection{cdeps --- maintain dependency cache for C source files}
+\label{sec:cdeps}\index{cdeps}
+
+\begin{Describe}
+\item[Synopsis] \texttt{include [file join \$::bras::base cdeps.rule]}
+\item[Description] Maintains a dependency cache in dependence of a
+  source file.
+\item[Target] \texttt{\{.*\char92.dc\}}
+\item[Dependency] The dependency is derived from the target by
+  replacing the target's suffix with \texttt{.c}.
+\item[Predicate] The target is checked with \texttt{oldcache}
+  (see~\ref{pred:oldcache}) against the dependency.
+\item[Command] The external command executed is
+\begin{quote}\ttfamily 
+  \$CC \$DEPOPTS \$INCLUDES [lindex \$deps 0]
+\end{quote}
+\indextt{DEPOPTS}\indextt{CC}\indextt{INCLUDES}
+
+Set \texttt{\$DEPOPTS} to the options which instruct your C compiler
+to emit dependency information for \make.
+\end{Describe}
+
+%%%%%
+%%%%% cli2ch
+%%%%%
+\subsection{cli2ch --- create command line interface with
+  \texttt{clig}}
+\indextt{clig}
+\begin{Describe}
+\item[Synopsis]\texttt{include [file join \$::bras::base cli2ch.rule]}
+\item[Description] Uses \Indextt{clig}\cite{Kir00} to create C source
+  and header files for a command line interpreter based on a
+  description in a \texttt{.cli} file.
+\item[Target] \texttt{\{.*\char92.[ch]\}}
+\item[Dependency] The dependency is derived from the target by
+  replacing the target's suffix with \texttt{.cli}.
+\item[Predicate] The target is checked against the dependency by means 
+  of the
+  \texttt{older} predicate (see~\ref{pred:older}).
+\item[Command] The program \texttt{clig} is run to create the C source 
+  and header file.
+\end{Describe}
+
+%%%%%
+%%%%% install
+%%%%%
+\subsection{install --- install a file}
+\label{sec:install}\index{\texttt{install}!rule}
+\begin{Describe}
+\item[Synopsis] \texttt{include [file join \$::bras::base
+    install.rule]}
+\item[Description] The rule creates a dependence relation between a
+  file to be installed somewhere in the system and a file in the local 
+  directory or search path (see \ref{sec:searchpath}). If the local
+  file is older than the target, it is copied over the target and the
+  target's access permissions are set. The access permissions are
+  extracted from the target name, which is why it must look like
+  \begin{quote}\ttfamily
+    /some/installation/dir/theFile/0755
+  \end{quote}
+  For this target, the pattern rule will try to find \texttt{theFile}
+  in the local directory. If it is found, it will be installed with
+  \texttt{::bras::install}\indextt{install} (see section
+  \ref{proc:install}) over \texttt{/some/installation/dir/theFile} and
+  the permissions of the latter are set to \texttt{0755}.
+
+  In addition to the behaviour described above, \bras{} also looks for
+  a local file \texttt{theFile.fixed}. Sometimes a path must be edited 
+  into a script or documentation file just before it is copied to its
+  final destination. It is expected that the late fix results in a
+  local file with suffix \texttt{.fixed}.
+\item[Target] \verb|[file join .* .* {0[0-9][0-9][0-9]}]|
+\item[Dependency] The dependency is generated by stripping from the
+  target the trailing permissions as well as any directories. Before
+  the resulting plain dependency, the dependency with suffix
+  \texttt{.fixed} is tried.
+\item[Predicate] The \Indextt{older} predicate (see
+  section~\ref{pred:older}) is used to check if the 
+  target to be installed is out of date with respect to the local
+  file. 
+\item[Command] The target with permissions removed, the dependency
+  found and then the permissions are passed to
+  \texttt{::bras::install} (see section \ref{proc:install}).
+\end{Describe}
+
+%%%%%
+%%%%% o2x
+%%%%%
+\subsection{o2x --- *IXish linking of object files into executable}
+\indextt{o2x}
+\begin{Describe}
+\item[Synopsis] \texttt{include [file join \$::bras::base o2x.rule]}
+\item[Description] Maintains an executable in dependence of an object
+  file. Since an executable usually depends on several object files,
+  this pattern rule is mainly of use to implicitly define a command to
+  link the files rather than deriving the dependeny relation
+  automatically (see the discussion in section
+  ~\ref{secSuffixAsDefCmd}). The dependeny relation with all the
+  object files must usually be described by other means.
+\item[Target] A name which does not contain a dot, i.e.\ 
+  \texttt{\{[\char94.]*\}}
+\item[Dependency] The dependency is derived from the target by
+  suffixing it with \texttt{.o}.
+\item[Predicate] The target is checked against the dependency by means
+  of the \texttt{older} predicate (see~\ref{pred:older}).
+\item[Command]\begin{quote}\ttfamily
+    \$CC -o \$target \$CFLAGS \$LDFLAGS \$deps \$LDLIBS
+  \end{quote}
+  \indextt{CC}\indextt{CFLAGS}\indextt{LDFLAGS}\indextt{LDLIBS}
+\end{Describe}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Miscellaneous procedures}
 
 %%%%%
 %%%%% .relax.
 %%%%%
-\subsubsection{.relax. --- a do-nothing indicator for rules}
+\subsection{.relax. --- a do-nothing indicator for rules}
 \label{proc:.relax.}
+\indextt{.relax.}
 \begin{Describe}
 \item[Synopsis] \Tt{.relax.}
 \item[Description] Used in place of a rule's command, \texttt{.relax.}
@@ -1515,7 +1663,8 @@ useful new predicate, send me the source.
 %%%%%
 %%%%% consider
 %%%%%
-\subsubsection{consider --- explicitly call the reasoning process}
+\subsection{consider --- explicitly call the reasoning process}
+\indextt{::bras::consider}\indextt{consider}
 \begin{Describe}
 %\item[Name] \Flash{consider} --- explicitely call the reasoning
 %  process 
@@ -1535,7 +1684,8 @@ useful new predicate, send me the source.
 %%%%
 %%%% cvsknown
 %%%%
-\subsubsection{cvsknown --- return all files CVS knows about}
+\subsection{cvsknown --- return all files CVS knows about}
+\indextt{::bras::cvsknown}\indextt{cvsknown}
 \begin{Describe}
 %\item[Name] \Flash{cvsknown} --- return all files CVS knows about
 \item[Synopsis] \Tt{cvsknown}
@@ -1561,8 +1711,9 @@ targets are considered, it is never executed.
 %%%%%
 %%%%% forget
 %%%%%
-\subsubsection{forget --- forget which targets where already considered}
+\subsection{forget --- forget which targets where already considered}
 \label{proc:forget}
+\indextt{::bras::forget}\indextt{forget}
 \begin{Describe}
 %\item[Name] \Flash{forget} --- let \bras{} forget that it has considered 
 %  certain targets already
@@ -1581,10 +1732,9 @@ targets are considered, it is never executed.
 %%%%%
 %%%%% getenv
 %%%%%
-\subsubsection{getenv --- set variable from environment of from default}
+\subsection{getenv --- set variable from environment of from default}
+\indextt{::bras::getenv}\indextt{getenv}
 \begin{Describe}
-%\item[Name] \Flash{getenv} --- copy from \texttt{env} into a variable
-%  or set the variable to a default value
 \item[Synopsis] \Tt{getenv} \It{name} ?\It{default}?
 \item[Description] The command copies the element of \Tt{env} with
   the given name into a variable of the same name. If the optional
@@ -1610,7 +1760,8 @@ overridden by calling \bras{} like
 %%%%%
 %%%%% include
 %%%%%
-\subsubsection{include --- source file only once}
+\subsection{include --- source file only once}
+\indextt{::bras::include}\indextt{include}
 \label{proc:include}
 \begin{Describe}
 %\item[Name] \Flash{include} --- source a specified file or the
@@ -1637,12 +1788,30 @@ overridden by calling \bras{} like
   \bras{} in the subdirectory alone and still having all global
   definitions of \Tt{../brasfile}.
 \end{Describe}
+%%%%%
+%%%%%
+%%%%%
+\subsection{install --- install a file}
+\indextt{::bras::install}\indextt{install}
+\label{proc:install}
+\begin{Describe}
+\item[Synopsis] \Tt{install} \It{target} \It{source} 
+  \It{\texttt{\{}perm \texttt{\{\}\}}}
+\item[Description] Installs a file \textit{source} as a file
+  \textit{target}. Before file \textit{source} is copied onto the
+  \textit{target}, the targets directory is made with with the command 
+  \texttt{[file mkdir]}. After copying, the targets access permissions 
+  are set to \textit{perm}, except if \textit{perm} is left to its
+  default, which is the empty string.
 
+  This command is used by the pattern rule defined in
+  \Indextt{install.rule} (see \ref{sec:install}).
+\end{Describe}
 %%%%%
 %%%%% report
 %%%%%
-\subsubsection{report --- callback for warnings and error messages}
-\label{proc:report}
+\subsection{report --- callback for warnings and error messages}
+\label{proc:report}\indextt{::bras::report}\indextt{report}
 \begin{Describe}
 %\item[Name] \Flash{report} --- print warnings and other type of output
 \item[Synopsis] \Tt{report} \It{type} \It{text} ?\It{newline}?
@@ -1667,10 +1836,11 @@ overridden by calling \bras{} like
   \texttt{puts} and suppresses the trailing newline only, if parameter 
   \texttt{newline} is explicitely set to $0$.
 \end{Describe}
+
 %%%%%
 %%%%% searchpath
 %%%%%
-\subsubsection{searchpath --- set or get search path}
+\subsection{searchpath --- set or get search path}
 \begin{Describe}
 %\item[Name] \Flash{searchpath} --- set or get the search path for the
 %  current directory
@@ -1695,29 +1865,21 @@ which you are building.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{thebibliography}{9}
-\bibitem[Miller 1997]{Mil97}
 
+\bibitem[Miller 1997]{Mil97}
 P.~Miller:
 \textit{Recursive Make Considered Harmful.} 
-\texttt{http://www.pcug\hspace{0pt}.org\hspace{0pt}.au/\~millerp/rmch/recu-make-cons-harm.html}
-%\texttt{http://www.canb\hspace{0pt}.auug\hspace{0pt}.org.au/\~{}millerp/rmch/recu-make-cons-harm.html} 
+\href{http://www.pcug.org.au/~millerp/rmch/recu-make-cons-harm.html}{http://www\hspace{0pt}.pcug\hspace{0pt}.org\hspace{0pt}.au/\~{}millerp/rmch/recu-make-cons-harm.html}
 is included in the \bras-distribution as
 \texttt{recu-make-cons-harm.ps.gz}
 
 \bibitem[Kirsch 2000]{Kir00}
 H.~Kirsch:
 \textit{Command Line Interpreter Generator.}
-\texttt{http://wsd.ii\-tb\hspace{0pt}.fhg.de/\~{}kir/clighome/}
+  \href{http://wsd.iitb.fhg.de/~kir/clighome/}{http://wsd.iitb\hspace{0pt}.fhg.de/\~{}kir\hspace{0pt}/clighome/}
 
 \end{thebibliography}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-\renewenvironment{theindex}{%
-  \renewcommand\item{\par\hangindent 40pt}
-  %\begin{multicols}{2}
-  \twocolumn
-  \section{Index}
-}{\onecolumn}
 \printindex
 \end{document}

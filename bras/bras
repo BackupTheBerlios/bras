@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.35 $, $Date: 2000/12/30 12:13:31 $
+# $Revision: 1.36 $, $Date: 2001/09/09 16:42:08 $
 ########################################################################
 
 ##
@@ -31,8 +31,8 @@ exec tclsh "$0" ${1+"$@"}
 ## behaviour of `make' as much as possible.
 ##
 
-## This addition to auto_path does not work if `bras' is a soft link,
-## but in fact I only really want it during development.
+## The following line will be or was edited during installation to
+## contain an absolute path to the installation of bras.
 set auto_path [concat [file dir [info script]] $auto_path]
 
 ########################################################################

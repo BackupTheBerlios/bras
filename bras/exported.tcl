@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.10 $, $Date: 2001/07/29 14:54:42 $
+# $Revision: 1.11 $, $Date: 2001/09/09 16:42:08 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -247,6 +247,18 @@ proc ::bras::consider {targets} {
 proc ::bras::forget { {pattern *} {dir *} } {
   foreach name [array names ::bras::Tinfo $pattern,$dir,done] {
     unset ::bras::Tinfo($name)
+  }
+}
+########################################################################
+##
+## Make directory for target, copy source to target and set
+## permissions of target as requested.
+proc ::bras::install {target source {perm ""}} {
+  file mkdir [file dir $target]
+  file delete -force $target
+  file copy -force $source $target
+  if {"$perm"!=""} {
+    file attributes $target -permission $perm
   }
 }
 ########################################################################

@@ -9,12 +9,24 @@ to the demonstrated features.
 
 The following examples are available:
 
+install --
+  is an example for the use of the pattern rule in install.rule.
+
+multiplatform1 --
+  shows a tiny setup to handle multi-platform builts.
+
 newpredicate -- 
-demonstrates how to write a new predicate (test) to use in rules.
+  demonstrates how to write a new predicate (test) to use in rules.
+
+updated --
+  a slight variation on the predicate [older] is [updated]. In
+  combination with the pseudo-command .relax. it behaves similar to
+  gnu make's .PHONY targets.
 
 varchanged --
-demonstrates how to use the predicate [varchanged], which returns true 
-if a variable's value was changed. In addition it contains a small
+  demonstrates how to use the predicate [varchanged], which returns true 
+  if a variable's value was changed. In addition it contains a small
+
 
 Have fun,
   Harald Kirsch

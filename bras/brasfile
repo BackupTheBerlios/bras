@@ -27,52 +27,55 @@ getenv LIBDIR [file join $prefix lib bras-$::bras::VERSION]
 ## Directory where to put assorted documentation files
 getenv DOCDIR [file join $prefix doc bras-$::bras::VERSION]
 
-## You may explicitely override this. However it would be much easier
-## to just inoke processing of the brasfile by running it like
-##   % the_correct_tclsh_executable bras
-getenv TCLSH [info nameofexecutable]
+## You may explicitely override this on the command line with
+## something like
+##    TCLSH=mytclsh
+## The value is entered into the main script to allow UNIX-like start
+## of the script as an executable file.
+getenv TCLSH tclsh8.0
+
+########################################################################
+include [file join $::bras::base install.rule]
+
+## Lists of files we want to install
+set BINTARGETS [file join $BINDIR bras 0755]
+
+foreach f [glob *.tcl *.rule .version] {
+  lappend LIBTARGETS [file join $LIBDIR $f 0644]
+}
+
+foreach f {bras.tex bras.ps bras.pdf COPYING-2.0 \
+	       recu-make-cons-harm.ps.gz} {
+  lappend DOCTARGETS [file join $DOCDIR $f 0644]
+}
+lappend DOCTARGETS [file join $DOCDIR examples 0755]
+
+set MANTARGETS [file join $MANDIR bras.1 0644]
+
+set ALLTARGETS [concat $BINTARGETS $LIBTARGETS $DOCTARGETS $MANTARGETS]
+
+
+searchpath {. doc}
 
 ########################################################################
 
-## This rule is the default. It installs everthing
-Always install {all} {
-  file mkdir $BINDIR $LIBDIR $MANDIR $DOCDIR
+## Delegate work to every target to be installed by means of the
+## pattern rule for installation loaded above from install.rule
+Make install {[updated $ALLTARGETS]} .relax.
 
-  ## to BINDIR
-  file copy -force bras.fixed [file join $BINDIR bras]
-  if {[string match unix $tcl_platform(platform)]} {
-    file attributes [file join $BINDIR bras] -permissions 0755
-  }
-  
-  ## to LIBDIR
-  eval file copy -force [glob *.tcl *.rule] .version $LIBDIR
-
-  ## to DOCDIR
-  file copy -force README ANNOUNCE \
-      doc/bras.tex doc/bras.ps doc/bras.pdf COPYING-2.0 \
-      doc/recu-make-cons-harm.ps.gz \
-      $DOCDIR
-  file copy -force \
-      examples/varchanged \
-      examples/newpredicate \
-      $DOCDIR
-
-  ## to MANDIR
-  file copy -force bras.1.fixed [file join $MANDIR bras.1]
-
-  file delete bras.1.fixed bras.fixed
-}
-
-Always all {bras.fixed bras.1.fixed} {
-}
+## We need a target which merely fixes
+## bras and bras.1 by entering some paths. This supports building of
+## an rpm where the built is run with different paths than the
+## install, which uses BUILD_ROOT.
+Make all {[updated {bras.fixed bras.1.fixed}]} .relax.
 
 ## Here we create bras.fixed, a version of bras only used during
 ## installation. It will have $LIBDIR edited into the right place.
 Newer bras.fixed bras {
   set out [open bras.fixed w]
   forfile {line n} bras {
-    if {$n==1} {
-      puts $out "\#!$TCLSH"
+    if {$n==3} {
+      puts $out "exec $TCLSH \"\$0\" \${1+\"\$@\"}"
       continue
     }
     switch -glob -- $line {
