@@ -1,0 +1,36 @@
+puts "msg: SearchPath, make bla.o in build from ../unix/bla.y via bla.c"
+puts "expect: cd /home1/kir/work/bras/Test1/build"
+puts "expect: making bla.c from ../unix/bla.y"
+puts "expect: making bla.o from bla.c"
+puts "expect: cd /home1/kir/work/bras/Test1"
+puts "expect: rm -rf build unix"
+
+
+exec rm -rf build unix
+exec mkdir -p build unix
+exec touch unix/bla.y
+
+PatternNewer .*\.o .c {
+  puts "making $target from $trigger"
+}
+PatternNewer .*\.c .y {
+  puts "making $target from $trigger"
+}
+
+## This rule forwards us to subdirectory build. The rules to obey
+## therein are declared below.
+Always all @build/all {
+  rm -rf build unix
+}
+
+## Change do build directory. The rules to obey therein a listed
+## below.
+cd build
+
+searchpath {. ../unix}
+
+Always all bla.o {
+}
+
+## for completeness
+cd ..
