@@ -67,9 +67,13 @@ proc ::bras::invokeCmd {rid Target nspace} {
   ## find the command to execute
   set cmd $Rule($rid,cmd)
   if {""=="$cmd"} {
+    foreach {x y bexp} $Rule($rid,bexp) {
+      lappend l $bexp
+    }
+    set l [join $l "|"]
     append msg \
 	"bras(warning) in `[pwd]': no command found to " \
-	"make `$Target' from `$Deps' (hope that's ok)"
+	"make `$Target' for `$l' (hope that's ok)"
     report warn $msg
     return 1
   }
