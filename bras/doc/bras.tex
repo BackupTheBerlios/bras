@@ -34,7 +34,7 @@ odd features. Most annoying to me are
 \item the lack of decent pattern matching.
 \end{itemize}
 
-It is undisputable that \textbf{the} feature of \texttt{make}, ---
+It is indisputable that \textbf{the} feature of \texttt{make}, ---
 rule based command execution --- is most helpful in many situations;
 in particular were it seems to be applied most often:
 conditional compilation of large programs.
@@ -48,7 +48,7 @@ no flames, please), I ended up with the present solution. A similar
 solution might be possible with other command languages.
 
 The following sections assume that you have a rough idea what \make\
-is all about and what it does. Maybe I plagiate an introductory
+is all about and what it does. Maybe I copy an introductory
 section from a \make\ manual here the other day, but until then
 \ldots.
 
@@ -119,7 +119,7 @@ a list of words and \textit{command} is (a list of) Tcl-command(s).
 The \textit{dependencies} may be empty as well as \textit{command}. If
 \textit{command} is empty, \bras\ substitutes a default command if it
 can find one as described in section~\ref{secSuffixAsDefCmd}. The
-command is considered to be emtpy, if its string length is zero. To
+command is considered to be empty, if its string length is zero. To
 prevent \bras\ from looking for a default command, use \verb|{ }|,
 i.e. a command containing some blanks.
 
@@ -155,7 +155,7 @@ rebuild one or more of them.
 \subsection{The \texttt{Exist}-rule}
 
 One thing that often annoys me using \make\ is, that it is not
-possible to write a decent rule to manage the existance of a
+possible to write a decent rule to manage the existence of a
 directory. Therefore I introduced the \texttt{Exist}-rule:
 \begin{quote}
   \texttt{Exist} \textit{target} \textit{dependencies} \textit{command}
@@ -334,7 +334,7 @@ defined with an empty command.
 
 I would like to point out that the two uses of pattern rules are
 totally unrelated, and that one could as well have introduced the
-concept of default commands explicitely. While creation of a new rule
+concept of default commands explicitly. While creation of a new rule
 from a pattern rule happens while \bras\ is reasoning about which rules
 must be triggered in which order, the extraction of default commands
 happens later when the rules are actually triggered. 
