@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.15 $, $Date: 2000/03/08 22:36:14 $
+# $Revision: 1.16 $, $Date: 2000/03/22 12:21:51 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -204,7 +204,7 @@ proc ::bras::considerOne {target} {
   ## check for dependeny loops
   if {[info exist Considering($target,[pwd])]} {
     puts stderr \
-	"$argv0: dependency loop detected for `$target' in `[pwd]'"
+	"bras: dependency loop detected for `$target' in `[pwd]'"
     exit 1
   }
 
