@@ -152,7 +152,8 @@ proc Install {} {
       -e "s,|SRCBASE|,$clean(lib),g" \
       -e "s,|DOC|,$clean(doc),g" \
       bras.1 >$man/bras.1
-
+  exec chmod 0644 $man/bras.1
+  
   ## copy documentation and example
   exec cp README doc/bras.ps doc/bras.tex Brasfile $doc
 

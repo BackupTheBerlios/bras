@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.10 $, $Date: 1998/08/07 14:11:19 $
+# $Revision: 1.11 $, $Date: 1998/08/11 10:26:14 $
 #
 ########################################################################
 
@@ -84,12 +84,6 @@ Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
   ship -d $BRASHOME -I doc/bras.ps -e bras bras.spec
 }
 
-Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
-  cd [glob ~/tmp]
-  rpm -tb $BRASHOME/$BRASTARGZ
-  cp [glob ~/tmp/RPMS/i386/$BRASRPM] $target
-}
-
 ## This rule works along the same lines as the one above.
 Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
   cd $BRASHOME
@@ -97,6 +91,14 @@ Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
   tar xzfO $BRASTARGZ $x/CHANGES >CHANGES
 }
 
+Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
+  cd [glob ~/tmp]
+  rpm -tb $BRASHOME/$BRASTARGZ
+  cp [glob ~/tmp/RPMS/i386/$BRASRPM] $target
+}
+
+Always rpm $BRASHOME/$BRASRPM {
+}
 
 ## The following three rules are all similar to the two above.
 

@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.2 $, $Date: 1998/08/06 18:09:12 $
+## version I am shipping from cvs. (kir) $Revision: 1.3 $, $Date: 1998/08/11 10:26:14 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -39,12 +39,12 @@ dvips -o bras.ps bras.dvi
 
 %install
 ## There is an install script which understands a prefix ala configure
-mkdir -p $RPM_BUILD_ROOT/usr/local/bin
-mkdir -p $RPM_BUILD_ROOT/usr/local/man/man1
-mkdir -p $RPM_BUILD_ROOT/usr/local/doc
+mkdir -p $RPM_BUILD_ROOT/usr/bin
+mkdir -p $RPM_BUILD_ROOT/usr/man/man1
+mkdir -p $RPM_BUILD_ROOT/usr/doc
 
 export RPM_BUILD_ROOT
-./install.wish $RPM_BUILD_ROOT/usr/local/bras-%{VERSION} $RPM_BUILD_ROOT/usr/local
+./install.wish $RPM_BUILD_ROOT/usr/lib/bras-%{VERSION} $RPM_BUILD_ROOT/usr
 
 %post
 ## Fix the path to the tclsh
@@ -52,7 +52,7 @@ export RPM_BUILD_ROOT
 # to rpms database locking (stupid)
 # TCLSH=#\!`rpm -ql tcl|grep /tclsh$`
 TCLSH=#\!`which tclsh`
-p=/usr/local/bras-%{VERSION}
+p=/usr/lib/bras-%{VERSION}
 cp $p/bras $p/bras.orig
 sed -e "1s,.*,$TCLSH,"  $p/bras.orig >$p/bras
 rm $p/bras.orig
@@ -61,11 +61,33 @@ rm $p/bras.orig
 
 
 %files
-%doc doc/bras.ps
-%doc README
-%doc CHANGES
-%doc doc/bras.tex 
-/usr/local/bin/bras
-/usr/local/man/man1/bras.1
-/usr/local/bras-%{VERSION}
+%attr(-,root,root) %doc doc/bras.ps
+%attr(-,root,root) %doc README
+%attr(-,root,root) %doc CHANGES
+%attr(-,root,root) %doc doc/bras.tex
+
+%attr(-,root,root) /usr/bin/bras
+%attr(-,root,root) /usr/man/man1/bras.1
+
+%attr(-,root,root) %dir /usr/lib/bras-%{VERSION}
+
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/alwaysRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/brasUtils.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/consider.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/defaultCmd.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/defrule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/dependsFileRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/evalCmds.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/existRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/lastMinuteRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/newerRule.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/sourceDeps.tcl
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.Linux
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.SunOS
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.1
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/README
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.ps
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.tex
+%attr(-,root,root) /usr/lib/bras-%{VERSION}/Brasfile
 
