@@ -1,4 +1,4 @@
-puts "msg: checking Newer rule with dependency newer"
+puts "msg: Newer rule with dependency newer"
 puts "expect: bli <- blu"
 
 

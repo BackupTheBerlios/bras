@@ -1,4 +1,4 @@
-puts "msg: checking Exist rule"
+puts "msg: Exist rule"
 puts "expect: creating XxXxXx"
  
 ## make a file which exists once rule evalutation starts

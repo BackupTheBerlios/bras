@@ -1,4 +1,4 @@
-puts "msg: checking dependency in foreign directory, to be rebuild"
+puts "msg: Dependency in foreign directory, to be rebuild"
 puts "expect: cd /home1/kir/work/bras/Test2"
 puts "expect: file1"
 puts "expect: cd /home1/kir/work/bras/Test1"

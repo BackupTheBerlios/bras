@@ -1,0 +1,15 @@
+puts "msg: Several targets in one rule (simple case)"
+
+puts "expect: making cmdline.c and cmdline.h"
+puts "expect: all <- cmdline.h cmdline.c"
+
+Newer all {cmdline.h cmdline.c} {
+  puts "all <- $trigger"
+}
+
+Newer {cmdline.h cmdline.c} {cmdline.cli} {
+  puts "making cmdline.c and cmdline.h"
+}
+
+Exist cmdline.cli {} {
+}

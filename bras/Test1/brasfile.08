@@ -1,4 +1,4 @@
-puts "msg: checking Always rule"
+puts "msg: Always rule"
 puts "expect: bli"
 puts "expect: bla"
 

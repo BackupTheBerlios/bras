@@ -1,4 +1,4 @@
-puts "msg: checking deep nesting with nothing to do"
+puts "msg: Deep nesting with nothing to do"
 puts "expect: rm file5 file4 file3 file2 file1"
 
 exec touch file5 file4 file3 file2 file1

@@ -1,0 +1,19 @@
+puts "msg: Several targets in rule, one with private dep, to be made"
+
+puts "expect: making cmdline.c and cmdline.h"
+puts "expect: all <- cmdline.c cmdline.h"
+
+Newer all {cmdline.c cmdline.h} {
+  puts "all <- $trigger"
+}
+
+Newer {cmdline.h cmdline.c} {} {
+  puts "making cmdline.c and cmdline.h"
+}
+
+Dependencies cmdline.c {A B}
+
+Exist cmdline.cli {} {
+}
+
+Exist {A B} {} { }

@@ -1,4 +1,4 @@
-puts "msg: checking dependency in foreign directory, nothing to do"
+puts "msg: Dependency in foreign directory, nothing to do"
 puts "expect: rm file1 ../Test2/file1
 
 

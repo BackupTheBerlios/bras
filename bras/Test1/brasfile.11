@@ -1,4 +1,4 @@
-puts "msg: checking Newer rule with non-existing target"
+puts "msg: Newer rule with non-existing target"
 puts "expect: creating bla"
 puts "expect: bli <- bla blu"
 

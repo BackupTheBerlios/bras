@@ -1,13 +1,12 @@
-puts "msg: Checking merge of dependencies for targets with more than one rule"
+puts "msg: Dependencies-command"
 puts "expect: A B C"
 
 
-Always check {A} {}
-Always check {B} {
+Always check {A} {
   puts $deps
 }
-Always check {C} {}
+Dependencies check {B C}
 
-Always {A} {} {}
-Always {B} {} {}
-Always {C} {} {}
+Exist A {} { }
+Exist B {} { }
+Exist C {} { }

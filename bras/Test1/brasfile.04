@@ -1,4 +1,4 @@
-puts "msg: checking default command generation from pattern rule"
+puts "msg: Default command generation from pattern rule"
 puts "expect: a.y"
 
 PatternNewer .*\.x .y {

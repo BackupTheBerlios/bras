@@ -1,4 +1,4 @@
-puts "msg: checking rule generation from pattern rule"
+puts "msg: Rule generation from pattern rule"
 puts "expect: aaXxXaa <- aaYyYaa"
 puts "expect: all <- aaXxXaa"
 
