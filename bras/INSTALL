@@ -26,3 +26,9 @@ o run `install.wish'
 
 				That easy?
 					I hope so!
+                                        Harald Kirsch
+
+
+P.S.: The script `dotest' is not intended for general use yet. It
+contains absolute path names in the expected output and will therefore
+almost certainly not work on your computer. So please don't try.

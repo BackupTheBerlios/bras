@@ -1,6 +1,35 @@
 #!/bin/sh
 #\
 exec tclsh "$0" "$@"
+
+
+
+set host [exec uname -n]
+
+## If you feel that you cannot live any more with running these test,
+## the change the 1 in the `if' below to a 0.
+##                                            You really shouldn't.
+if {1 && ("$host"!="Gauss" || "[pwd]"!="/home1/kir/work/bras")} {
+  puts stderr "\
+\n\n\n\n\n\n\n\nHi there,
+
+it is nice that you like to run the tests, but I am afraid that it
+does not make much sense. The tests are set up to be run on my machine in
+a certain directory. They don't run on in another directory because
+they contain absolute path names. 
+
+If you insist on running the tests, then you may of course edit this
+script. But then certainly some test fail. Please don't send me mail
+about that.
+
+Thanks,
+   Harald Kirsch
+
+P.S.: I hope to have tests independent of absolute path names in the
+next release.
+"
+exit 1
+}
 ########################################################################
 ## 
 ## Run prefabricated tests on bras.
