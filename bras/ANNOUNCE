@@ -4,61 +4,28 @@
 		     Rule Based Command Execution
 			       with Tcl
 
-I am pleased to announce version 0.99.2 of bras. This is supposed to
+I am pleased to announce version 0.99.5 of bras. This is supposed to
 be a beta version in preparation of 1.0.0.
 
 If you don't know bras: go to the end of this message for more info.
 
 
 
-MAJOR CHANGES SINCE 0.8.0
+MAJOR CHANGES SINCE 0.99.4
 
-1) Rules are totally different now although compatibility could be
-maintained. A typical rule looks like
+Mainly the support for bras as a package used in Tk-applications was
+improved. This includes:
+-- [forget] tells bras to forget about targets it considered already
+thereby enabling it to start the reasoning again after the user
+changed some settings.
+-- All console output is produced by one proc which can be easily
+redefined to send output e.g. into a widget.
+-- The package contains no longer any calls to [exit]. Instead fatal
+errors throw an exception.
+-- New predicate [varchanged] returns true, if the value of a given
+variable changed since the last call to this predicate.
+-- All this is documented.
 
-  Make bras.dvi {[older bras.dvi bras.tex]} {
-    latex bras.tex
-  }
-
-Note that the 2nd parameter of `Make' can be just any boolean
-expression. The boolean expression is evaluated only, if the target of
-the rule, `bras.dvi' is considered for update. If the expression
-yields true, the command, i.e. `latex bras.tex', is executed. The
-predicate `older' is one of several predefined
-predicates. Implementing new predicates is a easy as writing a
-Tcl-proc. 
-
-
-2) Compatibility with previously available rules like `Always',
-`Exist' and `Newer' is maintained. Internally they are mapped onto a
-call to `Make'.
-
-
-3) Bras is now *also* a Tcl-package. It should suffice to put
-
-   package require bras
-   namespace import ::bras::*
-
-at the top of your tclsh-, wish-, itcl-, tcl-, bltwish-script to get
-access to rule base command execution. Example: In some kind of editor
-there are several places where you want to be sure that your current
-document is saved to file. Therefore you write a rule along the lines
-of 
-
-   Make $myfile {[file-not-currently-saved $target]} {
-      save-the-file $target
-   }
-
-and whenever you want to be sure that the file is indeed saved, you
-simply write:
-
-   consider $myfile
-
-Other interesting applications are engineering applications requiring
-lengthy computations with several intermediate results.
-
-
-  
 WHERE CAN I GET IT?
 
 The distribution  can be found at
@@ -90,7 +57,8 @@ o just any boolean expression can be used to define when a target is
 o pattern rules which deserve the name;
 o explicit invocation of the reasoning process possible;
 
-Send comments and requests for enhancements to kir@iitb.fhg.de .
+Send comments and requests for enhancements to
+kirschh@lionbioscience.com .
  
 # CVS:
-# $Revision: 1.9 $, $Date: 2000/03/14 20:40:16 $
+# $Revision: 1.10 $, $Date: 2000/05/28 12:08:29 $
