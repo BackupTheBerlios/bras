@@ -34,7 +34,7 @@ getenv CFLAGS {}
 # directory, the .dc-file will not end up over there, but instead next 
 # to the .o-file.
 #
-PatternMake {.*\.o} .c {[dcold $target [file root $target].dc]} {
+PatternMake {.*\.o(bj)?} .c {[dcold $target [file root $target].dc]} {
   true $deps
   $CC -o $target -c $CFLAGS [lindex $deps 0]
 }
