@@ -16,7 +16,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.32 $, $Date: 2001/09/09 16:42:10 $
+% $Revision: 1.33 $, $Date: 2001/12/30 09:02:10 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -331,18 +331,18 @@ is~1. Predicate \texttt{older} uses this in its test, but
 
 Before the predicate returns the result of its test, it has two more
 responsibilities. 
-\begin{itemize}
-\item First it has to append an informative string to the variable
+\begin{enumerate}
+\item It has to append an informative string to the variable
   \Indextt{reason} with a leading \verb|\n|. This string is printed
   when \bras{} is called with option
   \texttt{-d}.\index{option!-d@\texttt{-d}}  
-\item Second, it must not forget to update the variables registered
+\item It must not forget to update the variables registered
   with \Indextt{installPredicate}. Because more than one predicate may
   be called during evaluation of a rule's condition, the predicate
   must be careful not to overwrite these variables and should usually
   append to them. Currently there is no safe way to register a private
   variable for a predicate to be passed to the rule's command.
-\end{itemize}
+\end{enumerate}
 
 The return value of a predicate must always be a boolean value.
 
@@ -630,9 +630,9 @@ as a target. In particular \texttt{@../libfasel/lib\-fasel.a} tells
 \bras{} that there is a subdirectory \texttt{../libfasel} with a
 \texttt{brasfile} which describes how to handle the target
 \texttt{libfasel.a} locally in that directory. \Bras{} reads
-\texttt{../libfasel/bras\-file} and acts accordingly. In particular
-\bras{} changes to directory \texttt{../libfasel} before executing any
-command associated with a rule in \texttt{../libfasel/brasfile}.
+\texttt{../libfasel/bras\-file}. Then it changes to directory
+\texttt{../libfasel} before executing any commands for rules in
+\texttt{../libfasel/brasfile}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Including Files Only Once}
@@ -856,15 +856,27 @@ overriding the respective values from the environment.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Read \texttt{brasfile}}
 
-The \texttt{brasfile} is read and executed. Here \textit{execution}
-denotes execution in the sense of Tcl. Every rule is actually a
-Tcl-\texttt{proc} which \textbf{only records} the rule in an internal
-database. In particular, no command specified in a rule is executed.
+The \brasfile\ is read and executed. This is very similar to what the
+\texttt{source}-command does. However, sourcing occurs in a dedicated
+(anonymous) namespace which is tied to the directory in which the
+\brasfile\ is found. Consequently, procedures and variables set in the
+\brasfile\ will end up in that \Index{namespace} if they are not
+explicitly put into another one. This automatically shields the
+operations of the the \brasfile{}s in different directories from each
+other. For example it allows to reuse the variable name
+\texttt{SOURCES} in every \brasfile\ of a multi directory built
+environment. See \texttt{linkvar} (p.~\pageref{proc:linkvar}) and
+\texttt{dirns} (p~\pageref{proc:dirns} for ways to communicate
+information between the directory related namespaces.
 
-Beside rules, every Tcl-command can be used in a \texttt{brasfile}.
-They are executed as in every other Tcl-script. Useful examples are
-setting global variables or \texttt{if}-statements including or
-excluding system-specific rules.
+The command to define rules, \texttt{Make}, \textbf{only records}
+rules in an internal database. In particular, no command specified in
+a rule is executed.
+
+Beside \texttt{Make}, every Tcl-command can be used in a
+\texttt{brasfile}. They are executed as in every other Tcl-script.
+Useful examples are setting global variables or \texttt{if}-statements
+including or excluding system-specific rules.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning process}
@@ -910,37 +922,29 @@ section~\ref{secSuffixAsDefCmd}. If no command can be made \bras{}
 merely prints a warning later, if it is decided that the target needs
 an update.
 
-%$\bullet$ If a rule was created automatically for the target, its
-%dependencies have already been looked up along the search path
-%(section~\ref{sec:searchpath}). But explicit dependencies are now
-%looked up along the search path. All dependencies are then subject to
-%dependency generation (section~\ref{secDepGen}).
-
 $\bullet$ All conditions of a rule are evaluated in turn and their
 results are combined with a logical disjunction (or). Predicates
 called during that evaluation will eventually expand their arguments
 along the search path\indextt{searchpath} and pass them recursively to
-the reasoning process before they perform their own test.
+the reasoning process before they perform their own test. The
+predicates are executed in the \Index{namespace} in which the
+\brasfile\ was sourced. Consequently they have access to all variables
+which are defined in the \brasfile.
 
 $\bullet$ Finally, the rule's command is
 executed\index{command!execution} if the disjunction of the conditions
 returns a non-zero value. Details on how this is done can be found in
 section~\ref{secCmdExec}.
 
-%Versions of \bras{} up to and including 0.6.0 merely recorded the
-%command on a list. Only after all reasoning was done was this list
-%executed. Newer versions immediately execute the command.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Command execution}
 \index{command!execution}
 \label{secCmdExec}
 
-All commands derived from rules are executed in a private namespace
-with a meaningless name (i.e.\ the name is automatically
-generated). Consequently they have access to all global variables. In
-addition the namespace contains the following variables set up for
-every command.
+All commands derived from rules are executed in the \Index{namespace}
+of the \brasfile\ in which they were defined. This is also true for
+commands which were derived via pattern rules. Before the command is
+executed, the namespace will have the following variables set.
 
 \begin{description}
 \item[\Indextt{targets}] contains the list of targets for that rule,
@@ -1708,6 +1712,30 @@ rather expensive procedure \texttt{cvsknown} is run. When other
 targets are considered, it is never executed.
 \end{Describe}
 
+
+%%%%%
+%%%%% dirns
+%%%%%
+\subsection{dirns --- find namespace associated with directory}
+\indextt{::bras::dirns}\indextt{dirns}
+\label{proc:dirns}
+\begin{Describe}
+\item[Synopsis] \Tt{dirns} \It{dir}
+\item[Description] Retrieves the name of the namespace associated with
+  the \brasfile\ in directory \textit{dir}. For this to work, the
+  \brasfile\ in \textit{dir} must have been sourced already either
+  implicitly by following an \texttt{@}-target or explicitly by
+  \texttt{include @\textit{dir}}.
+\item[Example]\begin{verbatim}
+  # Use a configuration option defined in the brasfile 
+  # of the parent directory to change behaviour.
+  if {[set [dirns ..]::XYZOPTION]} {
+    ...
+  } else {
+    ...
+  }
+\end{verbatim}
+\end{Describe}    
 %%%%%
 %%%%% forget
 %%%%%
@@ -1788,8 +1816,9 @@ overridden by calling \bras{} like
   \bras{} in the subdirectory alone and still having all global
   definitions of \Tt{../brasfile}.
 \end{Describe}
+
 %%%%%
-%%%%%
+%%%%% install
 %%%%%
 \subsection{install --- install a file}
 \indextt{::bras::install}\indextt{install}
@@ -1806,6 +1835,26 @@ overridden by calling \bras{} like
 
   This command is used by the pattern rule defined in
   \Indextt{install.rule} (see \ref{sec:install}).
+\end{Describe}
+
+%%%%%
+%%%%% linkvar
+%%%%%
+\subsection{linkvar --- link variable to other namespace}
+\indextt{::bras::linkvar}\indextt{linkvar}
+\label{proc:linkvar}
+\begin{Describe}
+\item[Synopsis] \Tt{linkvar} \It{varname} \It{dir}
+\item[Description] Make the variable with name \textit{varname} an
+  alias for the variable of the same name in the namespace associated
+  with the \brasfile\ in directory \textit{dir}. For this to work, the
+  \brasfile\ in \textit{dir} must have been sourced already either
+  implicitly by following an \texttt{@}-target or explicitly by
+  \texttt{include @\textit{dir}}.
+\item[Example]\begin{verbatim}
+  # use same CFLAGS as in parent directory
+  linkvar CFLAGS ..
+\end{verbatim}
 \end{Describe}
 %%%%%
 %%%%% report

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.12 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.13 $, $Date: 2001/12/30 09:02:10 $
 ########################################################################
 
 ##
@@ -28,7 +28,8 @@
 ##
 
 namespace eval ::bras {
-  namespace export configure getenv searchpath include consider dumprules
+  namespace export configure getenv searchpath \
+      include consider dumprules dirns linkvar
 }
 
 ########################################################################
@@ -93,6 +94,37 @@ proc ::bras::getenv {_var {default {}} } {
 }
 ########################################################################
 ##
+## Fetch the namespace associated with a directory. Only directories
+## for which a brasfile was already sourced in have an associated
+## namespace. For others, an error is generated. 
+##
+proc ::bras::dirns {dir} {
+  variable Namespace
+
+  set here [pwd]
+
+  ## We have to change to that directory to get the normalized
+  ## answer from pwd. 
+  cd $dir 
+  if {[info exist Namespace([pwd])]} {
+    set ns $Namespace([pwd])
+    cd $here
+    return $ns
+  }
+  return -code error "no namespace available for `$dir'"
+}
+########################################################################
+##
+## Link a variable to the variable of the same name in the namespace
+## associated with another directory. The same restrictions apply to
+## the directory as for dirns.
+##
+proc ::bras::linkvar {varname dir} {
+  uplevel \#1 \
+      upvar \#0 \[dirns [list $dir]\]::[list $varname] [list $varname]
+}
+########################################################################
+##
 ## Every directory with its own brasfile has its own search path.
 ## Without arguments, the current path is unchanged.
 ## The new path is always returned.
@@ -125,11 +157,12 @@ proc ::bras::searchpath { {p {never used}} } {
 ##   as if an `@'-target had let to that directory.
 ##
 ##   If the `name' does not start with `@', it must be the name of an
-##   existing readable file. This one is simpy sourced in.
+##   existing readable file.
 ##
 proc ::bras::include {name} {
   variable Known
   variable Brasfile
+  variable Namespace 
 
   if {[string match @* $name]} {
     set name [file join [string range $name 1 end] $Brasfile]
@@ -165,14 +198,19 @@ proc ::bras::include {name} {
   if {$haveAt} {
     ## @-names are allowed not to exist.
     if {[file exist $file]} {
-      gobble $file
+      ## Set up the namespace for this directory
+      set Namespace($pwd) ::ns[nextID]
+      ##set Namespace($pwd) ::[file tail $pwd]
+      uplevel \#0 namespace eval $Namespace($pwd) \
+	  [list namespace import ::bras::p::*]
+      gobble $file $Namespace($pwd)
     } else {
       report warn "bras warning: no `$Brasfile' found in `[pwd]'"
     }
     cd $oldpwd
   } else {
     cd $oldpwd
-    gobble $name
+    gobble $name ::
   }
   return 1
 }
@@ -202,7 +240,12 @@ proc ::bras::consider {targets} {
       set procname ""
     } else {
       set caller [info level -1]
-      set procname [uplevel namespace which [lindex $caller 0]]
+      if {"$caller"==""} {
+	set caller "global invocation"
+	set procname ""
+      } else {
+	set procname [uplevel [list namespace which [lindex $caller 0]]]
+      }
     }
     if {![string match ::bras::* $procname]} {
       dmsg "=> on behalf of `$caller':"

@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.38 $, $Date: 2001/10/21 17:28:10 $
+# $Revision: 1.39 $, $Date: 2001/12/30 09:02:10 $
 ########################################################################
 
 ##
@@ -37,7 +37,7 @@ exec tclsh "$0" ${1+"$@"}
 ## one in auto_path.
 ##
 namespace eval ::bras {}
-set ::bras::base .
+set ::bras::base [file dir [info script]]
 set auto_path [concat $::bras::base $auto_path]
 package require bras
 namespace import ::bras::\[A-Za-z\]*
@@ -134,7 +134,8 @@ proc ::bras::main {argc args} {
   }
 
   ## Read the rule file
-  include $::bras::Brasfile
+  #include $::bras::Brasfile
+  include @.
 
   if {$options(-p)} {
     ::bras::dumprules

@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 2001/10/07 17:38:35 $
+# $Revision: 1.10 $, $Date: 2001/12/30 09:02:10 $
 ########################################################################
 ##
 ## This files contains 
@@ -119,7 +119,12 @@ namespace eval ::bras {
   ## is an array indexed by [pwd],<name> . If a certain index exists,
   ## <name> is the result of an expansion along brasSearchPath and it
   ## will not be expanded again.
-
+  
+  ## Namespace
+  ## is an array indexed by [pwd] holding a unique namespace name like 
+  ## ::ns123 used as an execution environment for the Brasfile from
+  ## [pwd]. 
+  
   ## nspace
   ##   internal variable holding the name of the namespace used for
   ##   the next set of predicates and commands. A namespace of this
@@ -239,17 +244,18 @@ proc ::bras::report {type text {newline 1} } {
 ########################################################################
 ##
 ## gobble
-##   a wrapper around `source $file' to handle errors gracefully
+##   a wrapper around `source $file' to execute the sourced file in
+##   its own namespace and handle errors gracefully
 ##
 ## In case of error, the line "---SNIP---" is introduced on top of the 
 ## error stack. Everthing after the first "---SNIP---" is entered onto 
 ## the stack later by bras-internals and can be deleted before it is
 ## presented to the user.
 ##
-proc ::bras::gobble {file} {
+proc ::bras::gobble {file ns} {
   global errorInfo errorCode
 
-  if {[catch "uplevel #0 source $file" msg]} {
+  if {[catch "uplevel #0 {namespace eval $ns {source $file}}" msg]} {
     ## strip the last 5 lines off the error stack
     set ei [split $errorInfo \n]
     set l [llength $ei]
