@@ -1,12 +1,9 @@
-puts "msg: two rules for one target: ClearDeps, ClearCmd, ClearPreqs"
+puts "msg: two rules for one target: ClearDeps, ClearCmd"
 puts "expect: deps = `dep2'"
-puts "expect: cmd = `"
-puts "expect: dummy command'"
-puts "expect: preq = `preq'"
-puts "expect: preq = `'"
+puts "expect: cmd = `dummy command'"
 
 
-Newer X {dep // preq} {first command}
+Newer X {dep} {first command}
 
 ClearDeps X
 ClearCmd X
@@ -15,9 +12,5 @@ Newer X {dep2} {dummy command}
 
 puts "deps = `[GetDeps X]'"
 puts "cmd = `[GetCmd X]'"
-puts "preq = `[GetPreqs X]'"
-
-ClearPreqs X
-puts "preq = `[GetPreqs X]'"
 
 exit 0

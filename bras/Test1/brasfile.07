@@ -8,14 +8,14 @@ puts "expect: rm -f bla"
 exec touch bla
 
 ## an Exist-rule which must be executed
-Exist XxXxXx bla {
+Exist XxXxXx {
   puts "creating $target"
   exec rm -f bla
 }
 
 ## This rule should not be executed, although its dependency does not
 ## exist.  
-Exist bla {piiiiiiop} {
+Exist bla  {
   puts "this should not happen"
 }
 

@@ -6,7 +6,7 @@ puts "expect: Newer B.c B.h"
 
 
 ## A dummy rule 
-Exist X {} { }
+Exist X { }
 
 ## We generate the dependency file ourselves, because you really never
 ## know, how to call a C compiler

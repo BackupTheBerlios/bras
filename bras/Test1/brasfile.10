@@ -27,6 +27,6 @@ Newer bla {} {
   touch bla
 }
 
-Exist blu {} {
+Exist blu {
   puts "this cannot happen"
 }

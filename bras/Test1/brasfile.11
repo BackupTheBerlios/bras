@@ -20,6 +20,6 @@ Newer bla {} {
   touch $target
 }
 
-Exist blu {} {
+Exist blu {
   puts "this cannot happen"
 }

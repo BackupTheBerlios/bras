@@ -3,7 +3,8 @@
 # This file is part of bras, a program similar to the (in)famous
 # `make'-utitlity, written in Tcl.
 #
-# Copyright (C) 1996 Harald Kirsch, (kir@iitb.fhg.de)
+# Copyright (C) 1996, 1997, 1998, 1999
+#                    Harald Kirsch, (kir@iitb.fhg.de)
 #                    Fraunhofer Institut IITB
 #                    Fraunhoferstr. 1
 #                    76131 Karlsruhe
@@ -22,15 +23,24 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1999/07/24 11:18:23 $
 ########################################################################
 
-proc Defdexpand {procname rexp targetname depname body} {
+#
+# How to run clig to create a command line parser.
+# You may obtain clig at http://wsd.iitb.fhg.de/~kir/clighome/
+#
+# Worth to note here is how a pattern rule looks the script of which
+# generates two files at the same time, namely a .c and a .h .
 
-  set rexp ^${rexp}\$
-  set ::bras::Ideps(list) [linsert $::bras::Ideps(list) 0 $rexp]
-  set ::bras::Ideps($rexp) $procname
-  
-  proc $procname [list $targetname $depname] $body
+getenv CC cc
+getenv CFLAGS {}
+
+PatternNewer {.*\.[ch]} .cli {
+  set base [file rootname $target]
+  clig [lindex $deps 0] -o $base
+  markasdone $base.c $base.h
 }
 ########################################################################
+##### Local Variables: #
+##### mode:tcl #
+##### End: #

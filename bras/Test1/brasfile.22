@@ -28,6 +28,6 @@ Newer {X Y} {X.o Y.c} {
   rm -f X.rrr Y.c X X.o
 }
 
-Exist Y.c {} {
+Exist Y.c {
   puts "this should not be called because it exists"
 }

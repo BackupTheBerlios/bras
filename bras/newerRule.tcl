@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.8 $, $Date: 1999/06/03 18:01:04 $
+# $Revision: 1.9 $, $Date: 1999/07/24 11:18:24 $
 ########################################################################
 
 ########################################################################
@@ -37,9 +37,12 @@
 ## non-existing dependency, i.e. this dependency is no reason to
 ## remake the target.
 ##
-Defrule Newer {rid target _reason depInfo} {
+Defrule Newer {rid target _reason inDeps} {
   upvar $_reason reason
   global brasOpts
+
+  ## Consider all dependencies in turn
+  set depInfo [::bras::listConsider $inDeps]
 
   set reason ""
   set res 0
@@ -97,6 +100,6 @@ Defrule Newer {rid target _reason depInfo} {
     return 0
   }
 
-  return [bras.invokeCmd $rid $target $deps $trigger]
+  return [::bras::invokeCmd $rid $target $deps $trigger]
 
 }

@@ -1,5 +1,5 @@
 ## This brasfile is called via the equivalent file in ../Test1
 
-Exist file1 {} {
+Exist file1 {
   puts $target
 }

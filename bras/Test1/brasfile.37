@@ -25,7 +25,7 @@ close $f
 ## fake the .o-file
 exec touch xxx.o
 
-Always all {xxx.o} {
+Always all xxx.o {
   rm -f xxx.D xxx.o xxx.c pup.h bla.h
 }
 

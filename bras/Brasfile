@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.13 $, $Date: 1999/02/11 19:46:06 $
+# $Revision: 1.14 $, $Date: 1999/07/24 11:18:20 $
 #
 ########################################################################
 
@@ -47,8 +47,12 @@ set env(CVSROOT) /zip/CVS
 ## all subdirectories managed by CVS.
 foreach x [exec find . -name Entries -print] {
   set subdir [file dir [file dir $x]]
-  foreach name [exec awk {BEGIN {FS="/";} {print $2}} $x] {
-    lappend CVSFILES $subdir/$name
+  set in [open $x r]; set lines [split [read $in] \n]; close $in
+  foreach line $lines {
+    set entry [split $line /]
+    if {[lindex $entry 2]>=0.0} {
+      lappend CVSFILES [file join $subdir [lindex $entry 1]]
+    }
   }
 }
 

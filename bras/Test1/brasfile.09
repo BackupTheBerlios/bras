@@ -20,10 +20,10 @@ Newer bli {bla blu} {
   rm -f bla bli blu
 }
 
-Exist bla {} {
+Exist bla {
   puts "*** this cannot happen"
 }
 
-Exist blu {} {
+Exist blu {
   puts "*** this cannot happen"
 }

@@ -15,15 +15,15 @@ proc GenDepYyY {target} {
   return $res
 }
 
-PatternAlways .*XxX.* {
+PatternAlways .*XxX.* YyY {
   puts "$target"
 }
 
 Always all aaXxXaa {
-  puts "$target <- $preq"
+  puts "$target <- aaXxXaa"
   exec rm aaYyYaa
 }
 
-Exist aaYyYaa {} {
+Exist aaYyYaa {
   puts "this cannot happen"
 }

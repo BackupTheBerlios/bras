@@ -1,5 +1,5 @@
 puts "msg: Dependency loop detection"
 puts "expect: bras: dependency loop detected for `t2' in `/home1/kir/work/bras/Test1'"
 
-Always t1 t2 {}
-Always t2 t2 {}
+Newer t1 t2 {}
+Newer t2 t2 {}

@@ -52,7 +52,16 @@ proc bras.lastMinuteRule {target dind} {
 
   set lastID [expr $brasPrule(nextID)-1]
  
-  set reason "trying to make pattern rule for target `$target'"
+  ## If this was called to only generate a command, target has
+  ## already a rule and we can only use pattern-rules the type of
+  ## which matches the type of the registered rule for $target.
+  if {[info exist brasTinfo($target,[pwd],rule)]} {
+    set reason "trying to find a command to make `$target'"
+    set type $brasRule($brasTinfo($target,[pwd],rule),type)
+  } else {
+    set reason "trying to make pattern rule for target `$target'"
+    set type *
+  }
 
   ## In the first step, we check if there is a rule which matches the
   ## target and generates a dependency which exists as a file
@@ -64,6 +73,9 @@ proc bras.lastMinuteRule {target dind} {
     ## This rule might have been deleted.
     if { ![info exist brasPrule($id,target)] } continue
     
+    ## match the type
+    if {![string match $type $brasPrule($id,type)]} continue
+
     ## match the target
     if {![regexp "^$brasPrule($id,target)\$" $target]} continue
 
@@ -104,6 +116,7 @@ proc bras.lastMinuteRule {target dind} {
 
     lappend activeRules $id $dep
   }
+
   if {$brasOpts(-d) && ""!="$reason"} {bras.dmsg $dind $reason}
 
   ## If we did not find a rule-id yet, go recursive
@@ -131,11 +144,14 @@ proc bras.lastMinuteRule {target dind} {
   }
 
   ## If we arrive here, ruleID>=0 denotes the rule to use.  
-  $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
+  bras.enterRule $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
 
   if $brasOpts(-d) {
-    #if {""!="$reason"} {bras.dmsg $dind $reason}
-    set msg "creating $brasPrule($id,type)-rule "
+    if {"$type"!="*"} {
+      set msg "adding command to $brasPrule($id,type)-rule "
+    } else {
+      set msg "creating $brasPrule($id,type)-rule "
+    }
     append msg "`$target' <- `$dep'"
     bras.dmsg $dind $msg
   }
@@ -143,45 +159,3 @@ proc bras.lastMinuteRule {target dind} {
   return 1
 }
 ########################################################################
-##
-## bras.lastMinuteRule
-##   tries to create a rule from brasPrule for targets that don't
-##   have any explicit rule.
-##
-## Since we don't have any dependencies available here, only the
-## target can be used to select an appropriate rule. To prevent
-## infinite recursion due to pattern-rule chaining, a rule is only
-## returned, if the resulting target will not match a pattern-rule
-## with a the same or a larger ID.
-##
-proc bras.lastMinuteRule.BLOODY-OLD {target dind} {
-  global brasPrule brasOpts brasRule brasTinfo
-  set nextID $brasPrule(nextID)
-
-  ## try all pattern rules in the opposite order in which they were
-  ## entered.
-  for {set id [expr $nextID-1]} {$id>=0} {incr id -1} {
-
-    if ![bras.isCandidate $target $id] continue
-
-    ## Get the derived dependency and check that it can not trigger a
-    ## pattern-rule with an ID greater than or equal to id.
-    set depProc GenDep$brasPrule($id,dep) 
-    set dep [$depProc $target]
-    if {[bras.nextCandidate $dep $id]!=$nextID} {
-      #puts "not using $id for $target because $dep"
-      continue
-    }
-    
-    ## Ok, enter the new rule
-    $brasPrule($id,type) $target $dep $brasPrule($id,cmd)
-    if $brasOpts(-d) {
-      set msg "creating $brasPrule($id,type)-rule "
-      append msg "`$target' <- `$dep' from pattern "
-      append msg "($brasPrule($id,target) <- $brasPrule($id,dep))"
-      bras.dmsg $dind $msg
-    }
-    #parray brasRules
-    return
-  }
-}   

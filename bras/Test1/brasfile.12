@@ -24,4 +24,5 @@ Newer file4 file5 {
   puts wrong
 }
 
-Exist file5 {} { }
+Exist file5 {
+}

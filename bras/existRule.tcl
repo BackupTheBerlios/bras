@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.7 $, $Date: 1999/06/03 18:01:03 $
+# $Revision: 1.8 $, $Date: 1999/07/24 11:18:23 $
 ########################################################################
 
 
@@ -42,6 +42,6 @@ Defrule Exist {rid target _reason} {
 
   append reason "\ndoes not exist"
 
-  return [bras.invokeCmd $rid $target {} $target]
+  return [::bras::invokeCmd $rid $target {} $target]
 }
 ########################################################################

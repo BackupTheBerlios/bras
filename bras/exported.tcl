@@ -23,7 +23,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 1999/06/03 18:01:03 $
+# $Revision: 1.4 $, $Date: 1999/07/24 11:18:24 $
 ########################################################################
 
 ##
@@ -125,23 +125,17 @@ proc consider {targets} {
     append brasIndent "  "
   }
 
-  set depInfo {}
-  foreach target $targets {
-    set res [bras.Consider $target]
-    if {$res<0} {
-      return -code error -errorinfo "$target cannot be made"
-    }
-    if {[string match @* $target]} {
-      lappend depInfo [string range $target 1 end] $res
-    } else {
-      lappend depInfo $target $res
-    }
+  if {[catch {::bras::listConsider $targets} depInfo]} {
+#     global errorInfo
+#     puts $errorInfo
+    return -code error -errorinfo $depInfo jockel
   }
 
   if {$brasOpts(-d)} {
     set brasIndent [string range $brasIndent 2 end]
-    bras.dmsg $brasIndent "<= done with result $res"
+    bras.dmsg $brasIndent "<= done"
   }
 
   return $depInfo
 }
+########################################################################

@@ -22,18 +22,24 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 1999/06/03 18:01:01 $
+# $Revision: 1.7 $, $Date: 1999/07/24 11:18:21 $
 ########################################################################
 
 ########################################################################
 ##
-## It is always decided that the target has to be rebuilt.
+## It is always decided that the target has to be
+## rebuilt. Nevertheless, the reasoning process is send ahead to
+## consider all dependencies.
 ##
-Defrule Always {rid target _reason} {
+
+Defrule Always {rid target _reason deps} {
   upvar $_reason reason
+
+  ## Consider all dependencies in turn
+  set depInfo [::bras::listConsider $deps]
 
   append reason "\nmust always be made"
 
-  return [bras.invokeCmd $rid $target {} {}]
+  return [::bras::invokeCmd $rid $target {} {}]
 }
 ########################################################################

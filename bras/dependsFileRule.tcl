@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1999/06/03 18:01:02 $
+# $Revision: 1.5 $, $Date: 1999/07/24 11:18:23 $
 ########################################################################
 
 ########################################################################
@@ -43,7 +43,7 @@
 ## names. Those are added to the dependency list and the whole stuff
 ## is then passed to Newer.
 ## 
-Defrule DependsFile {rid target _reason depInfo} {
+Defrule DependsFile {rid target _reason deps} {
   upvar $_reason reason
   global brasOpts
   
@@ -52,13 +52,12 @@ Defrule DependsFile {rid target _reason depInfo} {
 
   if {[file exist $target]} {
     set in [open $target r]
-    set otherDeps [read $in]
+    set deps [read $in]
     close $in
-    set depInfo [consider $otherDeps]
-    append reason "\n(after `$otherDeps' as list of deps)"
+    append reason "\n(after using `$deps' as list of deps)"
   }
 
-  set res [Check.Newer $rid $target moreReasons $depInfo]
+  set res [Check.Newer $rid $target moreReasons $deps]
   append reason $moreReasons
 
   return $res

@@ -23,8 +23,16 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
-proc bras.unknown args {
-  global brasOpts auto_noexec
+
+proc ::bras::newNS {} {
+  variable nsid
+  
+  incr nsid
+  return "::bras::s$nsid"
+}
+########################################################################
+proc ::bras::unknown args {
+  global brasOpts
 
   #puts "unknown: `$args'"
 
@@ -33,40 +41,19 @@ proc bras.unknown args {
 
   ## First let the original `unknown' try to do something useful, but
   ## don't let it execute external commands.
-  set auto_noexec 1
-  if {![catch "unknown.orig $args" res]} {
-    unset auto_noexec
+  set ::auto_noexec 1
+  set code [catch {uplevel 1 ::bras::unknown.orig $args} res]
+  unset ::auto_noexec
+  if {!$code} { ;# the original unknown worked
     return $res
   }
-  unset auto_noexec
 
-  ## There seems to be a change in the return value of auto_execok
-  ## somewhere between 7.4 and 7.6. I try to exploit both versions.
-  set name [lindex $args 0]
-  set tmp [auto_execok $name]
-  if {""=="$tmp" || "0"=="$tmp"} {
-    return -code error \
-	"command not found when executing `$args'"
+  ## If we are here, the unknown.orig did not work we will proceed on
+  ## our own, but only for executables.
+  set tmp [auto_execok [lindex $args 0]]
+  if {![string length $tmp]} {
+    return -code error $res
   }
-
-#   if {$brasOpts(-N)} {
-#     puts stdout $args
-#     return {}
-#   }
-  
-#   if {!$brasOpts(-ss)} {
-#     ## not super-silent
-#     if {!$brasOpts(-s)} {
-#       puts stdout $args
-#     } else {
-#       puts -nonewline stdout .
-#     }
-#   }
-  
-  #    return [uplevel exec <@stdin 2>@stderr >@stdout $args]
-#   if {!$brasOpts(-v) && !$brasOpts(-s)} {
-#     puts $args
-#   }
 
   if {$brasOpts(-ve)} {
     puts $args
@@ -80,100 +67,45 @@ proc bras.unknown args {
 
 }
 ########################################################################
-proc bras.evalCmds {cmds} {
-  global brasOpts errorInfo
+proc ::bras::invokeCmd {rid Target Deps Trigger} {
 
-  rename unknown unknown.orig
-  rename bras.unknown unknown
-
-  foreach cmd $cmds {
-    if { [string match @cd* $cmd] } {
-      set newcwd [string trim [lindex $cmd 1]]
-      if { "$newcwd"=="[pwd]" } continue
-      set cmd [string range $cmd 1 end]
-      if {!$brasOpts(-s)} {
-	puts stdout $cmd
-      }
-      eval $cmd
-      continue
-    }
-
-    if { "@"==[string index $cmd 0] } {
-      set cmd [string range $cmd 1 end]
-    }
-    if $brasOpts(-v) {
-      regsub -all "\n" [string trim $cmd "\n"] "\n" c
-      puts "$c"
-    }
-    
-    if $brasOpts(-n) continue
-
-    ## The command is finally executed with uplevel.
-    if [catch "uplevel #0 {$cmd}" msg] {
-      puts stderr \
-	  "bras: a rule-command failed to execute and said"
-      regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
-      puts stderr $errorInfo
-      exit 1
-    }
-  }
-  rename unknown bras.unknown
-  rename unknown.orig unknown
-}
-########################################################################
-proc bras.invokeCmd {rid Target Deps Trigger} {
-  #upvar reason $_reason
   global brasRule brasOpts brasIndent
-  
-  ## The following variables are guaranteed to exist in the context of
-  ## the command to run
-  global target targets trigger deps patternTriggers preq
-
-  ## make sure, prerequisites are available
-  if {[bras.ConsiderPreqs $rid]<0} {
-    return -1
-  }
 
   ## find the command to execute
   set cmd $brasRule($rid,cmd)
   if {""=="$cmd"} {
-    set _reason {}
-    #set patternTriggers {}
-    set cmd [bras.defaultCmd \
-		 $brasRule($rid,type) $Target $Deps \
-		 _reason patternTriggers]
-    if {$brasOpts(-d)} {
-      bras.dmsg $brasIndent $_reason
-    }
-    if {""=="$cmd"} {
-      puts -nonewline stderr \
-	  "bras(warning): no command found to make `$Target' "
-      puts stderr "from `$Deps' (hope that's ok)"
-      return 1
-    }
-  } else {
-    set patternTriggers {}
-    set brasRule($rid,run) 1
+    puts -nonewline stderr \
+	"bras(warning): no command found to make `$Target' "
+    puts stderr "from `$Deps' (hope that's ok)"
+    return 1
   }
+  set brasRule($rid,run) 1
 
+
+  if {"[info command ::bras::unknown.orig]"=="::bras::unknown.orig"} {
+    ## Someone called `consider' within a rule's command
+    set haveUnknown 1
+  } else {
+    set haveUnknown 0
+    rename ::unknown ::bras::unknown.orig
+    rename ::bras::unknown ::unknown
+  }
+  
   ## set up the context for the command
-  set target $Target
-  set targets $brasRule($rid,targ)
-  set trigger $Trigger
-  set deps $Deps
-  set preq $brasRule($rid,preq)
-
-  rename unknown unknown.orig
-  rename bras.unknown unknown
+  set nspace [newNS]
+  namespace eval $nspace [list variable target $Target]
+  namespace eval $nspace [list variable targets $brasRule($rid,targ)]
+  namespace eval $nspace [list variable trigger $Trigger]
+  namespace eval $nspace [list variable deps $Deps]
 
   if {$brasOpts(-v)} {
-    puts "\# -- running command --"
-    puts "\# patternTriggers = `$patternTriggers'"
-    puts "\#  target = `$target'"
-    puts "\# targets = `$targets'"
-    puts "\# trigger = `$trigger'"
-    puts "\#    deps = `$deps'"
-    puts "\#    preq = `$preq'"
+    namespace eval $nspace {
+      puts "\# -- running command --"
+      puts "\#  target = `$target'"
+      puts "\# targets = `$targets'"
+      puts "\# trigger = `$trigger'"
+      puts "\#    deps = `$deps'"
+    }
     puts [string trim $cmd "\n"]
   }
  
@@ -181,22 +113,26 @@ proc bras.invokeCmd {rid Target Deps Trigger} {
 
     if {!$brasOpts(-v) && !$brasOpts(-ve) &&
 	!$brasOpts(-d) && !$brasOpts(-s)} {
-      puts  "\# creating $target";
+      puts  "\# about to make `$Target'";
     }
     set wearehere [pwd]
-    if [catch "uplevel #0 {$cmd}" msg] {
+#    if [catch "uplevel #0 {$cmd}" msg] 
+    if {[catch {uplevel \#0 [list namespace eval $nspace $cmd]} msg]} {
       global errorInfo
       puts stderr \
 	  "bras: a rule-command failed to execute and said"
-      regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
+      #regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
       puts stderr $errorInfo
       exit 1
     }
     cd $wearehere
+    namespace delete $nspace
   }
 
-  rename unknown bras.unknown
-  rename unknown.orig unknown
+  if {!$haveUnknown} {
+    rename ::unknown ::bras::unknown
+    rename ::bras::unknown.orig ::unknown
+  }
 
   return 1
 }

@@ -19,6 +19,6 @@ Newer a.o {} {
 
 ## This is a catch all rule which creates all dependencies
 ## of a.o
-Exist [GetDeps a.o] {} {
+Exist [GetDeps a.o] {
   touch $targets
 }

@@ -21,6 +21,6 @@ Newer {cmdline.h cmdline.c} {} {
 ## cmdline.c. A command to built cmdline.c is given above already.
 Newer cmdline.c {A B} 
 
-Exist {A B} {} {
+Exist {A B} {
   touch $targets
 }

@@ -1,9 +1,15 @@
 puts "msg: Default command generation from pattern rule"
-puts "expect: a.y"
+puts "expect: making a.y a.z a.w"
+puts "expect: making a.x from a.y, deps=a.y a.w a.z"
 
 PatternNewer .*\.x .y {
-  puts $deps
+  puts "making $target from [lindex $deps 0], deps=$deps"
 }
 
-Newer a.x a.y {}
-Exist a.y {} {}
+Newer a.x a.w
+Newer a.x a.y 
+Newer a.x a.z
+
+Exist {a.y a.z a.w} {
+  puts "making $targets"
+}

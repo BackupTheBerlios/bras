@@ -32,7 +32,7 @@ exec touch xxx.o
 after 1000
 exec touch bla.h
 
-Always all {xxx.o} {
+Always all xxx.o {
   rm -f xxx.D xxx.o xxx.c pup.h bla.h
 }
 

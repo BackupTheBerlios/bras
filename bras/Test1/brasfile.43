@@ -3,10 +3,10 @@ puts "msg: we are not confused if a command cd's somewhere else"
 puts "expect: Test1"
 
 
-Always all {other} {
+Always all {} {
   puts [file tail [pwd]]
 }
 
-Always other {} {
+Always other {
   cd /
 }

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.12 $, $Date: 1999/06/03 18:01:02 $
+# $Revision: 1.13 $, $Date: 1999/07/24 11:18:22 $
 ########################################################################
 
 ########################################################################
@@ -34,18 +34,21 @@ proc bras.dmsg {dind msg} {
   puts "\#$dind$msg"
 }
 ########################################################################
-proc bras.findIndirectDeps {target dep} {
-  global brasIdeps
+proc ::bras::findIndirectDeps {target dep} {
+  variable Ideps
 
-  if {![info exist brasIdeps] || [string match @* $dep]} {
+  ## The expansion is not performed for @-deps since it is not at
+  ## all clear whether the resulting deps should get the @-prefix or
+  ## not. 
+  if {[string match @* $dep]} {
     return $dep
   }
 
-  foreach rexp $brasIdeps(list) {
+  foreach rexp $Ideps(list) {
     if {![regexp $rexp $dep]} continue
-    if {[catch "$brasIdeps($rexp) $target $dep" msg]} {
+
+    if {[catch {$Ideps($rexp) $target $dep} msg]} {
       global errorInfo
-      regsub {\"catch .*} $errorInfo {} errorInfo
       puts stderr $errorInfo
       exit 1
     } else {
@@ -53,108 +56,6 @@ proc bras.findIndirectDeps {target dep} {
     }
   }
   return $dep
-}
-########################################################################
-## Make the list of dependencies without leading @
-proc bras.pureDeps--not-used {deps} {
-  set pureDeps {}
-  foreach dep $deps {
-    if {[string match @* $dep]} {
-      lappend pureDeps [string range $dep 1 end]
-    } else {
-      lappend pureDeps $dep
-    }
-  }
-  return $pureDeps
-}
-########################################################################
-##
-## Consider prerequisites of given rule
-## RETURN:
-##  -1, if one of them cannot be made
-##   1 if all can be made or are ok already
-##
-proc bras.ConsiderPreqs {rid} {
-  global brasIndent brasRule brasOpts
-
-  ## If this was already checked before, return immediately
-  ####---- no longer used, instead $target,[pwd],done is set for
-  ####multiple-target rules
-#   if {$brasRule($rid,run)!=0} {
-#     return $brasRule($rid,run)
-#   }
-
-  set preqs $brasRule($rid,preq)
-  ## If there are no preqs, return immediately
-  if {"$preqs"==""} {
-    return 1
-  }
-  
-  set t $brasRule($rid,targ)
-  if {$brasOpts(-d)} {
-    bras.dmsg $brasIndent "considering prerequisite(s) `$preqs' for `$t'"
-  }
-
-  foreach preq $preqs {
-    set r [bras.Consider $preq]
-    if {$r==-1} {return -1}
-  }
-  return 1
-}
-########################################################################
-#
-# This proc is supposed to be overridden by the user if necessary. For
-# a given target it must return a list of targets. The list of targets
-# is considered in turn until one is found which is up-to-date or can
-# be made.
-#
-
-# This default implementation returns the input unchanged if the
-# global variable BrasSearchPath is not set or if target starts with
-# @ or is not a relative pathname. Otherwise, all elements of
-# BrastSearchPath are prepended to target and the resulting list is
-# returned. 
-proc BrasExpandTarget {target} {
-  global brasSearchPath brasSearched
-
-  ## Don't search for targets which are the result of a search already.
-  if {[info exist brasSearched([pwd],$target)]} {
-    return [list $target]
-  }
-
-  #puts "BrasExpandTarget $target"
-  if {![info exist brasSearchPath([pwd])]} { 
-    return [list $target]
-  }
-
-  ## Don't expand @-names
-  if {[string match @* $target]} {
-    return [list $target]
-  }
-
-  ## Don't expand names which contain a path
-#   if {"[file tail $target]"!="$target"} {
-#     return [list $target]
-#   }
-  
-  ## Don't expand non-relative paths
-  set ptype [file pathtype $target]
-  if {"$ptype"!="relative"} {
-    return [list $target]
-  }
-
-  set res {}
-  foreach x $brasSearchPath([pwd]) {
-    if {"$x"!="."} {
-      set t [file join $x $target]
-    } else {
-      set t $target
-    }
-    #set brasSearched([pwd],$t) 1
-    lappend res $t
-  }
-  #puts "BrasExpandTarget returns $res"
-  return $res
 }
 ########################################################################
 #
@@ -198,7 +99,7 @@ proc BrasSearchDependency {dep} {
     if {"$x"=="."} {set x {}}
     set t [file join $x $dep]
     if {[file exist $t]} {
-      set brasSearched([pwd],$dep) 1
+      set brasSearched([pwd],$t) 1
       return $t
     }
   }
@@ -218,71 +119,13 @@ proc BrasSearchDependency {dep} {
       set found [info exist brasTinfo($t,[pwd],rule)]
     }
     if {$found} {
-      set brasSearched([pwd],$dep) 1
+      set brasSearched([pwd],$t) 1
       return $t
     }
   }
 
   #puts "BrasExpandTarget returns $res"
   return {}
-}
-########################################################################
-#
-# Check whether the target needs to be rebuilt.
-#
-# This is merely a wrapper around bras.ConsiderKernel which applies
-# BrasSearchPath.
-#
-## RETURN
-## 0: no need to make target
-## 1: target will be made
-## -1: target needs to be made, but don't know how
-##
-## The parameter target might be changed according to succes in
-## searching BrasSearchPath.
-##
-proc bras.Consider-NOT-USED {_target} {
-  upvar $_target target
-  global brasIndent brasOpts brasSearched
-
-  if {![info exists brasSearched([pwd],$target)]} {
-    set candidates [BrasExpandTarget $target]
-    if {$brasOpts(-d)} {
-      bras.dmsg $brasIndent "looking at dependency `$target'"
-      bras.dmsg $brasIndent "+ searchpath yields `$candidates'"
-    }
-    
-    ## We first take a look to see if one of the candidates is an
-    ## existing file 
-    foreach c $candidates {
-      if {[file exist $c]} {
-	set realTarget $c
-	break
-      }
-    }
-    
-    if {[info exists realTarget]} {
-      set target $realTarget
-      set reason "+ file `$target' exists"
-    } else {
-      set target [lindex $candidates 0]
-      set reason "+ none of them exists, defaulting to `$target'"
-    }
-    if {$brasOpts(-d)} {
-      bras.dmsg $brasIndent $reason
-      bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
-    }
-
-    ## There is absolutely no need to pass $dep through searchpath again
-    set brasSearched([pwd],$target) 1
-
-  } else {
-    if {$brasOpts(-d)} {
-      bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
-    }
-  }
-
-  return [bras.ConsiderKernel $target]
 }
 ########################################################################
 proc bras.leaveDir {newDir} {
@@ -294,6 +137,23 @@ proc bras.leaveDir {newDir} {
     puts "cd $newDir"
   }
   cd $newDir
+}
+########################################################################
+proc ::bras::listConsider {targets} {
+  set depInfo {}
+  foreach target $targets {
+    set res [bras.Consider $target]
+    if {$res<0} {
+      return -code error "$target cannot be made"
+    }
+    if {[string match @* $target]} {
+      lappend depInfo [string range $target 1 end] $res
+    } else {
+      lappend depInfo $target $res
+    }
+  }
+
+  return $depInfo
 }
 ########################################################################
 ##
@@ -328,16 +188,6 @@ proc bras.returnFromConsider {target keepPWD res} {
 ##      Then 0 is returned.
 ##   3) The rule returns 1, i.e. the target must be made. Then the
 ##      steps described below are executed.
-## o All prerequisites of the rule are all considered. Two cases are
-##   then possible: 
-##   1) One of them must be made, but cannot, i.e. we receive
-##      -1. Then -1 is immediately returned.
-##   2) All of them are ok or can be made. Then the command is
-##      added to the list of commands to be executed and all targets
-##      stored for the command are marked in their done-field with 1. 
-##      Finally 1 is returned.
-##
-##
 proc bras.Consider {target} {
   global brasRule brasTinfo argv0 brasOpts brasConsidering
   global brasIndent brasLastError
@@ -385,6 +235,7 @@ proc bras.Consider {target} {
   if $brasOpts(-d) {
     bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
   }
+
   ## Prepare for further messages
   append brasIndent "  "
 
@@ -414,12 +265,21 @@ proc bras.Consider {target} {
 	
 	bras.returnFromConsider $target $keepPWD -1
       }
-      puts stderr "BANG: This should not happen!"
+    }
+  } else {
+    ## Try to find a command, if there is none. Again, lastMinuteRule
+    ## is called. This might even add a depenency to the front of the
+    ## dependency list, which is quite right if the command found uses
+    ## [lindex $deps 0].
+    set rid $brasTinfo($target,[pwd],rule)
+    if {![string length $brasRule($rid,cmd)]} {
+      bras.lastMinuteRule $target $brasIndent
     }
   }
 
   ##
-  ## Find the target's rule and consider recursively all dependencies
+  ## Find the target's rule and prepare depenencies by first expanding
+  ## them along the search path and then by invoking the indirect-list.
   ##
   set rid $brasTinfo($target,[pwd],rule) 
   set deps $brasRule($rid,deps)
@@ -429,30 +289,24 @@ proc bras.Consider {target} {
       set d $t
     }
     set allDeps \
-	[concat $allDeps [bras.findIndirectDeps $target $d]]
+	[concat $allDeps [::bras::findIndirectDeps $target $d]]
   }
 
   if {$brasOpts(-d)} {
-    bras.dmsg $brasIndent "full dependency list of `$target' is: $allDeps"
-  }
-
-  set depInfo {}
-  foreach d $allDeps {
-    set r [bras.Consider $d]
-    if {$r<0} {
-      bras.returnFromConsider $target $keepPWD -1
-    }
-    if {[string match @* $d]} {
-      set d [string range $d 1 end]
-    }
-    lappend depInfo $d $r
+    bras.dmsg $brasIndent \
+	"full dependency list of `$target' is: `$allDeps'"
   }
 
   ##
-  ## Call the target's rule
+  ## Call the target's rule. [catch] is used because it is assumed
+  ## that a rule calls ::bras::listConsider for the dependency list,
+  ## which may return an error. 
   ##
   set rule $brasRule($rid,type)
-  set res [Check.$rule $rid $target reason $depInfo]
+  if {[catch [list Check.$rule $rid $target reason $allDeps] res]} {
+    set brasIndent [string range $brasIndent 2 end]
+    bras.returnFromConsider $target $keepPWD -1
+  }
 
   set brasIndent [string range $brasIndent 2 end]
 

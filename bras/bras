@@ -1,9 +1,9 @@
 #!/bin/sh
 # \
 exec tclsh8.0 "$0" ${1+"$@"}
-set brasBase |SRCBASE|
+namespace eval ::bras {set base |SRCBASE|}
 set VERSION 0.0.0
-set INSTALLED 1111-11-11
+set VERDATE 1111-11-11
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
@@ -28,9 +28,31 @@ set INSTALLED 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.27 $, $Date: 1999/06/03 18:01:01 $
+# $Revision: 1.28 $, $Date: 1999/07/24 11:18:21 $
 ########################################################################
 
+namespace eval ::bras {
+  # this is not yet used for all private variables and functions, but I
+  # am migrating all of them step-by-step
+
+  ## base
+  ##   Directory holding files sourced in by this script, as well as
+  ##   files someone might find useful sourcing, in particular those
+  ##   with suffix .rules
+
+  ## Ideps
+  ## is a database with with information on how to generate dependency
+  ## lists. It is set up with Defdexpand. With <r> a regexp, the
+  ## indices used are 
+  ## list -- the list of regexps for which dependency expanders exist
+  ## <r>  -- name of the proc which is called to expand a dependency
+  ##         which matches <r>
+  set Ideps(list) {}
+
+  ## stores a number to generate a unique namespace name, see
+  ## ::bras::newNS 
+  variable nsid 0
+}
 ########################################################################
 ##
 ## ---- global vars -----
@@ -41,9 +63,6 @@ set INSTALLED 1111-11-11
 ##   to the whole package and not only to this particular file. Does
 ##   anybody know how this can be done with cvs?
 ##
-## brasBase
-##   Directory holding files sourced in by this script
-##
 ## brasFile
 ##   Name of the rule file. Used also for rule-files in other dirs.
 ##
@@ -53,12 +72,6 @@ set INSTALLED 1111-11-11
 ##   <i>,targ -- targets
 ##   <i>,deps -- dependencies
 ##   <i>,cmd  -- command
-##   <i>,preq -- prerequisites
-##   <i>,run  --  (no longer used as of 1999-06-03, the information is
-##                 better handled with brasTinfo(t,d,done))
-##                1: command already on command list
-##               -1: command cannot be run due to missing prerequisites
-##                0: not yet checked
 ##
 ##   nextID   -- next unique index to use
 set brasRule(nextID) 0
@@ -103,15 +116,6 @@ set brasPrule(nextID) 0
 ##   an @-target or by an explicit `include'. The directory-part of
 ##   the filename is always normalized by means of [pwd].
 ##
-## brasIdeps
-##   is a database with with information on how to generate dependency
-##   lists. It is set up with Defdexpand. With <r> a regexp, the
-##   indices used are 
-##   list -- the list of regexps for which dependency expanders exist
-##   <r>  -- name of the proc which is called to expand a dependency
-##           which matches <r>
-set brasIdeps(list) {}
-##
 ## brasTargets
 ##   Either the default target, i.e. the first one found, or the list
 ##   of targets from the command line
@@ -138,12 +142,6 @@ set brasIdeps(list) {}
 ## brasIndent
 ##   string containing blanks, used for `-d'-reporting.
 ##
-## brasPreqSeparator
-##   the string that separates real dependencies from prerequisites in
-##   dependency lists of rules
-set brasPreqSeparator //
-##
-##
 ########################################################################
 
 set f $argv0
@@ -151,7 +149,7 @@ set argv0 [file tail $argv0]
 
 ## If this file was not truly installed, the following line contains
 ## the string "|SRCBASE|".
-if { "$brasBase"=="|SRCBASE|" } {
+if { "$::bras::base"=="|SRCBASE|" } {
   ## Nevertheless we try to find our place in the universe. Even
   ## symbolic links shall not lead us to bad places.
   while {[file type $f]=="link"} {
@@ -163,26 +161,28 @@ if { "$brasBase"=="|SRCBASE|" } {
       set f $t
     }
   }
-  set brasBase [file dirname $f]
+  set ::bras::base [file dirname $f]
   catch {unset t}
 }
 unset f
 
-source [file join $brasBase evalCmds.tcl]
-source [file join $brasBase sourceDeps.tcl]
-source [file join $brasBase lastMinuteRule.tcl]
-source [file join $brasBase defaultCmd.tcl]
-source [file join $brasBase consider.tcl]
-source [file join $brasBase brasUtils.tcl]
-source [file join $brasBase exported.tcl]
-source [file join $brasBase defdexpand.tcl]
+#source $brasBase/../tclutil/tca.tcl
+
+
+source [file join $::bras::base evalCmds.tcl]
+source [file join $::bras::base sourceDeps.tcl]
+source [file join $::bras::base lastMinuteRule.tcl]
+source [file join $::bras::base consider.tcl]
+source [file join $::bras::base brasUtils.tcl]
+source [file join $::bras::base exported.tcl]
+source [file join $::bras::base defdexpand.tcl]
 
 ## source rule types
-source [file join $brasBase defrule.tcl]
-source [file join $brasBase alwaysRule.tcl]
-source [file join $brasBase existRule.tcl]
-source [file join $brasBase newerRule.tcl]
-source [file join $brasBase dependsFileRule.tcl]
+source [file join $::bras::base defrule.tcl]
+source [file join $::bras::base alwaysRule.tcl]
+source [file join $::bras::base existRule.tcl]
+source [file join $::bras::base newerRule.tcl]
+source [file join $::bras::base dependsFileRule.tcl]
 
 ########################################################################
 #
@@ -341,45 +341,21 @@ proc bras.PatternRule {type target dep cmd} {
 ##    declare a rule
 ##
 proc bras.enterRule {type targets deps cmd} {
+
   global brasRule brasTinfo brasFile brasTargets argv0
-  global brasPreqSeparator brasOpts
+  global brasOpts
 
   #parray brasCmd
   ## newline characters and semicolons are poisonous for `eval' so
-  ## they have no business being in `deps'. Then separate dependencies
-  ## into real dependencies and prerequisites
+  ## they have no business being in `deps'.
   regsub -all ";" $deps {\\;} deps
-  foreach x $deps {
-    if {"$x"=="$brasPreqSeparator"} {
-      set back {}
-      continue
-    }
-    if {[info exist back]} {
-      lappend back $x
-    } else {
-      lappend front $x
-    }
-  }
+  regsub -all "\n" $deps {\\\n} deps
 
-  set deps {}
-  set preq {}
   if {"[lindex [info args Check.$type] 3]"=="\#"} {
-    ## This type of rule does not use dependencies. Therefore only one
-    ## of front or back may exist now. Its value is copied to preq.
-    if {[info exist front] && [info exist back]} {
-      return -code error  "$type-rules only accept prerequisites"
-    }
-    if {[info exist front]} {
-      set preq $front
-    } elseif {[info exist back]} {
-      set preq $back
-    }
-  } else {
-    if {[info exist front]} {
-      set deps $front
-    }
-    if {[info exist back]} {
-      set preq $back
+    ## This type of rule does not use dependencies. Therefore deps
+    ## should be empty in fact.
+    if {[llength $deps]} {
+      return -code error  "$type-rules have no dependencies"
     }
   }
 
@@ -418,7 +394,6 @@ proc bras.enterRule {type targets deps cmd} {
     set brasRule($rid,type) $type
     set brasRule($rid,targ) {}
     set brasRule($rid,deps) {}
-    set brasRule($rid,preq) {}
     set brasRule($rid,cmd) {}
   } else {
     ## The type of the old rule must match the new type
@@ -433,22 +408,32 @@ proc bras.enterRule {type targets deps cmd} {
 
   ## Add the new information into brasRule($rid,...)
   concatUnique brasRule($rid,targ) $targets
-  concatUnique brasRule($rid,deps) $deps
-  concatUnique brasRule($rid,preq) $preq
   if {"$cmd"!=""} {
-    append brasRule($rid,cmd) "\n$cmd"
+    if {[string length $brasRule($rid,cmd)]} {
+      set msg "bras(warning): overriding command "
+      append msg "`$brasRule($rid,cmd)' for target `$targets'" \
+	  " with `$cmd'"
+      puts stderr $msg
+    }
+    set brasRule($rid,cmd) $cmd
+
+    ## If this rule has a command, we want its deps to come out in
+    ## front so that [lindex $deps 0] is equivalent to make's $<
+    concatUnique deps $brasRule($rid,deps)
+    set brasRule($rid,deps) $deps
+  } else {
+    concatUnique brasRule($rid,deps) $deps
   }
   set brasRule($rid,run) 0
 
 
-
-  ## Source rule-files for dependencies and prerequisites if
-  ## necessary. This is necessary only for dependencies starting with
-  ## `@'. Since 1997-07-19, the code below is only executed if
-  ## specifically requested with option -es (early sourcing).
+  ## Source rule-files for dependencies necessary. This is necessary
+  ## only for dependencies starting with `@'. Since 1997-07-19, the
+  ## code below is only executed if specifically requested with option
+  ## -es (early sourcing).
   if {!$brasOpts(-es)} return
 
-  foreach x "$deps $preq" {
+  foreach x "$deps" {
     if ![string match @* $x] continue
     set backHere [bras.followTarget $x]
     cd $backHere
@@ -489,16 +474,6 @@ proc ClearCmd {target} {
 }
 ########################################################################
 ##
-## ClearPreqs -- clear the list of prerequisites of the given target
-##
-## If this target shares a rule with other targets, those targets'
-## list is also wiped out.
-##
-proc ClearPreqs {target} {
-  bras.ClearList $target preq
-}
-########################################################################
-##
 ## bras.GetList -- return one of the lists associated with a target's
 ## rule. 
 ##
@@ -514,13 +489,10 @@ proc bras.GetList {target listName} {
 }
 ########################################################################
 ##
-## GetDeps, GetPreqs, GetCmd -- get respective list of a target
+## GetDeps, GetCmd -- get respective list of a target
 ##
 proc GetDeps {target} {
   return [bras.GetList $target deps]
-}
-proc GetPreqs {target} {
-  return [bras.GetList $target preq]
 }
 proc GetCmd {target} {
   return [bras.GetList $target cmd]
@@ -536,7 +508,7 @@ proc bras.showCmds {cmds} {
 }
 ########################################################################
 proc bras.usage {} {
-  global argv0 VERSION INSTALLED
+  global argv0 VERSION VERDATE
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
 \[-r\] \[-s\] \[-v\] \[-ve\] \[var=value]\
@@ -547,7 +519,6 @@ construct files based on a rule-file
        -es - early sourcing: read brasfiles of foreign directories as soon
              as a @-dependency is encountered.
         -n - don't execute any commands (implies -v)
-        -r - don't read system standard rule file
         -s - don't show anything except error messages
         -v - show all commands to be executed
        -ve - use verbose version of exec
@@ -558,7 +529,7 @@ construct files based on a rule-file
     target - target to be rebuilt (default: the target of the first
              rule in brasfile)
 
-This is version $VERSION installed on $INSTALLED.
+This is version $VERSION of $VERDATE.
 "
   exit 1
 }
@@ -572,7 +543,6 @@ proc bras.main {argc args} {
   set brasOpts(-d) 0
   set brasOpts(-es) 0
   set brasOpts(-n) 0
-  set brasOpts(-r) 0
   set brasOpts(-s) 0
   set brasOpts(-v) 0
   set brasOpts(-ve) 0
@@ -596,7 +566,6 @@ proc bras.main {argc args} {
       }
       -n {set brasOpts(-n) 1}
       -s {set brasOpts(-s) 1}
-      -r {set brasOpts(-r) 1}
       -v {set brasOpts(-v) 1}
       -ve {
 	set brasOpts(-ve) 1
@@ -640,18 +609,6 @@ proc bras.main {argc args} {
     regexp {(.*)=(.*)} $equ dummy var value
     if {$brasOpts(-v)} {puts "setting `env($var)' to `$value'"}
     set env($var) $value
-  }
-
-  ## If not suppressed with -r, read default rule files
-  if { !$brasOpts(-r) } {
-    global tcl_platform
-    set sys [file join $brasBase rules.$tcl_platform(os)]
-    if ![file readable $sys] {
-      puts stderr \
-	  "bras: no system specific rules file, leaves me stupid!"
-    } else {
-      bras.gobble $sys
-    }
   }
 
   ## Read the rule file and whatever it includes

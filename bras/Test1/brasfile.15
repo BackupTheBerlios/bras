@@ -17,6 +17,6 @@ Newer file1 @../Test2/file1 {
 }
 
 ## This rule is called via ../Test2/brasfile.15
-Exist file2 {} {
+Exist file2 {
   touch $target
 }

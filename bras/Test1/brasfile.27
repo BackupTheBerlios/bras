@@ -8,6 +8,6 @@ puts "expect:       try to use -d to find out more"
 Newer all {A B C D} {
 }
 
-Exist A {}
-Exist B {}
-Exist D {}
+Exist A { }
+Exist B { }
+Exist D { }

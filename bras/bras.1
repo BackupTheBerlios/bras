@@ -27,7 +27,7 @@
 bras -\ utility for rule base command execution
 
 .SH SYNOPSIS
-bras [-f brasfile] [-d] [-es] [-h] [-n] [-r] [-s] [-v] [-ve] [var=value] [--] [target ...]
+bras [-f brasfile] [-d] [-es] [-h] [-n] [-s] [-v] [-ve] [var=value] [--] [target ...]
 
 .SH OPTIONS
 .IP "-f brasfile"
@@ -94,14 +94,6 @@ are only an approximation of what would happen, if -n were not given.
 This is because the results of reasoning can only be complete, if
 commands are executed.
 
-.IP -r
-don't read system's standard rule files. Standard rule files are
-.RI |SRCBASE|/rules. system ,
-where
-.I system
-is the content of
-.IR "tcl_platform(os)" .
-
 .IP -s
 silent operation. Don't print anything except warnings and error
 messages.
@@ -160,5 +152,5 @@ shows its reasoning or merely shows what it would do.
 .nf
 |DOC|/bras.tex
 |DOC|/bras.ps
-tcl(n)
+Tcl(n)
 .fi

@@ -1,5 +1,5 @@
 ## The following line is edited by my ship script to contain the true
-## version I am shipping from cvs. (kir) $Revision: 1.5 $, $Date: 1999/02/21 21:46:29 $
+## version I am shipping from cvs. (kir) $Revision: 1.6 $, $Date: 1999/07/24 11:18:21 $
 %define VERSION 77.66.55
 
 Summary: Rule based command execution (ala make), all written in Tcl
@@ -18,12 +18,11 @@ Requires: tcl
 BuildRoot: /tmp/bras-rpmbuild
 
 %description
-The program bras performs rule based command execution (similar
-to `make'). It is written in Tcl and its rule files are also pure
-Tcl. It knows several types of rules (Newer, Always, Exist,
-DependsFile) and allows to implement more types easily. Additionally
-it does not break the chain of reasoning (like make does) when it
-works in several directories.
+The program bras performs rule based command execution (similar to
+`make'). It is written in Tcl and its rule files are also pure Tcl. It
+knows several types of rules (Newer, Always, Exist) and allows to
+implement more types easily. Additionally it does not break the chain
+of reasoning (like make does) when it works in several directories.
 
 %prep
 %setup
@@ -63,27 +62,28 @@ rm $p/bras.orig
 %attr(-,root,root) /usr/bin/bras
 %attr(-,root,root) /usr/man/man1/bras.1
 
-%attr(-,root,root) %dir /usr/lib/bras-%{VERSION}
+%attr(-,root,root) /usr/lib/bras-%{VERSION}
+#%attr(-,root,root) %dir /usr/lib/bras-%{VERSION}
 
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/alwaysRule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/brasUtils.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/consider.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/defaultCmd.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/defrule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/dependsFileRule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/evalCmds.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/existRule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/exported.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/lastMinuteRule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/newerRule.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/sourceDeps.tcl
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.Linux
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.SunOS
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.1
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/ANNOUNCE
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/README
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.ps
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.tex
-%attr(-,root,root) /usr/lib/bras-%{VERSION}/Brasfile
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/alwaysRule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/brasUtils.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/consider.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/defaultCmd.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/defrule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/dependsFileRule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/evalCmds.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/existRule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/exported.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/lastMinuteRule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/newerRule.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/sourceDeps.tcl
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.Linux
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/rules.SunOS
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.1
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/ANNOUNCE
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/README
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.ps
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/bras.tex
+# %attr(-,root,root) /usr/lib/bras-%{VERSION}/Brasfile
 

@@ -17,6 +17,6 @@ Newer {cmdline.h cmdline.c} {cmdline.cli} {
   touch cmdline.c cmdline.h
 }
 
-Exist cmdline.cli {} {
+Exist cmdline.cli {
   touch cmdline.cli
 }

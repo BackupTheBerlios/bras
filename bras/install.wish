@@ -137,13 +137,13 @@ proc Install {} {
   ## copy executable
   exec sed -e "1s,^.\*\$,#!$TCLSH," \
       -e "1,10s,VERSION.*,VERSION $version," \
-      -e "1,10s,INSTALLED.*,INSTALLED $today," \
       -e "s, |SRCBASE|, $clean(lib)," bras >$exe/bras
   exec chmod a+rx $exe/bras
 
   ## copy library files
   eval exec cp [glob *.tcl] $lib
-  set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
+  #set ruleFiles [glob -nocomplain rules.*\[a-zA-Z0-9\]]
+  set ruleFiles [glob -nocomplain *.rule]
   eval exec cp $ruleFiles $lib
 
   ## copy manual page

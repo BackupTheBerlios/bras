@@ -32,6 +32,12 @@ proc usage {p} {
   puts "usage: $p number"
   exit 1
 }
+proc nooctal {num} {
+  set num [string trimleft $num 0]
+  if {![string length $num]} {return 0}
+
+  return $num
+}
 ########################################################################
 ## 
 ## Run prefabricated tests on bras.
@@ -58,7 +64,8 @@ if {$argc==1} {
 
 ## Do the tests
 foreach test $sortedTests {
-  if {[string trim [file extension $test] .]>$firstTest} continue
+  set n [nooctal [string trim [file extension $test] .]]
+  if {$n>$firstTest} {puts "skipping $n";continue}
 
   puts -nonewline "[string trim $test brasfile.]: "
   catch "exec ../bras -ve -f $test" output

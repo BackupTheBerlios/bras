@@ -38,6 +38,6 @@ Always all Axxxx {
 }
 
 ## Terminate the chaining with an existing rule
-Exist Cxxxx {} {
+Exist Cxxxx {
   touch $target
 }
