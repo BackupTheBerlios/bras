@@ -13,7 +13,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.25 $, $Date: 2000/05/28 11:53:30 $
+% $Revision: 1.26 $, $Date: 2000/06/22 11:33:00 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1524,28 +1524,35 @@ useful new predicate, send me the source.
 \begin{Describe}
 \item[Name] \Flash{varchanged} --- did a given variable's value
   change?
-\item[Synopsis] \Tt{varchanged} \It{varnames}
+\item[Synopsis] \Tt{varchanged} \It{varnames} \It{cachefile \{\}}
 \item[Description] The predicate \texttt{varchanged} tests if any of
   the given variables were changed since the last invocation of 
-  this predicate.
+  this predicate. This is done as follows:
   
-  Before, all given variable names considered as targets. However the
+  If a \textit{cachefile} is given, it is read with
+  \texttt{include} (cf.~\pageref{proc:include}). The cache file should 
+  contain code to set one or more of the given variables to an
+  \textit{old} value. However care is taken to only change the
+  internal cache of a given variable and not the variable itself.
+  
+  Then, all given variable names are considered as targets. However the
   result of the consideration with regard to the fact whether the
   variable was updated or not is not used. Instead,
   \verb+[+\texttt{string compare}\verb+]+ is used to compare the
-  current value with one checked previously.
+  current value with one checked previously, or with the one which was 
+  just set by \texttt{include}ing the cache file.
+  
+  When not using a cache file, \texttt{varchanged} is mostly useless
+  within a command line invocation of \bras{}. But when \bras{} is
+  used as a package within a GUI, it is very helpful in triggering
+  computations due to variable changes from the GUI.
+  
+  Below is an example which describes how to use \texttt{varchanged}
+  together with a cache file in command line invocations of \bras.
 
-  Since the variable's contents are not stored in a file,
-  \texttt{varchanged} cannot communicate values it has seen between
-  different invocations of \bras. Consequently, its main use is
-  probably within a wish-application, were the user changes variable
-  values to trigger certain events.
-
-  However the following example describes how \texttt{varchanged} can
-  still used effectively in command line invocations of \bras.
 \item[Example]
-  Suppose you have a parameter file to store parameters of
-  algorithms and you want an algorithm to be run only, if a parameter
+  Suppose a parameter file is used to store parameters of
+  algorithms, and you want an algorithm to be run only if a parameter
   relevant to that algorithm changes. Consequently the result produced by 
   an algorithm shall not depend on the parameter file as a whole, but
   only on that particular parameter.
@@ -1576,7 +1583,7 @@ useful new predicate, send me the source.
 
   The cache file is only ever read once to initialize the internal
   cache. Later invocations will use the internally cached value to
-  check, if \texttt{::paramA} was changed.
+  check if \texttt{::paramA} was changed.
 
   After the cache file is read, a value found for \texttt{::paramA} 
   is copied into the internal cache. Then \texttt{varchanged} triggers
@@ -1597,13 +1604,12 @@ useful new predicate, send me the source.
 
   Note how the cache file \texttt{resultA.cache} is written at the
   same time as the result is created.
-
+  
   If the above rules are used within a \texttt{wish}-application, the
-  second and all later considerations of 
-  \texttt{[varchanged ::paramA
+  second and all later considerations of \texttt{[varchanged ::paramA
     ...]} will never again read either the cache or the parameter file
   because it is assumed that all necessary information is already in
-  memory. 
+  memory.
 \end{Describe}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Miscellaneous procedures}
@@ -1702,6 +1708,7 @@ overridden by calling \bras{} like
 %%%%%
 %%%%% include
 %%%%%
+\label{proc:include}
 \begin{Describe}
 \item[Name] \Flash{include} --- source a specified file or the
   \brasfile{} of a given directory, but only once

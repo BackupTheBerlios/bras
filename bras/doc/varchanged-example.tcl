@@ -1,5 +1,5 @@
 ##############################################################
-# $Revision: 1.1 $, $Date: 2000/05/27 18:48:01 $
+# $Revision: 1.2 $, $Date: 2000/06/22 11:33:00 $
 ##############################################################
 Always all {resultA resultB} {
 }
@@ -7,7 +7,7 @@ Always all {resultA resultB} {
 Make resultB {
   [or [older $target inputB] [varchanged ::paramB $target.cache]]
 } {
-  echo $paramB >$target
+  echo $paramB >$target;		# a fake computation
   echo "set paramB $paramB" >$target.cache
 }
 
@@ -19,7 +19,7 @@ Exist inputB {
 Make resultA {
   [or [older $target inputA] [varchanged ::paramA $target.cache]]
 } {
-  echo $paramA >resultA
+  echo $paramA >resultA;		# a fake computation
   echo "set paramA $paramA" >$target.cache
 }
 
