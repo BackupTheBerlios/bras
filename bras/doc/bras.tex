@@ -4,6 +4,7 @@
 \usepackage{helvetic}
 \usepackage{courier}
 \usepackage{avant}
+\usepackage{array}
 \renewcommand{\rmdefault}{phv}
 \renewcommand{\sfdefault}{pag}
 \usepackage{moreverb}
@@ -12,7 +13,7 @@
 \usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.24 $, $Date: 2000/05/28 11:19:37 $
+% $Revision: 1.25 $, $Date: 2000/05/28 11:53:30 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -22,7 +23,7 @@ another kind of `make'\\[2mm]
 \small \copyright 1996--2000 Harald Kirsch}
 \author{\relax
 Harald Kirsch\\
-\texttt{kir@iitb.fhg.de}}
+\texttt{kirschh@lionbioscience.com}}
 
 \newcommand{\bras}{\texttt{bras}}
 \newcommand{\Bras}{\texttt{Bras}}
@@ -1280,6 +1281,14 @@ somewhere at the beginning of your script to be able to use \bras'
 commands \texttt{Make}, \texttt{consider} and so on. Most command line 
 options of \bras{} can be set by calling \texttt{::bras::configure}.
 
+If you use \bras{} in a Tk-application, call the command
+\texttt{[::bras::forget]} (p.~\pageref{proc:forget}) before
+reconsidering targets. Otherwise \bras{} knows that it considered them
+before and thinks there is nothing to do actually.
+
+You may also want to redefine the procedure \texttt{::bras::report}
+(p.~\pageref{proc:report} to redirect all kinds of output which
+normally goes to the console into a widget.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Limitations and Known Bugs}
 
@@ -1720,6 +1729,34 @@ overridden by calling \bras{} like
 \end{Describe}
 
 %%%%%
+%%%%% report
+%%%%%
+\label{proc:report}
+\begin{Describe}
+\item[Name] \Flash{report} --- print warnings and other type of output
+\item[Synopsis] \Tt{report} \It{type} \It{text} ?\It{newline}?
+\item[Description] \Bras{} uses this function to produce all kinds of
+  output on the console. If you want this output to go anywhere else,
+  redefine this procedure such that it matches the interface described 
+  here.
+  
+  The possible values of parameter \texttt{type} and their meaning is
+  described in the following table.
+  \begin{center}
+    \begin{tabular}{>{\ttfamily}l>{\ttfamily}ll}
+      \rmfamily parameter & \rmfamily printed on &meaning\\\hline
+      warn & stderr & warning messages \\
+      -v   & stdout & output triggered by option -v\\
+      -ve  & stdout & output triggered by option -ve\\
+      -d   & stdout & output triggered by option -d\\
+      norm & stdout & normal output without options \\
+    \end{tabular}
+  \end{center}
+  The default implementation of \texttt{report} prints with
+  \texttt{puts} and suppresses the trailing newline only, if parameter 
+  \texttt{newline} is explicitely set to $0$.
+\end{Describe}
+%%%%%
 %%%%% searchpath
 %%%%%
 \begin{Describe}
@@ -1739,7 +1776,7 @@ overridden by calling \bras{} like
 You may want to make the search path dependent on the platform on
 which you are building.
 \begin{verbatim}
-  searchpath [list ../generic ../$tcl_platform(platform)]
+  searchpath [list . ../generic ../$tcl_platform(platform)]
 \end{verbatim}
 %$
 \end{Describe}
