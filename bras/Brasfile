@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.24 $, $Date: 2001/01/01 19:35:36 $
+# $Revision: 1.25 $, $Date: 2001/10/07 17:38:35 $
 #
 ########################################################################
 rename package X; proc package args {}
@@ -83,29 +83,6 @@ Always publish [concat $RPM doc/bras.ps.gz @doc/bras.pdf publish-index] {
   rm CHANGES
 }  
 
-
-##
-## pkgIndex.tcl
-##
-proc findPkgFiles {} {
-  set a [glob *.tcl]
-  set p [lsearch -exact $a pkgIndex.tcl]
-  if {$p!=-1} {
-    set a [lreplace $a $p $p]
-  }
-  return $a
-}
-
-## a shortcut for pkgIndex.tcl
-Always pkgIndex pkgIndex.tcl {
-}
-
-## Note that findPkgFiles is only called if pkgIndex.tcl must be
-## built. If the files it returns where used in more than one
-## predicate, it could of course cache them in a global variable.
-Make pkgIndex.tcl {[older $target [findPkgFiles]]} {
-  eval pkg_mkIndex -verbose -direct . $deps
-}
 
 ##
 ## Pattern Rules

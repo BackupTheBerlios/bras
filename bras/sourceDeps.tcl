@@ -20,8 +20,6 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 ########################################################################
-## source version and package provide
-source [file join [file dir [info script]] .version]
 
 namespace eval ::bras {
   namespace export sourcedeps

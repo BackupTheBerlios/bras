@@ -4,17 +4,18 @@
 		     Rule Based Command Execution
 			       with Tcl
 
-I am pleased to announce version 1.3.0. 
+I am pleased to announce version 1.4.0. 
 
-What's new?
+WHAT'S NEW?
 
-A pattern rule was added which eases installation of files. A file
-specification like /usr/bin/bla/0755 automatically creates a
-dependency relation between /usr/bin/bla and ./bla. If the latter file
-is newer, it is copied over /usr/bin/bla and has the permissions set
-as requested, i.e. 0755 in this example.
+To make it easier to use bras, the driver script no longer relies on
+the package to be installed. That means you just copy one file around
+to get a runnable bras. This allows you to use bras in your projects
+without relying on it to be installed on every machine you move
+to. Just copy that 64k script along with your project. All that is
+needed on a target machine is a Tcl of at least version 8.0.
 
-The docs were updated and an example is also available.
+Of course bras, the package, can still be used as before.
 
 
 WHERE CAN I GET IT?
@@ -52,4 +53,4 @@ Send comments and requests for enhancements to
 kirschh@lionbioscience.com .
  
 # CVS:
-# $Revision: 1.14 $, $Date: 2001/09/09 17:11:53 $
+# $Revision: 1.15 $, $Date: 2001/10/07 17:38:35 $

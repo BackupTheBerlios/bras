@@ -23,7 +23,7 @@ exec tclsh "$0" ${1+"$@"}
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.36 $, $Date: 2001/09/09 16:42:08 $
+# $Revision: 1.37 $, $Date: 2001/10/07 17:38:35 $
 ########################################################################
 
 ##
@@ -31,13 +31,23 @@ exec tclsh "$0" ${1+"$@"}
 ## behaviour of `make' as much as possible.
 ##
 
-## The following line will be or was edited during installation to
-## contain an absolute path to the installation of bras.
-set auto_path [concat [file dir [info script]] $auto_path]
-
 ########################################################################
-
-package require bras
+##@(@
+## If you read this, bras was not really installed. The following
+## lines which source subfiles are expanded during installation to
+## create a self-contained script not dependend on any other file. The 
+## sourcing is here only for my convenience during development.
+namespace eval ::bras {
+  if {![info exist base]} {
+    set base [file dir [info script]]
+  }
+}
+foreach x {.version bras.tcl consider.tcl evalCmds.tcl exported.tcl \
+	       lastMinuteRule.tcl makeRule.tcl predicates.tcl \
+	       sourceDeps.tcl} {
+  source [file join $::bras::base $x]
+}
+##@)@
 namespace import ::bras::\[A-Za-z\]*
 
 ########################################################################

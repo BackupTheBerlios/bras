@@ -19,10 +19,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.18 $, $Date: 2000/05/28 11:54:03 $
+# $Revision: 1.19 $, $Date: 2001/10/07 17:38:35 $
 ########################################################################
-## source version and package provide
-source [file join [file dir [info script]] .version]
 
 ########################################################################
 ##
