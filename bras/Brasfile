@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Make' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.28 $, $Date: 2002/01/09 21:18:05 $
+# $Revision: 1.29 $, $Date: 2002/01/09 22:18:15 $
 #
 ########################################################################
 if {$::bras::base!="."} {
@@ -75,9 +75,15 @@ Newer CHANGES $TGZ {
 ## Rules for publishing
 Make publish {[updated {publish-www publish-tgz}]} .relax.
 
-Make publish-www {[updated {publish-CHANGES publish-index}]} .relax.
+Make publish-www {[updated [list publish-CHANGES publish-index \
+				publish-doc]]} .relax.
+
 Make publish-CHANGES {[updated CHANGES]} {
  scp CHANGES \
+     pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/
+}
+Always publish-doc {@doc/bras.pdf @doc/bras.ps} {
+ scp $deps \
      pifpafpuf@shell.berlios.de:/home/groups/bras/htdocs/
 }
 Make publish-index {[updated index.html.out]} {
@@ -87,6 +93,6 @@ Make publish-index {[updated index.html.out]} {
 
 ## Here we need an Always because there is now way to check if the
 ## target out there is up-to-date.
-Always publish-tgz $TGZ] {
+Always publish-tgz $TGZ {
   ncftpput ftp.berlios.de /incoming $TGZ
 }
