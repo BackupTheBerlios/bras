@@ -4,6 +4,8 @@
 # predicate. Read the source and run with
 #
 # ../../bras -d clean F='files'
+#   or with
+# bras -d clean F='files'
 #
 # where files is a list of files you want to delete. Note how the
 # deletion is only invoked for files which actually exist. You
@@ -16,7 +18,7 @@
 #
 # (C) 2000 Harald Kirsch (kirschh@lionbioscience.com)
 #
-# $Id: brasfile,v 1.1 2000/12/30 11:56:52 kir Exp $
+# $Id: brasfile,v 1.2 2000/12/30 16:54:33 kir Exp $
 ########################################################################
 
 ## If you set F=file on the command line, F can be found in the
@@ -32,7 +34,7 @@ proc usage {} {
   puts stderr "  the filenames you give must all match *.xx"
   puts stderr "  Actually I just created a.xx and b.xx for you to"
   puts stderr "  delete now. Just run:"
-  puts stderr "    ../../bras -d clean F='a.xx b.xx notthere.xx'"
+  puts stderr "    $argv0 -d clean F='a.xx b.xx notthere.xx'"
   exit 1
 }
 if {![info exist env(F)] } usage
