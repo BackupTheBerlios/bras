@@ -75,7 +75,7 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
   set cmd $brasRule($rid,cmd)
   if {""=="$cmd"} {
     puts -nonewline stderr \
-	"bras(warning): no command found to make `$Target' "
+	"bras(warning) in `[pwd]': no command found to make `$Target' "
     puts stderr "from `$Deps' (hope that's ok)"
     return 1
   }
@@ -113,18 +113,23 @@ proc ::bras::invokeCmd {rid Target Deps Trigger} {
 
     if {!$brasOpts(-v) && !$brasOpts(-ve) &&
 	!$brasOpts(-d) && !$brasOpts(-s)} {
-      puts  "\# about to make `$Target'";
+      puts  "\# making `$Target'";
     }
+
     set wearehere [pwd]
-#    if [catch "uplevel #0 {$cmd}" msg] 
-    if {[catch {uplevel \#0 [list namespace eval $nspace $cmd]} msg]} {
-      global errorInfo
-      puts stderr \
-	  "bras: a rule-command failed to execute and said"
-      #regsub "\[\n \]*\\(\"uplevel\" body.*" $errorInfo {} errorInfo
-      puts stderr $errorInfo
-      exit 1
+
+    set script [list uplevel \#0 $cmd]
+    namespace eval $nspace "variable bras.cmd {$cmd}"
+    namespace eval $nspace {
+      if {[catch ${bras.cmd} msg]} {
+	global errorInfo
+	puts stderr $errorInfo
+	puts stderr "    while making target `$target' with command"
+	puts stderr "{${bras.cmd}}"
+	exit 1
+      }
     }
+	
     cd $wearehere
     namespace delete $nspace
   }
