@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 2000/05/28 11:54:03 $
+# $Revision: 1.3 $, $Date: 2000/12/30 16:37:11 $
 ########################################################################
 
 namespace eval ::bras {
@@ -28,7 +28,7 @@ namespace eval ::bras {
 ########################################################################
 #
 # ::bras::cvsknown
-# returns the name of all file CVS knows about in the current
+# returns the name of all files CVS knows about in the current
 # directory and in subdirectories.
 #
 # Since I did not find a really useful command for that in CVS itself, 
@@ -46,6 +46,8 @@ proc ::bras::cvsknown { {dir {}} } {
   if {![file readable CVS/Entries]} {
     return {}
   }
+
+  set res {}
   set in [open CVS/Entries r]; set entries [read $in]; close $in
   foreach l [split $entries \n] {
     set l [split $l /]
