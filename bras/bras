@@ -1,6 +1,6 @@
 #!/usr/local/bin/tclsh
-set VERSION 0.0.2
-set VERDATE 1997-03-11
+set VERSION 0.0.3
+set VERDATE 1997-03-15
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
