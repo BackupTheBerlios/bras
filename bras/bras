@@ -27,7 +27,7 @@ set VERSION 0.0.0
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.19 $, $Date: 1997/11/24 06:16:28 $
+# $Revision: 1.20 $, $Date: 1998/07/12 14:34:13 $
 ########################################################################
 
 ########################################################################
@@ -87,8 +87,9 @@ set brasPrule(nextID) 0
 ##   cannot be made.
 ##
 ## brasKnown
-##   array with an element for all dirs the rule-files of which have
-##   already been sourced.
+##   array with an element for all files sourced either by following
+##   an @-target or by an explicit `include'. The directory-part of
+##   the filename is always normalized by means of [pwd].
 ##
 ## brasTargets
 ##   Either the default target, i.e. the first one found, or the list
@@ -97,14 +98,11 @@ set brasPrule(nextID) 0
 ## brasOpts
 ##   array holding command-line options
 ##
-## brasIncluded
-##   array with an element for every file sourced in with
-##   command `include'
-##
 ## brasLastInclude
 ##   just before a file is included with the `include'-command, this
 ##   variable is set to the name of the file. This allows the script
 ##   to know its own name (on request from jgg@debian.org).
+##   (No longer supported as of 1998-07-12. He should use [info script])
 ##
 ## brasConsidering
 ##   array with an element for every target currently (recursively)
@@ -185,14 +183,41 @@ proc bras.gobble {file} {
 ##   an alias for `source', however we take care to not source any
 ##   file more than once.
 ##  
+##   If the `name' starts with an `@' it must be a directory. In that
+##   case, the $brasFile of that directory is sourced in the same way
+##   as if an `@'-target had let to that directory.
+##
+##   If the `name' does not start with `@', it must be the name of an
+##   existing readable file. This one is simpy sourced in.
+##
 proc include {name} {
-  global brasIncluded brasLastInclude
-  file stat $name stat
+  global brasKnown
+  
+  if [string match @* $name] {
+    cd [bras.followTarget $name/.]
+    return
+  }
 
-  if [info exist brasIncluded($stat(dev),$stat(ino))] return
-  set brasIncluded($stat(dev),$stat(ino)) 1
+  ## To be compatible with followTarget, we first have to move to the
+  ## destination directory to get the correct answer from [pwd]. _NO_,
+  ## just stripping the directory part from $name is useless, because
+  ## it may contain relative parts and parts leading through one or
+  ## more soft-links.
+  set dir [file dir $name]
+  set file [file tail $name]
 
-  set brasLastInclude $name
+  set oldpwd [pwd]
+  if [catch "cd $dir" msg] {
+    set err "bras: include of `$name' tried in directory `$oldpwd'"
+    append err " leads to non-existing directory `$dir'"
+    puts stderr $err
+    exit 1
+  }
+  set pwd [pwd]
+  cd $oldpwd
+
+  if [info exist brasKnown($pwd/$file)] return
+
   bras.gobble $name
 }
 ########################################################################
@@ -224,13 +249,13 @@ proc bras.followTarget {target} {
   }
 
   ## check, if we know already the brasfile here
-  if [info exist brasKnown([pwd])] {
+  if [info exist brasKnown([pwd]/$brasFile)] {
     return $oldpwd
   }
 
   ## before really reading the file, mark the current dir as known,
   ## because the file to be read may lead back here again.
-  set brasKnown([pwd]) 1
+  set brasKnown([pwd]/$brasFile) 1
 
   ## If the brasfile does not exist, print a warning. There is no need
   ## to terminate immediately, because things might be handled by
@@ -299,7 +324,7 @@ proc bras.PatternRule {type target dep cmd} {
 ##    declare a rule
 ##
 proc bras.enterRule {type targets deps cmd} {
-  global brasRule brasTinfo brasFile brasTargets brasKnown argv0
+  global brasRule brasTinfo brasFile brasTargets argv0
   global brasPreqSeparator brasOpts
 
   #parray brasCmd
@@ -573,7 +598,7 @@ proc bras.main {argc args} {
   }
 
   if { [info exist brasFile] } {
-    set brasKnown([pwd]) 1
+    set brasKnown([pwd]/$brasFile) 1
     bras.gobble $brasFile
   }
 

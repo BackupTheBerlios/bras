@@ -4,7 +4,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %
-% $Revision: 1.12 $, $Date: 1997/11/19 07:02:15 $
+% $Revision: 1.13 $, $Date: 1998/07/12 14:34:06 $
 %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -25,7 +25,7 @@ kir@iitb.fhg.de}
 \parskip 1ex
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-			   \begin{document}
+                           \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \maketitle
 \tableofcontents
@@ -234,7 +234,7 @@ double-slash are dependencies and those behind it are prerequisites.
 Please note that the double-slash must be a Tcl-word on its own as
 shown in this example dependency list.
 \begin{verbatim}
-  {a.c a.h ../lib/x.h // /usr/local/bla /where/do/you/want/to/wait/today}
+  {a.c a.h ../lib/x.h // /usr/local/bla /what/now}
 \end{verbatim}
 It must be separated from neighbour words by white-space to make sure
 it cannot be confused with a double-slash which crept into a pathname.
@@ -346,7 +346,7 @@ it does not yet exist.
   Exist /usr/local {} {
     puts "Sorry, /usr/local must exist before I can proceed."
     exit 1
-  }	
+  }     
 \end{verbatim}
 The first rule has prerequisite \texttt{/usr/local}. If the target
 \texttt{/usr/local/bras-0.1}
@@ -548,7 +548,7 @@ dependency which either has an explicit rule or exists as a file. All
 intermediate pattern-rules are then converted to real rules and the
 reasoning proceeds as if there were never any rules missing.
 
-The above algorithm is (should be :-) implemented in the file
+The algorithm is (should be :-) implemented in the file
 \texttt{lastMinuteRule.tcl}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -660,7 +660,7 @@ dependencies in turn are considered as a target. For example
 \texttt{@lib/clean} tells \bras{} that there is a subdirectory
 \texttt{lib} with a \texttt{brasfile} which
 describes how to handle the target \texttt{clean}. To learn
-the rule, \bras{} reads \texttt{lib/brasfile} and acts accordingly.
+the rule, \bras{} reads \texttt{lib/bras\-file} and acts accordingly.
 In particular \bras{} changes to directory \texttt{lib}
 before executing any command associated with a rule in
 \texttt{lib/brasfile}. The other targets are handled similarly.
@@ -669,20 +669,42 @@ before executing any command associated with a rule in
 \section{Including Files Only Once}
 
 As described in the previous section, \bras{} automatically sources
-the rule file in other directories if an \texttt{@}-dependency lead
+the rule file in other directories if an \texttt{@}-dependency leads
 there. But this mechanism is not very useful to source a file with
 overall definitions. For this, the Tcl-builtin command
 \texttt{source} could be used, but it has the disadvantage that it
 does not guard against sourcing the same file twice.
 
-In \bras{} there is the command \texttt{include} which takes one
-argument: file name. The file is read in much the same way as is done
-by the \texttt{source}-command, if it was not already read. If it was
-read before, it is simply ignored.
+To make sure a file is sourced exactly once, use the
+\texttt{include}-command. It takes as its only parameter the file to
+read. 
 
-To give a script the chance to know its own name, just before it is
-actually read by \texttt{include}, its name is recorded in the global
-variable \texttt{brasLastInclude}. 
+Thats the simple truth, but consider the following setup. The main
+directory of application \texttt{bla} has a \texttt{brasfile} and also
+several subdirectories like \texttt{lib}, \texttt{extrabla},
+\texttt{nobla}, etc. the targets of which are called from the main
+\texttt{brasfile} by means of \texttt{@}. Now, what happens,
+if you intend to solely work in directory \texttt{lib} for some time?
+What is the best way within \texttt{bla/lib/brasfile} to get access to all
+those general definitions in \texttt{bla/brasfile}?
+
+Using \texttt{include ../brasfile} will not work, because all
+rules of \texttt{bla/brasfile} would be interpreted relative to
+\texttt{bla/lib}, which is usually wrong. The correct solution would
+be:
+\begin{verbatim}
+  cd ..
+  include brasfile
+  cd bla
+\end{verbatim}
+Since this is tedious to type, you may use
+\begin{verbatim}
+  include @..
+\end{verbatim}
+which does the right thing.
+
+Hint: If the included script needs to know its own name, use the
+standard Tcl-command \texttt{info script}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Execution of \Bras}
@@ -709,9 +731,11 @@ temporarily changes to the directory of the dependency and sources the
 \texttt{brasfile}. Even if several dependencies of different rules lead
 to the same directory, the \texttt{brasfile} is sourced only once.
 
-Option \texttt{-es} is only available for historic reasons. Without
+Option \texttt{-es} is mainly available for historic reasons. Without
 it, \bras{} reads \texttt{brasfile}s in other directories on demand
-during the reasoning process (section~\ref{secReasoning}).
+during the reasoning process (section~\ref{secReasoning}). Instead of
+\texttt{-es} you should consider using the command \texttt{include}
+with a parameter starting with \texttt{@}.
 
 Beside rules, any Tcl-command can be used in a \texttt{brasfile}. They
 are executed as in every other Tcl-script. Useful examples are setting
