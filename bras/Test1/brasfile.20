@@ -1,5 +1,5 @@
 puts "msg: Error message if deep target cannot be made"
-puts "expect: bras: cannot make X because"
+puts "expect: bras: cannot make @/home1/kir/work/bras/Test1/X because"
 puts "expect: don't know how to make `a1' in `/home1/kir/work/bras/Test1'"
 puts "expect:       try to use -d to find out more"
 

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.4 $, $Date: 1997/05/01 14:52:42 $
+# $Revision: 1.5 $, $Date: 1999/02/11 19:46:06 $
 ########################################################################
 
 ########################################################################
@@ -30,11 +30,9 @@
 ## It is always decided that the target has to be rebuilt. Since the
 ## dependencies are necessary to rebuild it, they are all considered. 
 ##
-Defrule Always {target deps _trigger _reason} {
+Defrule Always {target _reason} {
   upvar $_reason reason
-  ## _trigger is not used here, but must appear to have the same
-  ## interface than other rules.
-  
+
   append reason "\nmust always be made"
   return 1
 }

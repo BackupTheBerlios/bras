@@ -41,13 +41,43 @@ getenv CC cc
 getenv CFLAGS {}
 getenv LDFLAGS {}
 getenv LDLIBS {}
-getenv AR ar
+getenv AR {ar r}
+getenv DEPOPTS {-M -MG}
 
 ##
-## How to make an object file from a .c-file
+## How to make an object file from a dependency-file. It assumes that
+## the dependency file and the source file only differ in their
+## extension.
 ##
-PatternNewer {.*\.o} .c {
-  $CC -c $CFLAGS -o $target [lindex $trigger 0]
+PatternNewer {.*\.o} .dep {
+  set in [open [lindex $deps 0] r]
+  set l [read $in]
+  close $in
+  $CC -c $CFLAGS -o $target [lindex $l 0]
+}
+
+##
+## How to make a dependency file from a C source file
+## 
+PatternDependsFile .*\.dep .c {
+  set l [eval exec "$CC $DEPOPTS $INCLUDES [lindex $deps 0]" ]
+  set res {}
+  foreach x $l {
+    set x [string trim $x]
+    if {[string match /usr/* $x]} continue
+    if {[string match *: $x]} continue
+    lappend res $x
+  }
+  set out [open $target w]
+  puts $out $res
+  close $out
+}
+
+##
+## How to replace object files in a library
+##
+PatternNewer .*\.a .o {
+  $AR $target $trigger
 }
 
 ##

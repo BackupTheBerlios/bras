@@ -1,6 +1,5 @@
 ## This brasfile is called via the equivalent file in ../Test1
 
-exec touch file1
 Exist file1 {} {
   puts $target
 }

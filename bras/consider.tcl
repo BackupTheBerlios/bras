@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 1999/02/02 06:41:59 $
+# $Revision: 1.10 $, $Date: 1999/02/11 19:46:06 $
 ########################################################################
 
 ########################################################################
@@ -97,9 +97,15 @@ proc bras.ConsiderPreqs {rid} {
 # BrastSearchPath are prepended to target and the resulting list is
 # returned. 
 proc BrasExpandTarget {target} {
-  global BrasSearchPath
+  global brasSearchPath brasSearched
+
+  ## Don't search for targets which are the result of a search already.
+  if {[info exist brasSearched([pwd],$target)]} {
+    return [list $target]
+  }
+
   #puts "BrasExpandTarget $target"
-  if {![info exist BrasSearchPath]} { 
+  if {![info exist brasSearchPath([pwd])]} { 
     return [list $target]
   }
 
@@ -109,22 +115,25 @@ proc BrasExpandTarget {target} {
   }
 
   ## Don't expand names which contain a path
-  if {"[file tail $target]"!="$target"} {
+#   if {"[file tail $target]"!="$target"} {
+#     return [list $target]
+#   }
+  
+  ## Don't expand non-relative paths
+  set ptype [file pathtype $target]
+  if {"$ptype"!="relative"} {
     return [list $target]
   }
 
-#   set ptype [file pathtype $target]
-#   if {"$ptype"!="relative"} {
-#     return [list $target]
-#   }
-
   set res {}
-  foreach x $BrasSearchPath {
+  foreach x $brasSearchPath([pwd]) {
     if {"$x"!="."} {
-      lappend res [file join $x $target]
+      set t [file join $x $target]
     } else {
-      lappend res $target
+      set t $target
     }
+    #set brasSearched([pwd],$t) 1
+    lappend res $t
   }
   #puts "BrasExpandTarget returns $res"
   return $res
@@ -146,39 +155,47 @@ proc BrasExpandTarget {target} {
 ##
 proc bras.Consider {_target} {
   upvar $_target target
-  global brasIndent brasOpts
+  global brasIndent brasOpts brasSearched
 
-  set candidates [BrasExpandTarget $target]
-  if {$brasOpts(-d) &&
-      ([llength $candidates] || "$target"!="[lindex $candidates 0]")} {
-    bras.dmsg $brasIndent "expansion of `$target' is `$candidates'"
-  }
+  if {![info exists brasSearched([pwd],$target)]} {
+    set candidates [BrasExpandTarget $target]
+    if {$brasOpts(-d)} {
+      bras.dmsg $brasIndent "looking at dependency `$target'"
+      bras.dmsg $brasIndent "+ searchpath yields `$candidates'"
+    }
+    
+    ## We first take a look to see if one of the candidates is an
+    ## existing file 
+    foreach c $candidates {
+      if {[file exist $c]} {
+	set realTarget $c
+	break
+      }
+    }
+    
+    if {[info exists realTarget]} {
+      set target $realTarget
+      set reason "+ file `$target' exists"
+    } else {
+      set target [lindex $candidates 0]
+      set reason "+ none of them exists, defaulting to `$target'"
+    }
+    if {$brasOpts(-d)} {
+      bras.dmsg $brasIndent $reason
+      bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
+    }
 
-  ## We first take a look to see if one of the candidates is an
-  ## existing file 
-  foreach c $candidates {
-    if {[file exist $c]} {
-      set target $c
-      return [bras.ConsiderKernel $c]
+    ## There is absolutely no need to pass $dep through searchpath again
+    set brasSearched([pwd],$target) 1
+
+  } else {
+    if {$brasOpts(-d)} {
+      bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
     }
   }
 
-  ## Not an existing file, so disregard the search path (according to
-  ## Paul Duffin).
   return [bras.ConsiderKernel $target]
-
-  
-#   foreach c $candidates {
-#     set res [bras.ConsiderKernel $c]
-#     #bras.dmsg $brasIndent "got $res"
-#     if {$res>=0} {
-#       set target $c		;# return changed target
-#       return $res
-#     }
-#   }
-#   return -1
 }
-
 ########################################################################
 ##
 ## Check whether the target needs to be rebuilt.
@@ -244,10 +261,10 @@ proc bras.ConsiderKernel {target} {
   }
   set brasConsidering($target,[pwd]) 1
 
-  ## describe line of reasoning
-  if $brasOpts(-d) {
-    bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
-  }
+#   ## describe line of reasoning
+#   if $brasOpts(-d) {
+#     bras.dmsg $brasIndent "considering `$target' in `[pwd]'"
+#   }
 
 
   ## handle targets without rule
@@ -293,7 +310,7 @@ proc bras.ConsiderKernel {target} {
   set brasCmdlist {}
   set reason ""
   #puts ">>$P<<, >>$deps<<"
-  set res [Check.$rule $target deps newer reason]	;###<<<- HERE
+  set res [Check.$rule $target reason deps newer]	;###<<<- HERE
 
   if {$res==1} {
     ## target must be made, but we have to check, if all prerequisites

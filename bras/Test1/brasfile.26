@@ -1,5 +1,5 @@
 puts "msg: Error message, if dependency in Exist rule cannot be made"
-puts "expect: bras: cannot make all because"
+puts "expect: bras: cannot make @/home1/kir/work/bras/Test1/all because"
 puts "expect: don't know how to make `C' in `/home1/kir/work/bras/Test1'"
 puts "expect:       try to use -d to find out more"
 

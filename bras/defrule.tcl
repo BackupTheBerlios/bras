@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.3 $, $Date: 1997/05/01 14:52:43 $
+# $Revision: 1.4 $, $Date: 1999/02/11 19:46:07 $
 ########################################################################
 
 ########################################################################
@@ -41,10 +41,16 @@ proc Defrule {Name params body} {
     bras.enterRule $Name \$target \$deps \$cmd
   "
 
-  ## There must be exactly 4 parameters for the rule-predicate
+  ## Rules may have 2 or 4 parameters. Those with just two are not
+  ## interested in dependencies. Nevertheless we add two params to
+  ## keep the interface identical. (About to shoot into my foot with
+  ## those #-params?).
+  if {[llength $params]==2} {
+    set params [concat $params \# \#]
+  }
   if {[llength $params]!=4} {
     return -code error \
-	-errorinfo "a rule must have exactly for parameters"
+	-errorinfo "a rule must either two or four parameters"
   }
 
   ## define the rule-execution

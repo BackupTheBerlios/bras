@@ -2,7 +2,7 @@ puts "msg: Simple prerequisite"
 puts "expect: A <- a (braselfasel)"
 
 
-Exist A {a // braselfasel} {
+Newer A {a // braselfasel} {
   puts "$target <- $deps ($preq)"
 }
 Exist {a braselfasel}

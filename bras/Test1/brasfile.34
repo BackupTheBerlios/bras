@@ -1,18 +1,23 @@
 puts "msg: two rules for one target: ClearDeps, ClearCmd, ClearPreqs"
-puts "expect: R S"
-puts "expect: "
-puts "expect: BB"
-puts "expect: R S"
+puts "expect: deps = `dep2'"
+puts "expect: cmd = `"
+puts "expect: dummy command'"
+puts "expect: preq = `preq'"
+puts "expect: preq = `'"
 
-Newer X {A B} {AA}
+
+Newer X {dep // preq} {first command}
 
 ClearDeps X
 ClearCmd X
+
+Newer X {dep2} {dummy command}
+
+puts "deps = `[GetDeps X]'"
+puts "cmd = `[GetCmd X]'"
+puts "preq = `[GetPreqs X]'"
+
 ClearPreqs X
+puts "preq = `[GetPreqs X]'"
 
-Newer X {R S} {BB}
-
-puts [GetDeps X]
-puts [GetCmd X]
-puts [GetPreqs X]
 exit 0

@@ -1,8 +1,8 @@
 puts "msg: Simple prerequisite which cannot be made"
-puts "expect: bras: cannot make A because"
+puts "expect: bras: cannot make @/home1/kir/work/bras/Test1/A because"
 puts "expect: don't know how to make `braselfasel' in `/home1/kir/work/bras/Test1'"
 
-Exist A {a // braselfasel} {
+Newer A {a // braselfasel} {
   puts "$target <- $deps ($preq)"
 }
 

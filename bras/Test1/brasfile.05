@@ -13,11 +13,11 @@ proc GenDepYyY {target} {
 }
 
 PatternAlways .*XxX.* YyY {
-  puts "$target <- $deps"
+  puts "$target <- $preq"
 }
 
 Always all aaXxXaa {
-  puts "$target <- $deps"
+  puts "$target <- $preq"
   exec rm aaYyYaa
 }
 

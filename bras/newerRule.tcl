@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 1999/02/02 06:41:59 $
+# $Revision: 1.6 $, $Date: 1999/02/11 19:46:07 $
 ########################################################################
 
 ########################################################################
@@ -37,7 +37,7 @@
 ## non-existing dependency, i.e. this dependency is no reason to
 ## remake the target.
 ##
-Defrule Newer {target _deps _newer _reason} {
+Defrule Newer {target _reason _deps _newer} {
   upvar $_deps deps
   upvar $_reason reason
   upvar $_newer newer

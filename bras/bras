@@ -1,8 +1,9 @@
-#!/usr/local/bin/tclsh
+#!/bin/sh
+# \
+exec tclsh8.0 "$0" ${1+"$@"}
 set brasBase |SRCBASE|
 set VERSION 0.0.0
 set INSTALLED 1111-11-11
-
 ########################################################################
 #
 # This file is part of bras, a program similar to the (in)famous
@@ -27,7 +28,7 @@ set INSTALLED 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.24 $, $Date: 1999/01/28 22:30:39 $
+# $Revision: 1.25 $, $Date: 1999/02/11 19:46:06 $
 ########################################################################
 
 ########################################################################
@@ -82,6 +83,15 @@ set brasRule(nextID) 0
 ##                 REcursively considered.
 set brasPrule(nextID) 0
 ##
+## brasSearchPath
+##   is an array indexed by [pwd] and contains for each directory the
+##   dependency search path. Elements are set by command `searchpath'.
+##
+## brasSearched
+##   is an array indexed by [pwd],<name> . If a certain index exists,
+##   <name> is the result of an expansion along brasSearchPath and it
+##   will not be expanded again.
+##
 ## brasLastError
 ##   If it exists, it contains the deep reason, why the main target
 ##   cannot be made.
@@ -125,13 +135,28 @@ set brasPreqSeparator //
 ##
 ########################################################################
 
+set f $argv0
 set argv0 [file tail $argv0]
 
-## This if never succeeds after installation. I need it however run
-## bras from my development directory.
+## If this file was not truly installed, the following line contains
+## the string "|SRCBASE|".
 if { "$brasBase"=="|SRCBASE|" } {
-  set brasBase /home1/kir/work/bras
+  ## Nevertheless we try to find our place in the universe. Even
+  ## symbolic links shall not lead us to bad places.
+  while {[file type $f]=="link"} {
+    set t [file readlink $f]
+    # puts "$argv0 --> $t"
+    if {[file pathtype $t]=="relative"} {
+      set f [file join [file dirname $f] $t]
+    } else {
+      set f $t
+    }
+  }
+  set brasBase [file dirname $f]
+  catch {unset t}
 }
+unset f
+
 source $brasBase/evalCmds.tcl
 source $brasBase/sourceDeps.tcl
 source $brasBase/lastMinuteRule.tcl
@@ -146,6 +171,7 @@ source $brasBase/existRule.tcl
 source $brasBase/newerRule.tcl
 #source $brasBase/uptodateOCRule.tcl
 source $brasBase/dependsFileRule.tcl
+source $brasBase/exported.tcl
 
 ########################################################################
 #
@@ -179,49 +205,6 @@ proc bras.gobble {file} {
 }
 ########################################################################
 ##
-## include
-##   an alias for `source', however we take care to not source any
-##   file more than once.
-##  
-##   If the `name' starts with an `@' it must be a directory. In that
-##   case, the $brasFile of that directory is sourced in the same way
-##   as if an `@'-target had let to that directory.
-##
-##   If the `name' does not start with `@', it must be the name of an
-##   existing readable file. This one is simpy sourced in.
-##
-proc include {name} {
-  global brasKnown
-  
-  if [string match @* $name] {
-    cd [bras.followTarget $name/.]
-    return
-  }
-
-  ## To be compatible with followTarget, we first have to move to the
-  ## destination directory to get the correct answer from [pwd]. _NO_,
-  ## just stripping the directory part from $name is useless, because
-  ## it may contain relative parts and parts leading through one or
-  ## more soft-links.
-  set dir [file dir $name]
-  set file [file tail $name]
-
-  set oldpwd [pwd]
-  if [catch "cd $dir" msg] {
-    set err "bras: include of `$name' tried in directory `$oldpwd'"
-    append err " leads to non-existing directory `$dir'"
-    puts stderr $err
-    exit 1
-  }
-  set pwd [pwd]
-  cd $oldpwd
-
-  if [info exist brasKnown($pwd/$file)] return
-
-  bras.gobble $name
-}
-########################################################################
-##
 ## bras.followTarget
 ##  
 ## Handle all what is necessary to follow an @-target to its
@@ -234,7 +217,7 @@ proc include {name} {
 ##   The current directory (before cd) is returned.
 ##
 proc bras.followTarget {target} {
-  global brasFile brasKnown
+  global brasFile brasKnown brasTinfo
   #puts "followTarget $target"
 
   set oldpwd [pwd]
@@ -260,11 +243,13 @@ proc bras.followTarget {target} {
   ## If the brasfile does not exist, print a warning. There is no need
   ## to terminate immediately, because things might be handled by
   ## default rules.
-  if ![file exists ${brasFile}] {
-    puts stderr \
-    "bras warning: no `${brasFile}' found in `[pwd]', so hold your breath"
+  if {![file exists ${brasFile}]} {
+    if {0==[llength [array names brasTinfo *,[pwd],rule]]} {
+      puts stderr \
+     "bras warning: no `$brasFile' found in `[pwd]', so hold your breath"
+    }
   } else {
-    bras.gobble ${brasFile}
+    bras.gobble $brasFile
   }
   return $oldpwd
 }
@@ -277,11 +262,20 @@ proc bras.followTarget {target} {
 proc bras.MatchDepDefault {suffix deps} {
   set res {}
   foreach x $deps {
-    if [string match *$suffix $x] {
+    if {[string match *$suffix $x]} {
       lappend res $x
     }
   }
+
   return $res
+}
+########################################################################
+##
+## bras.GenDepDefault
+##  The default dependency generator.
+##
+proc bras.GenDepDefault {target suffix} {
+  return "[file root $target]$suffix"
 }
 ########################################################################
 ##
@@ -308,8 +302,10 @@ proc bras.PatternRule {type target dep cmd} {
 
   ## create pattern replacement commands for the dependency
   if { 0==[llength [info commands GenDep$dep]] } {
-    proc GenDep$dep {target} "return \[file root \$target\]$dep"
+    proc GenDep$dep {target} \
+	[concat return "\[" bras.GenDepDefault {$target} $dep "\]"]
   }
+  #puts [info body GenDep$dep]
 
   ## create the depenceny matching command
   if { 0==[llength [info commands MatchDep$dep]] } {
@@ -331,29 +327,49 @@ proc bras.enterRule {type targets deps cmd} {
   ## newline characters and semicolons are poisonous for `eval' so
   ## they have no business being in `deps'. Then separate dependencies
   ## into real dependencies and prerequisites
-  regsub -all ";" $deps {\\;} d
-  set deps {}
-  foreach x $d {
+  regsub -all ";" $deps {\\;} deps
+  foreach x $deps {
     if {"$x"=="$brasPreqSeparator"} {
-      set preq {}
+      set back {}
       continue
     }
-    if {[info exist preq]} {
-      lappend preq $x
+    if {[info exist back]} {
+      lappend back $x
     } else {
-      lappend deps $x
+      lappend front $x
     }
   }
 
-  ## If preq is not set, make it equal to deps
-  if {![info exist preq]} {
-    set preq $deps
+  set deps {}
+  set preq {}
+  if {"[lindex [info args Check.$type] 2]"=="\#"} {
+    ## This type of rule does not use dependencies. Therefore only one
+    ## of front or back may exist now. Its value is copied to preq.
+    if {[info exist front] && [info exist back]} {
+      return -code error  "$type-rules only accept prerequisites"
+    }
+    if {[info exist front]} {
+      set preq $front
+    } elseif {[info exist back]} {
+      set preq $back
+    }
+  } else {
+    if {[info exist front]} {
+      set deps $front
+    }
+    if {[info exist back]} {
+      set preq $back
+    }
   }
 
   ## if this is the very first explicit rule seen, and if no target was
   ## specified on the command line, this is the default target-list.
+  ## It suffices to put just the first element into brasTargets,
+  ## because all of them are made by the command of this rule.
+  ## We make it an @-target so that the brasfile may contain `cd here'
+  ## and `cd there' without messing things up.
   if { ![info exist brasTargets] } {
-    set brasTargets [lindex $targets 0]
+    set brasTargets [file join @[pwd] [lindex $targets 0]]
   }
 
   ## Some targets may already have a rule. If so, those must all have
@@ -490,24 +506,6 @@ proc GetCmd {target} {
 }
 ########################################################################
 ##
-## This is useful to set global variables in a way that they can be
-## overridden by the environment or on the command line. Typical
-## candidates are CC, prefix and the like.
-##
-## Typical use:
-## getenv prefix /usr/local
-##
-proc getenv {_var {default {}} } {
-  upvar $_var var
-  global env
-  if {[info exist env($_var)]} {
-    set var $env($_var)
-  } else {
-    set var $default
-  }
-}
-########################################################################
-##
 ## debugging only!
 ##
 proc bras.showCmds {cmds} {
@@ -516,7 +514,7 @@ proc bras.showCmds {cmds} {
   }
 }
 ########################################################################
-proc usage {} {
+proc bras.usage {} {
   global argv0 VERSION INSTALLED
   puts stderr \
       "usage: $argv0 \[-f brasfile\] \[-d\] \[-es\] \[-h\] \[-n\]\
@@ -587,7 +585,7 @@ proc bras.main {argc args} {
 	  lappend brasTargets [lindex $args $i]
 	}
       }
-      -* usage
+      -* bras.usage
       default {
 	if [string match *=* $opt] {
 	  lappend brasOpts(=) $opt
@@ -655,14 +653,18 @@ proc bras.main {argc args} {
 
   #parray brasRules
   #parray brasPrule
-  set VPATH {jockel gockel}
+  #global brasTinfo; parray brasTinfo
+
   foreach target $brasTargets {
     set brasIndent ""
     set brasCmdlist {}
     set r [bras.ConsiderKernel $target]
+
+    #global brasTinfo; parray brasTinfo
     #bras.showCmds $brasCmdlist
+
     if $brasOpts(-d) continue
-    #global brasRule;parray brasRule
+
     if {$r==-1} {
       puts "bras: cannot make $target because$brasLastError"
       puts "      try to use -d to find out more"

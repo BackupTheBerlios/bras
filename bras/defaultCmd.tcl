@@ -39,7 +39,7 @@ proc bras.defaultCmd {type target deps _reason _patternTrigger} {
   if {$brasOpts(-d)} {
     append reason \
 	"\ntrying to guess command for `$target' " \
-	"depending on `$deps'"
+	"depending on `$deps' from rules of type `$type'"
   } 
       
   ## need to check all pattern rules

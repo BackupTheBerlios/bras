@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.5 $, $Date: 1999/01/28 22:30:41 $
+# $Revision: 1.6 $, $Date: 1999/02/11 19:46:07 $
 ########################################################################
 
 
@@ -33,10 +33,8 @@
 ## this rule considers the dependencies, since they may be needed to
 ## create the target.
 ##
-Defrule Exist {target _deps _trigger _reason} {
+Defrule Exist {target _reason} {
   upvar $_reason reason
-  ## _deps and _trigger are not used here. They must be there to
-  ## conform to the interface.
 
   if {![file exist $target]} {
     append reason "\ndoes not exist"

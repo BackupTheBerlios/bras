@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.12 $, $Date: 1999/01/23 19:27:24 $
+# $Revision: 1.13 $, $Date: 1999/02/11 19:46:06 $
 #
 ########################################################################
 
@@ -82,6 +82,9 @@ Exist $BRASHOME {} {
 ## make doc/bras.ps in directory doc.
 Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
   ship -F -d $BRASHOME -I doc/bras.ps -e bras bras.spec
+}
+Always tgz $BRASHOME/$BRASTARGZ {
+  puts "made $deps"
 }
 
 ## This rule works along the same lines as the one above.

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1999/01/28 22:30:40 $
+# $Revision: 1.3 $, $Date: 1999/02/11 19:46:07 $
 ########################################################################
 
 ########################################################################
@@ -43,7 +43,7 @@
 ## names. Those are added to the dependency list and the whole stuff
 ## is then passed to Newer.
 ## 
-Defrule DependsFile {target _deps _newer _reason} {
+Defrule DependsFile {target _reason _deps _newer} {
   upvar $_deps deps
   upvar $_reason reason
   upvar $_newer newer
@@ -59,7 +59,7 @@ Defrule DependsFile {target _deps _newer _reason} {
     append reason "\n(after appending `$otherDeps' to list of deps)"
   }
 
-  set res [Check.Newer $target deps newer moreReasons]
+  set res [Check.Newer $target moreReasons deps newer]
   append reason $moreReasons
 
   return $res

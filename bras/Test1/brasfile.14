@@ -2,7 +2,12 @@ puts "msg: Dependency in foreign directory, nothing to do"
 puts "expect: rm file1 ../Test2/file1"
 
 exec rm -f file1 ../Test2/file1
+
+## Make sure the foreign file is newer than ours
+exec touch ../Test2/file1
+after 1000
 exec touch file1
+
 
 Always nix file1 {
   rm file1 ../Test2/file1

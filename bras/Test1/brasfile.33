@@ -1,15 +1,14 @@
 puts "msg: two rules for one target: testing GetDeps, GetCmd, GetPreqs"
-puts "expect: A B R S"
-puts "expect: "
-puts "expect: AA"
-puts "expect: BB"
-puts "expect: A B R S"
-Newer X {A B} {AA}
+puts "expect: deps = (one two three four)"
+puts "expect: cmds = ("
+puts "expect: cmd1"
+puts "expect: cmd2)"
+puts "expect: preq = (eins zwei)"
 
+Newer X {one two // eins} {cmd1}
+Newer X {three four // zwei} {cmd2}
 
-Newer X {R S} {BB}
-
-puts [GetDeps X]
-puts [GetCmd X]
-puts [GetPreqs X]
+puts "deps = ([GetDeps X])"
+puts "cmds = ([GetCmd X])"
+puts "preq = ([GetPreqs X])"
 exit 0

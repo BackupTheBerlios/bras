@@ -1,5 +1,5 @@
 puts "msg: Wrong definition of new rule type"
-puts "expect: a rule must have exactly for parameters"
+puts "expect: a rule must either two or four parameters"
 
 Defrule Longer {a b c} {
   hallo
