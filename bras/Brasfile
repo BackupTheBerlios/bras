@@ -11,7 +11,7 @@
 # second half of this script, there are commands like `Newer' or
 # `Always' which define rules to be followed by bras.
 #
-# $Revision: 1.9 $, $Date: 1998/01/18 13:11:26 $
+# $Revision: 1.10 $, $Date: 1998/08/07 14:11:19 $
 #
 ########################################################################
 
@@ -25,16 +25,19 @@ set BRASHOME /home1/kir/work/WWWkir/brashome
 ## My most recent shipment program knows the .tar.gz it will create
 set BRASTARGZ [exec ship -n].tar.gz
 
+## Similarly for the binary rpm
+set BRASRPM [exec ship -n]-0.i386.rpm
+
 ## Within $BRASHOME I want several files. I collect their names here
 ## in the variable TARGETS
-foreach x "$BRASTARGZ CHANGES brasfile.exa index.html 
+foreach x "$BRASTARGZ $BRASRPM CHANGES brasfile.exa index.html 
            bras.ps.gz manual/bras.html" {
   lappend TARGETS $BRASHOME/$x
 }
 
 ## Don't ask why, but I maintain more than one CVS repository. However
 ## I know, that this module is here:
-set env(CVSROOT) [glob ~/CVS]
+set env(CVSROOT) /zip/CVS
 
 
 ## Since I don't know how to ask cvs directly which files it knows
@@ -78,12 +81,16 @@ Exist $BRASHOME {} {
 ## The notation @doc/bras.ps tells bras that it can find the rules to
 ## make doc/bras.ps in directory doc.
 Newer $BRASHOME/$BRASTARGZ "$CVSFILES @doc/bras.ps // $BRASHOME" {
-  ship -d $BRASHOME -I doc/bras.ps -e bras
+  ship -d $BRASHOME -I doc/bras.ps -e bras bras.spec
 }
 
-## This rule works along the same lines as the one above. (The program
-## `digestLog' is again a little script which formats and sorts cvs
-## log-information.)
+Newer $BRASHOME/$BRASRPM $BRASHOME/$BRASTARGZ {
+  cd [glob ~/tmp]
+  rpm -tb $BRASHOME/$BRASTARGZ
+  cp [glob ~/tmp/RPMS/i386/$BRASRPM] $target
+}
+
+## This rule works along the same lines as the one above.
 Newer $BRASHOME/CHANGES "$CVSFILES // $BRASHOME/$BRASTARGZ $BRASHOME" {
   cd $BRASHOME
   set x [file root [file root $BRASTARGZ]]
@@ -99,7 +106,8 @@ Newer $BRASHOME/brasfile.exa "Brasfile // $BRASHOME" {
 
 Newer $BRASHOME/index.html \
     "index.html $BRASHOME/$BRASTARGZ // $BRASHOME" {
-  sed -e "s/|BRASTARGZ|/$BRASTARGZ/g" index.html >$target
+  sed -e "s/|BRASTARGZ|/$BRASTARGZ/g" \
+      -e "s/|BRASRPM|/$BRASRPM/g" index.html >$target
 }
 
 Newer $BRASHOME/bras.ps.gz "@doc/bras.ps // $BRASHOME" {
@@ -121,3 +129,4 @@ Newer $BRASHOME/manual/bras.html \
     "doc/bras.tex // $BRASHOME @doc/bras.aux" {
   latex2html -split 0 -dir $BRASHOME/manual $trigger 
 }
+
