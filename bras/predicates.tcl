@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.6 $, $Date: 2000/05/28 11:54:04 $
+# $Revision: 1.7 $, $Date: 2000/06/22 11:34:29 $
 ########################################################################
 ## source version and package provide
 source [file join [file dir [info script]] .version]
@@ -350,15 +350,27 @@ proc ::bras::p::varchanged {varnames {cachefile {}} } {
 
   installPredicate [list trigger deps] {}
 
-  ## We first read the cachefile. This will set the given variables to 
-  ## their former values, if any.
+  ## We first read the cachefile into array varChanged. This must be
+  ## done in a manner which does not values already in the given
+  ## variables.
   if {[file exist $cachefile]} {
+    foreach varname $varnames {
+      if {![info exist $varname]} continue
+      set keep($varname) [set $varname]
+    }
     if {[::bras::include $cachefile]} {
-      ## it was in fact read. We must set the cache-variables
+      ## it was in fact read. We must set the cache-variables and
+      ## reset the original values
       foreach varname $varnames {
 	set varChanged($varname) [set $varname]
+	if {[info exist keep($varname)]} {
+	  set $varname $keep($varname)
+	} else {
+	  unset $varname
+	}
       }
     }
+    catch {unset keep}
   }
 
   ## Consider the given variable name as a target. We are not
