@@ -1,0 +1,6 @@
+puts "msg: Wrong definition of new rule type"
+puts "expect: a rule must have exactly for parameters"
+
+Defrule Longer {a b c} {
+  hallo
+}

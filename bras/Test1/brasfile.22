@@ -1,0 +1,18 @@
+puts "msg: Two targets share the same command, first has "
+puts "msg: dependency which is remade by implicit rule"
+puts "expect: pattern rule .rrr->.o executed for X.rrr->X.o"
+puts "expect: X Y <- X.o Y.c"
+puts "expect: rm -f X.rrr"
+
+exec touch X.rrr
+
+PatternNewer .*\.o .rrr {
+  puts "pattern rule .rrr->.o executed for $deps->$target" 
+}
+
+Newer {X Y} {X.o Y.c} {
+  puts "$target <- $trigger"
+  rm -f X.rrr
+}
+
+Exist Y.c {}

@@ -22,31 +22,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1997/04/30 17:35:28 $
+# $Revision $, $Date: 1997/04/30 17:35:27 $
 ########################################################################
+
 
 ########################################################################
 ##
-## This is an extended kind of `proc'. It is used to
-## define new types of rules.
+## The Command-rule is used to specify a command and its prerequisites
+## alone. When called by bras.Consider, it always return 0, indicating
+## that it sees no reason to make the target. If however other rules
+## indicate that the target must be made, the command specified with
+## the Command-rule will be executed.
 ##
-proc Defrule {Name params body} {
-  ## define the pattern rule associated to the rule
-  proc Pattern$Name {target deps cmd} "
-    bras.PatternRule $Name \$target \$deps \$cmd
-  "
-
-  ## define the rule-command itself
-  proc $Name {target deps {cmd {}}} "
-    bras.enterRule $Name \$target \$deps \$cmd
-  "
-
-  ## There must be exactly 4 parameters for the rule-predicate
-  if {[llength $params]!=4} {
-    return -code error \
-	-errorinfo "a rule must have exactly for parameters"
-  }
-
-  ## define the rule-execution
-  proc Check.$Name $params $body
+Defrule Command {target deps _trigger _reason} {
+  return 0
 }
+########################################################################

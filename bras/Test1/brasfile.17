@@ -11,7 +11,7 @@ Newer {cmdline.h cmdline.c} {} {
   puts "making cmdline.c and cmdline.h"
 }
 
-Dependencies cmdline.c {A B}
+Newer cmdline.c {A B}
 
 Exist cmdline.cli {} {
 }

@@ -74,21 +74,23 @@ proc sourceDeps {file args} {
     ## extract target
     regsub {:} $line { } line
     set target [lindex $line 0]
-
+    if {![info exist Deps($target)]} {
+      set Deps($target) {}
+    }
     ## collect dependencies while filtering unwanted ones
     if $ex {
-      set deps {}
       foreach d [lrange $line 1 end] {
 	if [regexp $rex $d] continue
-	lappend deps $d
+	lappend Deps($target) $d
       }
     } else {
-      set deps [lrange $line 1 end]
+      foreach d [lrange $line 1 end] {
+	lappend Deps($target) $d
+      }
     }
-
-    if ![llength $deps] continue
-    #puts "`$target' <-- `$deps'"
-    Dependencies $target $deps
   }
   close $in
+  foreach x [array names Deps] {
+    Newer $x $Deps($x)
+  }
 }

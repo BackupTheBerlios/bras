@@ -1,0 +1,11 @@
+puts "msg: Error `dependency leads to non-existant dir'"
+puts "expect: dependency `@/bla/bli' leads to non-existing directory `/bla'"
+puts "expect:     invoked from within"
+puts "expect: \"bras.enterRule Newer \$target \$deps \$cmd\""
+puts "expect:     (procedure \"Newer\" line 2)"
+puts "expect:     invoked from within"
+puts "expect: \"Newer A @/bla/bli\""
+puts "expect:     (file \"/home1/kir/work/bras/Test1/brasfile.23\" line 11)"
+
+
+Newer A @/bla/bli

@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1997/04/26 19:57:32 $
+# $Revision: 1.3 $, $Date: 1997/04/30 17:35:28 $
 ########################################################################
 
 ########################################################################
@@ -64,7 +64,7 @@ Defrule Newer {target deps _newer _reason} {
     ## consider the dependency as a target
     set x [bras.Consider $dep]
     if {$x==-1} {
-      set res -1
+      return -1
     } elseif {$x} {
       if {$res>=0} {set res 1}
       append reason "\ndependency $pdep rebuilt"

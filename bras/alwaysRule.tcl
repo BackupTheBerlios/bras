@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.2 $, $Date: 1997/04/26 19:57:30 $
+# $Revision: 1.3 $, $Date: 1997/04/30 17:35:27 $
 ########################################################################
 
 ########################################################################
@@ -39,7 +39,7 @@ Defrule Always {target deps _trigger _reason} {
   foreach dep $deps {
     set x [bras.Consider $dep]
     if {$x==-1} {
-      set res -1
+      return -1
     }
   }
   append reason "\nmust always be made"

@@ -25,7 +25,7 @@ set VERDATE 1111-11-11
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-# $Revision: 1.9 $, $Date: 1997/04/26 19:57:30 $
+# $Revision: 1.10 $, $Date: 1997/04/30 17:35:27 $
 ########################################################################
 
 ########################################################################
@@ -44,24 +44,29 @@ set VERDATE 1111-11-11
 ## brasFile
 ##   Name of the rule file. Used also for rule-files in other dirs.
 ##
-## brasRule
-##     array holding explicit rules. With an integer <i> denoting the
-##     rule number the indices are used as follows: 
-##   <i>,type -- Exist, Always or Newer to indicate type of rule
-##   <i>,targ -- targets of this rule. Used to mark targets as done,
-##               once it is decided that the command is executed.
-##   <i>,cmd  -- command to execute, if rule fires
+## brasCmd
+##      array holding commands to execute to update targets. With
+##      integer <i>, the following indices are used
+##   <i>   -- the command itself
+##   <i>,targ -- the list of targets which are updated by this command
+##   <i>,preq -- list of prerequisites, i.e. of targets which must be
+##               considered, before the command can be executed. And
+##               it will only be executed, if all prerequisites are
+##               reported to be ok or can be reconstructed.
 ##   nextID   -- next unique index to use
-set brasRule(nextID) 0
+set brasCmd(nextID) 0
 ##
 ## brasTinfo
-##     array holding information about targets. Indices used are:
-##   <target>,<dir>,rule -- index of the rule to use.
-##   <target>,<dir>,deps -- dependencies of target
-##   <target>,<dir>,done -- set, if target was already considered.
-##                          0: no need to make target
-##                          1: target will be made
-##                         -1: target needs to be made, but don't know how
+##      array holding information about targets. With <t> a target,
+##      <d> its directory, the indices used are:
+##   <t>,<d>,pred -- list of predicates, i.e. combinations of
+##                   rule-names and dependencies. A typcial list
+##                   element is s.th. like {Newer a b c}
+##   <t>,<d>,cmd  -- index of command which updates this target
+##   <t>,<d>,done -- set, if target was already considered.
+##                   0: no need to make target
+##                   1: target will be made
+##                  -1: target needs to be made, but don't know how
 ##
 ## brasPrule
 ##   database of pattern-rules. Pattern rules are stored and accessed in
@@ -73,6 +78,10 @@ set brasRule(nextID) 0
 ##   <i>,cmd    -- command for target/dependency pair
 ##   <i>,type   -- Newer, Exist, Always ...
 set brasPrule(nextID) 0
+##
+## brasLastError
+##   If it exists, it contains the deep reason, why the main target
+##   cannot be made.
 ##
 ## brasKnown
 ##   array with an element for all dirs the rule-files of which have
@@ -116,10 +125,13 @@ source $brasBase/sourceDeps.tcl
 source $brasBase/lastMinuteRule.tcl
 source $brasBase/defaultCmd.tcl
 source $brasBase/consider.tcl
+
+## source rule types
 source $brasBase/defrule.tcl
+source $brasBase/alwaysRule.tcl
+source $brasBase/commandRule.tcl
 source $brasBase/existRule.tcl
 source $brasBase/newerRule.tcl
-source $brasBase/alwaysRule.tcl
 
 ########################################################################
 ##
@@ -195,6 +207,7 @@ proc bras.PatternRule {type target deps cmd} {
 ##
 ## User command to add (more) dependencies to a target
 ##
+if 0 {
 proc Dependencies {target deps} {
   global brasTinfo brasFile brasKnown
 
@@ -240,14 +253,16 @@ proc Dependencies {target deps} {
     cd $pwd
   }
 }
+}
 ########################################################################
 ##
 ## bras.enterRule
 ##    declare a rule
 ##
 proc bras.enterRule {type targets deps cmd} {
-  global brasRule brasTinfo brasFile brasTargets brasKnown argv0
+  global brasCmd brasTinfo brasFile brasTargets brasKnown argv0
 
+  #parray brasCmd
   ## newline characters and semicolons are poisonous for `eval' so
   ## they have no business being in `deps'. The foreach-loop was
   ## choosen to normalise list of dependencies by squeezing out
@@ -256,35 +271,77 @@ proc bras.enterRule {type targets deps cmd} {
   set deps {}
   foreach x $d {lappend deps $x}
 
-  ## it is wrong for any of the targets to have already a rule
-  ## associated with it.
-
-  foreach t $targets {
-    if {[info exist brasTinfo($t,[pwd],rule)]} {
-      set ri $brasTinfo($t,[pwd],rule)
-      set err "target `$t' has already rule of type $brasRule($ri,type)\n"
-      append err "with command >>>>>$brasRule($ri,cmd)<<<<<"
-      return -code error -errorinfo $err
+  ## it is wrong for any of the targets to have already a command
+  ## associated with it, if this command is not empty
+  if {"$cmd"!=""} {
+    foreach t $targets {
+      if {[info exist brasTinfo($t,[pwd],cmd)]} {
+	set ci $brasTinfo($t,[pwd],cmd)
+	set err "target `$t' has already command "
+	append err ">>>>>$brasCmd($ci,cmd)<<<<<"
+	return -code error -errorinfo $err
+      }
     }
   }
 
-  ## enter the new rule
-  set ri $brasRule(nextID)
-  incr brasRule(nextID)
-  set brasRule($ri,type) $type
-  set brasRule($ri,targ) $targets
-  set brasRule($ri,cmd) $cmd
-
-  ## Store rule-index and add dependencies for every target
+  ## Enter the predicate to every target
   foreach t $targets {
-    set brasTinfo($t,[pwd],rule) $ri
-    Dependencies $t $deps
+    if {![info exist brasTinfo($t,[pwd],pred)]} {
+      set brasTinfo($t,[pwd],pred) {}
+    }
+    lappend brasTinfo($t,[pwd],pred) "$type $deps"
+  }
+
+  ## Enter command, if any
+  if {"$cmd"!=""} {
+    set ci $brasCmd(nextID)
+    set brasCmd($ci,cmd) $cmd
+    set brasCmd($ci,preq) $deps
+    set brasCmd($ci,targ) $targets
+    foreach t $targets {
+      set brasTinfo($t,[pwd],cmd) $ci
+    }
+    incr brasCmd(nextID)
   }
 
   ## if this is the very first explicit rule seen, and if no target was
   ## specified on the command line, this is the default target-list.
   if { ![info exist brasTargets] } {
-    set brasTargets $targets
+    set brasTargets [lindex $targets 0]
+  }
+
+  ## source rule-files for dependencies, if necessary. This is
+  ## necessary only for dependencies starting with `@'. Most of the
+  ## code below is error-checking.
+  foreach x $deps {
+    if ![string match @* $x] continue
+
+    set dir [file dir [string range $x 1 end]]
+
+    ## change to dir of that dependency
+    set pwd [pwd]
+    if [catch "cd $dir" msg] {
+      set err "dependency `$x' leads to "
+      append err "non-existing directory `$dir'"
+      return -code error -errorinfo $err
+    }
+    #puts "+++ Just switched to [pwd]"
+
+    ## source only, if we have not seen this directory's brasfile before
+    if {[info exist brasKnown([pwd])]} {
+      cd $pwd
+      continue
+    }
+
+    if { ![file exists ${brasFile}]} {
+      set err "dependency `$x' leads to"
+      append err " `[pwd]', but there is no `${brasFile}'"
+      cd $pwd
+      return -code error -errorinfo $err
+    }
+    set brasKnown([pwd]) 1
+    bras.gobble ${brasFile}
+    cd $pwd
   }
 
 }
@@ -320,8 +377,8 @@ This version was packed from an up-to-date cvs-repository on $VERDATE.
 }
 ########################################################################
 proc bras.main {argc args} {
-  global argv0 brasFile brasTargets brasRules brasPrule brasOpts
-  global brasKnown brasBase
+  global argv0 brasFile brasTargets brasPrule brasOpts
+  global brasKnown brasBase brasLastError
   global brasIndent brasCmdlist
   
   set brasOpts(-d) 0 
@@ -397,9 +454,14 @@ proc bras.main {argc args} {
   foreach target $brasTargets {
     set brasIndent ""
     set brasCmdlist {}
-    bras.Consider $target
+    set r [bras.Consider $target]
+    #bras.showCmds $brasCmdlist
     if $brasOpts(-d) continue
-    #bras.showCmds $cmds
+    if {$r==-1} {
+      puts "bras: cannot make $target because$brasLastError"
+      puts "      try to use -d to find out more"
+      exit 1
+    }
     if {![llength $brasCmdlist]} {
       puts "$argv0: nothing to be done for `$target'"
     } else {

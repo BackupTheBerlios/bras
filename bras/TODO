@@ -1,0 +1,6 @@
+o Update doc
+  (This probably never goes away)
+
+o Find out how to give every brasfile its own scope so that a variable
+  like SRC is not messed up, if it is used in several brasfiles.
+
